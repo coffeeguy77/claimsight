@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Clients — ClaimSight{% endblock %}
+{% block head %}
+<style>
+  .pagehead{margin-bottom:20px}
+  .pagehead h1{font-size:26px}
+  .pagehead p{margin:3px 0 0;font-size:13.5px;color:var(--text-secondary)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+  .c{padding:17px}
+  .c h3{font-size:15px}
+  .c .ins{font-size:12.5px;color:var(--text-secondary);margin-top:2px}
+  .stats{display:flex;gap:20px;margin-top:14px;padding-top:13px;border-top:1px solid var(--border)}
+  .stats .k{font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .stats .v{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+  .jl{margin-top:13px;padding-top:11px;border-top:1px solid var(--border)}
+  .jl a{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:12.5px}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="pagehead">
+  <h1>Clients</h1>
+  <p>Insureds on file, derived from the claims assessed by {{ user.organisation.name }}.</p>
+</div>
+
+{% if clients %}
+<div class="grid">
+  {% for c in clients %}
+  <div class="card c">
+    <h3>{{ c.name }}</h3>
+    <div class="ins">{{ c.insurers | join(', ') if c.insurers else 'Insurer not recorded' }}</div>
+    <div class="stats">
+      <div><div class="k">Claims</div><div class="v">{{ c.claims }}</div></div>
+      <div><div class="k">Replacement</div><div class="v">A${{ "{:,.0f}".format(c.replacement) }}</div></div>
+      <div><div class="k">Settlement</div><div class="v">A${{ "{:,.0f}".format(c.settlement) }}</div></div>
+    </div>
+    <div class="jl">
+      {% for job in c.jobs[:4] %}
+        <a href="/jobs/{{ job.id }}">
+          <span>{{ job.claim_reference or job.reference or 'Untitled' }}</span>
+          <span class="dim">{{ job.peril }} · {{ job.created_at.strftime('%b %Y') }}</span></a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card" style="padding:64px 24px;text-align:center">
+  <h3 style="font-size:16px;margin-bottom:6px">No clients yet</h3>
+  <p style="font-size:13.5px;color:var(--text-secondary);margin:0">
+    Clients appear here once claims record an insured name.</p>
+</div>
+{% endif %}
+{% endblock %}

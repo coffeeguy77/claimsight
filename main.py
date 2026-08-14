@@ -29,7 +29,9 @@ from sqlalchemy.orm import Session
 import ingest
 import valuation
 from models import (
+    CONDITION_ADJUSTMENT,
     Item,
+    ItemEvent,
     Job,
     JobStatus,
     Organisation,
@@ -147,6 +149,59 @@ async def redirect_handler(request: Request, exc: HTTPException):
     if exc.status_code == 303 and "Location" in (exc.headers or {}):
         return RedirectResponse(exc.headers["Location"], status_code=303)
     return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+
+
+def record_event(
+    db: Session,
+    item: Item,
+    kind: str,
+    summary: str,
+    old_value: str = "",
+    new_value: str = "",
+    user: User | None = None,
+) -> None:
+    """Append an audit entry. Every assessor action against a line lands here."""
+    db.add(
+        ItemEvent(
+            item_id=item.id,
+            job_id=item.job_id,
+            user_id=user.id if user else None,
+            user_name=(user.name or user.email) if user else "Claimsight AI",
+            kind=kind,
+            summary=summary[:2000],
+            old_value=str(old_value)[:120],
+            new_value=str(new_value)[:120],
+        )
+    )
+
+
+def _parse_money(raw) -> float:
+    """Accept '1,250', 'A$1250', '' and return a float."""
+    try:
+        return float(str(raw).replace("$", "").replace("A", "").replace(",", "").strip() or 0)
+    except ValueError:
+        return 0.0
+
+
+def _money(value) -> str:
+    return f"A${value:,.2f}" if isinstance(value, (int, float)) else "—"
+
+
+def _back(job_id: str, return_to: str = "", item_id: str = "") -> str:
+    """Return to the same filtered page and selection after an action.
+
+    Forms post a hidden `return_to` carrying the current query string, so the
+    assessor is not dropped back to page 1 of an unfiltered list mid-review.
+    """
+    query = (return_to or "").lstrip("?")
+    # Only ever reflect our own query string back as a relative path.
+    if "//" in query or "\\" in query:
+        query = ""
+    if item_id:
+        parts = [p for p in query.split("&") if p and not p.startswith("item=")]
+        parts.append(f"item={item_id}")
+        query = "&".join(parts)
+    return f"/jobs/{job_id}?{query}" if query else f"/jobs/{job_id}"
 
 
 def owned_job(db: Session, job_id: str, user: User) -> Job:
@@ -311,7 +366,7 @@ async def create_job(
     site_address: str = Form(""),
     peril: str = Form("Water"),
     date_of_loss: str = Form(""),
-    policy_excess: float = Form(0.0),
+    policy_excess: str = Form("0"),
     apply_depreciation: str = Form(""),
     inventory: UploadFile = File(...),
     photos_initial: UploadFile | None = File(None),
@@ -329,7 +384,7 @@ async def create_job(
         site_address=site_address.strip(),
         peril=peril.strip(),
         date_of_loss=date_of_loss.strip(),
-        policy_excess=policy_excess or 0.0,
+        policy_excess=_parse_money(policy_excess),
         apply_depreciation=apply_depreciation == "on",
         status=JobStatus.ingesting,
     )
@@ -420,17 +475,118 @@ def _infer_quantity(description: str) -> int:
     return 1
 
 
+FILTERS = ("all", "review", "high", "medium", "low", "overridden", "unvalued", "excluded")
+PAGE_SIZES = (25, 50, 100, 250)
+
+
+def _photo_index(db: Session, job_id: str) -> dict:
+    """Photo metadata keyed by 'series:number', WITHOUT the image bytes.
+
+    Loading the relationship pulls every blob into memory (megabytes per
+    request); only the id is needed to build an <img> URL.
+    """
+    rows = db.execute(
+        select(Photo.id, Photo.series, Photo.number, Photo.caption).where(Photo.job_id == job_id)
+    ).all()
+    return {
+        f"{series}:{number}": {"id": pid, "caption": caption, "number": number}
+        for pid, series, number, caption in rows
+    }
+
+
+def _matches_filter(row, key: str) -> bool:
+    if key == "review":
+        return not row.excluded and (
+            row.flagged
+            or row.confidence == "low"
+            or row.valuation_status == ValuationStatus.failed
+            or not row.reviewed
+        )
+    if key in ("high", "medium", "low"):
+        return row.confidence == key and not row.excluded
+    if key == "overridden":
+        return bool(row.manual_override) or row.valuation_status == ValuationStatus.overridden
+    if key == "unvalued":
+        return row.valuation_status in (
+            ValuationStatus.pending, ValuationStatus.running, ValuationStatus.failed
+        )
+    if key == "excluded":
+        return bool(row.excluded)
+    return True
+
+
+_SORTERS = {
+    "order": lambda i: (i.sort_order or 0),
+    "name": lambda i: (i.description or "").lower(),
+    "value_desc": lambda i: -((i.replacement_value or 0) * (i.quantity or 1)),
+    "value_asc": lambda i: ((i.replacement_value or 0) * (i.quantity or 1)),
+    "confidence": lambda i: {"low": 0, "medium": 1, "high": 2}.get(i.confidence, -1),
+}
+
+
 @app.get("/jobs/{job_id}", response_class=HTMLResponse)
 def job_detail(
     job_id: str,
     request: Request,
+    q: str = "",
+    view: str = "all",
+    sort: str = "order",
+    category: str = "",
+    location: str = "",
+    page: int = 1,
+    per_page: int = 25,
+    item: str = "",
+    tab: str = "overview",
     user: User = Depends(require_user),
     db: Session = Depends(db_dependency),
 ):
     job = owned_job(db, job_id, user)
-    photos = {p.key: p for p in job.photos}
-    pending = sum(1 for i in job.items if i.valuation_status == ValuationStatus.pending)
-    running = sum(1 for i in job.items if i.valuation_status == ValuationStatus.running)
+    photos = _photo_index(db, job.id)
+    all_items = job.items
+
+    view = view if view in FILTERS else "all"
+    per_page = per_page if per_page in PAGE_SIZES else 25
+
+    # Chip counts always reflect the whole claim, not the filtered view.
+    counts = {key: sum(1 for i in all_items if _matches_filter(i, key)) for key in FILTERS}
+
+    rows = [i for i in all_items if _matches_filter(i, view)]
+    if category:
+        rows = [i for i in rows if (i.category or "") == category]
+    if location:
+        rows = [i for i in rows if (i.location or "") == location]
+    if q.strip():
+        needle = q.strip().lower()
+        rows = [
+            i for i in rows
+            if needle in " ".join([
+                i.description or "", i.make or "", i.model or "", i.serial or "",
+                i.identified_as or "", i.category or "", i.location or "",
+                i.valuation_notes or "",
+            ]).lower()
+        ]
+
+    rows.sort(key=_SORTERS.get(sort, _SORTERS["order"]))
+
+    total_rows = len(rows)
+    pages = max(1, (total_rows + per_page - 1) // per_page)
+    page = min(max(1, page), pages)
+    start = (page - 1) * per_page
+    page_rows = rows[start:start + per_page]
+
+    selected = next((i for i in all_items if i.id == item), None)
+    if selected is None and page_rows:
+        selected = page_rows[0]
+
+    events = []
+    if selected is not None:
+        events = db.scalars(
+            select(ItemEvent)
+            .where(ItemEvent.item_id == selected.id)
+            .order_by(ItemEvent.created_at.desc())
+            .limit(12)
+        ).all()
+
     return templates.TemplateResponse(
         request,
         "job.html",
@@ -438,8 +594,28 @@ def job_detail(
             "job": job,
             "photos": photos,
             "totals": job.totals,
-            "pending": pending,
-            "running": running,
+            "rows": page_rows,
+            "counts": counts,
+            "selected": selected,
+            "events": events,
+            "categories": sorted({i.category for i in all_items if i.category}),
+            "locations": sorted({i.location for i in all_items if i.location}),
+            "q": q,
+            "view": view,
+            "sort": sort,
+            "category": category,
+            "location": location,
+            "page": page,
+            "pages": pages,
+            "per_page": per_page,
+            "per_page_options": PAGE_SIZES,
+            "total_rows": total_rows,
+            "range_start": start + 1 if total_rows else 0,
+            "range_end": min(start + per_page, total_rows),
+            "tab": tab,
+            "conditions": list(CONDITION_ADJUSTMENT.keys()),
+            "pending": sum(1 for i in all_items if i.valuation_status == ValuationStatus.pending),
+            "running": sum(1 for i in all_items if i.valuation_status == ValuationStatus.running),
             "has_api_key": bool(os.environ.get("ANTHROPIC_API_KEY")),
             "model": valuation.MODEL,
             "max_searches": valuation.MAX_SEARCHES,
@@ -606,6 +782,16 @@ def _value_one(item_id: str) -> None:
             item.valuation_notes = result.notes
             item.sources = "\n".join(result.sources or [])
         item.valued_at = dt.datetime.now(dt.timezone.utc)
+        if not result.error:
+            item.recompute_indemnity()
+            record_event(
+                db, item, "valuation",
+                f"AI valuation: {result.identified_as[:120]}" if result.identified_as
+                else "AI valuation completed",
+                new_value=_money(item.replacement_value),
+            )
+        else:
+            record_event(db, item, "valuation", "AI research failed", new_value="")
         db.commit()
 
         elapsed = time.monotonic() - started
@@ -671,6 +857,7 @@ def valuation_progress(
 @app.post("/jobs/{job_id}/items")
 def add_item(
     job_id: str,
+    return_to: str = Form(""),
     description: str = Form(...),
     quantity: int = Form(1),
     make: str = Form(""),
@@ -714,12 +901,13 @@ def add_item(
             _inflight.add(item.id)
         _executor.submit(_value_one, item.id)
 
-    return RedirectResponse(f"/jobs/{job_id}#item-{item.id}", status_code=303)
+    return RedirectResponse(_back(job_id, return_to, item.id), status_code=303)
 
 
 @app.post("/items/{item_id}/edit")
 def edit_item(
     item_id: str,
+    return_to: str = Form(""),
     description: str = Form(...),
     quantity: int = Form(1),
     make: str = Form(""),
@@ -760,12 +948,13 @@ def edit_item(
                 db.commit()
                 _executor.submit(_value_one, item_id)
 
-    return RedirectResponse(f"/jobs/{job.id}#item-{item.id}", status_code=303)
+    return RedirectResponse(_back(job.id, return_to, item.id), status_code=303)
 
 
 @app.post("/items/{item_id}/delete")
 def delete_item(
     item_id: str,
+    return_to: str = Form(""),
     user: User = Depends(require_user),
     db: Session = Depends(db_dependency),
 ):
@@ -775,12 +964,13 @@ def delete_item(
     job = owned_job(db, item.job_id, user)
     db.delete(item)
     db.commit()
-    return RedirectResponse(f"/jobs/{job.id}", status_code=303)
+    return RedirectResponse(_back(job.id, return_to), status_code=303)
 
 
 @app.post("/items/{item_id}/value")
 def value_single_item(
     item_id: str,
+    return_to: str = Form(""),
     user: User = Depends(require_user),
     db: Session = Depends(db_dependency),
 ):
@@ -794,23 +984,27 @@ def value_single_item(
 
     with _inflight_lock:
         if item_id in _inflight:
-            return RedirectResponse(f"/jobs/{job.id}#item-{item_id}", status_code=303)
+            return RedirectResponse(_back(job.id, return_to, item_id), status_code=303)
         _inflight.add(item_id)
 
     item.valuation_status = ValuationStatus.pending
     item.manual_override = False
     db.commit()
     _executor.submit(_value_one, item_id)
-    return RedirectResponse(f"/jobs/{job.id}#item-{item_id}", status_code=303)
+    return RedirectResponse(_back(job.id, return_to, item_id), status_code=303)
 
 
 @app.post("/items/{item_id}")
 def update_item(
+    request: Request,
     item_id: str,
+    return_to: str = Form(""),
     replacement_value: str = Form(""),
     quantity: int = Form(1),
     excluded: str = Form(""),
     valuation_notes: str = Form(""),
+    condition: str = Form(""),
+    depreciation_override: str = Form(""),
     user: User = Depends(require_user),
     db: Session = Depends(db_dependency),
 ):
@@ -819,23 +1013,108 @@ def update_item(
         raise HTTPException(404, "Item not found")
     job = owned_job(db, item.job_id, user)
 
+    was_excluded = bool(item.excluded)
+    previous_settlement = item.indemnity_value
+
     item.quantity = max(1, quantity)
     item.excluded = excluded == "on"
+    if item.excluded != was_excluded:
+        record_event(
+            db, item, "exclude",
+            "Excluded from claim" if item.excluded else "Reinstated to claim",
+            user=user,
+        )
     if valuation_notes:
         item.valuation_notes = valuation_notes
+
+    if condition and condition != (item.condition or "average"):
+        record_event(
+            db, item, "condition", f"Condition changed to {condition.title()}",
+            old_value=(item.condition or "average").title(), new_value=condition.title(),
+            user=user,
+        )
+        item.condition = condition
+
+    if depreciation_override.strip():
+        try:
+            pct = float(depreciation_override.replace("%", "").strip())
+            rate = min(max(pct / 100.0, 0.0), 0.95)
+            if item.depreciation_override != rate:
+                record_event(
+                    db, item, "depreciation", f"Depreciation set to {pct:.0f}%",
+                    old_value=f"{(item.effective_depreciation * 100):.0f}%",
+                    new_value=f"{pct:.0f}%", user=user,
+                )
+            item.depreciation_override = rate
+        except ValueError:
+            pass
+
     if replacement_value.strip():
         try:
             value = float(replacement_value.replace("$", "").replace(",", ""))
+            if value != item.replacement_value:
+                record_event(
+                    db, item, "override", "Replacement cost overridden by assessor",
+                    old_value=_money(item.replacement_value), new_value=_money(value),
+                    user=user,
+                )
             item.replacement_value = value
-            item.indemnity_value, item.depreciation_rate = valuation.compute_indemnity(
-                value, item.estimated_age_years, item.effective_life_years
-            )
             item.manual_override = True
             item.valuation_status = ValuationStatus.overridden
         except ValueError:
             pass
+
+    # Recompute from the current replacement cost, condition and override.
+    item.recompute_indemnity()
+    if previous_settlement != item.indemnity_value and item.indemnity_value is not None:
+        record_event(
+            db, item, "settlement", "Settlement value recalculated",
+            old_value=_money(previous_settlement), new_value=_money(item.indemnity_value),
+            user=user,
+        )
     db.commit()
-    return RedirectResponse(f"/jobs/{job.id}#item-{item.id}", status_code=303)
+    return RedirectResponse(_back(job.id, return_to, item.id), status_code=303)
+
+
+@app.post("/items/{item_id}/state")
+def set_item_state(
+    request: Request,
+    item_id: str,
+    action: str = Form(...),
+    return_to: str = Form(""),
+    user: User = Depends(require_user),
+    db: Session = Depends(db_dependency),
+):
+    """Flag for review, clear a flag, or mark a line as reviewed/approved."""
+    item = db.get(Item, item_id)
+    if not item:
+        raise HTTPException(404, "Item not found")
+    job = owned_job(db, item.job_id, user)
+
+    if action == "flag":
+        item.flagged = True
+        record_event(db, item, "flag", "Flagged for review", user=user)
+    elif action == "unflag":
+        item.flagged = False
+        record_event(db, item, "flag", "Review flag cleared", user=user)
+    elif action == "review":
+        item.reviewed = True
+        item.flagged = False
+        record_event(db, item, "review", "Reviewed and approved by assessor", user=user)
+    elif action == "unreview":
+        item.reviewed = False
+        record_event(db, item, "review", "Approval withdrawn", user=user)
+    elif action == "accept":
+        # Accept the AI valuation as it stands.
+        item.reviewed = True
+        item.manual_override = False
+        item.recompute_indemnity()
+        record_event(
+            db, item, "review", "AI valuation accepted",
+            new_value=_money(item.replacement_value), user=user,
+        )
+    db.commit()
+    return RedirectResponse(_back(job.id, return_to, item.id), status_code=303)
 
 
 # ---------------------------------------------------------------------- reports
@@ -849,7 +1128,7 @@ def report(
     db: Session = Depends(db_dependency),
 ):
     job = owned_job(db, job_id, user)
-    photos = {p.key: p for p in job.photos}
+    photos = _photo_index(db, job.id)
     return templates.TemplateResponse(
         request,
         "report.html",
@@ -911,6 +1190,168 @@ def export_csv(
         io.BytesIO(buffer.getvalue().encode("utf-8-sig")),
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ------------------------------------------------------- workspace sections
+# Every section below is built from data the platform already holds; none of
+# them invent content.
+
+
+def _org_jobs(db: Session, user: User) -> list[Job]:
+    return db.scalars(
+        select(Job)
+        .where(Job.organisation_id == user.organisation_id)
+        .order_by(Job.created_at.desc())
+    ).all()
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard(
+    request: Request,
+    user: User = Depends(require_user),
+    db: Session = Depends(db_dependency),
+):
+    jobs = _org_jobs(db, user)
+    portfolio = {
+        "claims": len(jobs),
+        "open": sum(1 for j in jobs if j.status != JobStatus.valued),
+        "item_count": 0, "replacement": 0.0, "indemnity": 0.0,
+        "settlement": 0.0, "flagged": 0, "spend": 0.0,
+    }
+    for job in jobs:
+        t = job.totals
+        portfolio["item_count"] += t["count"]
+        portfolio["replacement"] += t["replacement"]
+        portfolio["indemnity"] += t["indemnity"]
+        portfolio["settlement"] += t["settlement"]
+        portfolio["flagged"] += t["flagged"]
+        portfolio["spend"] += t["research_cost"]
+
+    recent = db.scalars(
+        select(ItemEvent)
+        .join(Job, ItemEvent.job_id == Job.id)
+        .where(Job.organisation_id == user.organisation_id)
+        .order_by(ItemEvent.created_at.desc())
+        .limit(12)
+    ).all()
+
+    return templates.TemplateResponse(
+        request, "dashboard.html",
+        {"user": user, "jobs": jobs[:8], "portfolio": portfolio,
+         "recent": recent, "active_section": "dashboard"},
+    )
+
+
+@app.get("/assessments", response_class=HTMLResponse)
+def assessments(
+    request: Request,
+    user: User = Depends(require_user),
+    db: Session = Depends(db_dependency),
+):
+    jobs = [j for j in _org_jobs(db, user) if j.status != JobStatus.valued]
+    return templates.TemplateResponse(
+        request, "jobs.html",
+        {"user": user, "jobs": jobs, "active_section": "assessments",
+         "heading": "Assessments in progress",
+         "subheading": "Claims that still have items awaiting research or review."},
+    )
+
+
+@app.get("/reports", response_class=HTMLResponse)
+def reports(
+    request: Request,
+    user: User = Depends(require_user),
+    db: Session = Depends(db_dependency),
+):
+    jobs = _org_jobs(db, user)
+    return templates.TemplateResponse(
+        request, "reports.html",
+        {"user": user, "jobs": jobs, "active_section": "reports"},
+    )
+
+
+@app.get("/clients", response_class=HTMLResponse)
+def clients(
+    request: Request,
+    user: User = Depends(require_user),
+    db: Session = Depends(db_dependency),
+):
+    """Insureds and insurers derived from the claims on file."""
+    grouped: dict[str, dict] = {}
+    for job in _org_jobs(db, user):
+        key = (job.insured_name or "Unnamed insured").strip()
+        entry = grouped.setdefault(
+            key,
+            {"name": key, "insurers": set(), "claims": 0, "replacement": 0.0,
+             "settlement": 0.0, "latest": job.created_at, "jobs": []},
+        )
+        t = job.totals
+        entry["claims"] += 1
+        entry["replacement"] += t["replacement"]
+        entry["settlement"] += t["settlement"]
+        if job.insurer:
+            entry["insurers"].add(job.insurer)
+        entry["jobs"].append(job)
+    return templates.TemplateResponse(
+        request, "clients.html",
+        {"user": user, "clients": sorted(grouped.values(), key=lambda c: -c["replacement"]),
+         "active_section": "clients"},
+    )
+
+
+@app.get("/audit", response_class=HTMLResponse)
+def audit_log(
+    request: Request,
+    page: int = 1,
+    user: User = Depends(require_user),
+    db: Session = Depends(db_dependency),
+):
+    per_page = 50
+    base = (
+        select(ItemEvent)
+        .join(Job, ItemEvent.job_id == Job.id)
+        .where(Job.organisation_id == user.organisation_id)
+    )
+    total = len(db.scalars(base).all())
+    pages = max(1, (total + per_page - 1) // per_page)
+    page = min(max(1, page), pages)
+    events = db.scalars(
+        base.order_by(ItemEvent.created_at.desc())
+        .offset((page - 1) * per_page).limit(per_page)
+    ).all()
+
+    items = {i.id: i for i in db.scalars(
+        select(Item).where(Item.id.in_([e.item_id for e in events]))
+    ).all()} if events else {}
+    jobs = {j.id: j for j in _org_jobs(db, user)}
+
+    return templates.TemplateResponse(
+        request, "audit.html",
+        {"user": user, "events": events, "items": items, "jobs": jobs,
+         "page": page, "pages": pages, "total": total, "active_section": "audit"},
+    )
+
+
+@app.get("/settings", response_class=HTMLResponse)
+def settings(
+    request: Request,
+    user: User = Depends(require_user),
+    db: Session = Depends(db_dependency),
+):
+    jobs = _org_jobs(db, user)
+    return templates.TemplateResponse(
+        request, "settings.html",
+        {"user": user, "active_section": "settings",
+         "model": valuation.MODEL,
+         "max_searches": valuation.MAX_SEARCHES,
+         "workers": VALUATION_WORKERS,
+         "has_api_key": bool(os.environ.get("ANTHROPIC_API_KEY")),
+         "spend": round(sum(j.totals["research_cost"] for j in jobs), 4),
+         "claims": len(jobs),
+         "members": db.scalars(
+             select(User).where(User.organisation_id == user.organisation_id)
+         ).all()},
     )
 
 

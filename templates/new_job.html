@@ -1,65 +1,102 @@
 {% extends "base.html" %}
+{% set active_section = 'claims' %}
+{% block title %}New claim — ClaimSight{% endblock %}
+{% block head %}
+<style>
+  .pagehead{margin-bottom:20px}
+  .pagehead h1{font-size:26px}
+  .pagehead p{margin:3px 0 0;font-size:13.5px;color:var(--text-secondary)}
+  .sec{padding:15px 20px;border-bottom:1px solid var(--border)}
+  .sec h2{font-size:14.5px}
+  .sec p{margin:2px 0 0;font-size:12.5px;color:var(--text-secondary)}
+  .body{padding:20px}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  .drop{border:1.5px dashed var(--border-strong);border-radius:9px;padding:15px;background:#FBFDFF}
+  .drop input[type=file]{font-size:13px;width:100%;height:auto;border:0;padding:0;background:none}
+  .steps{display:flex;gap:0;margin-bottom:20px;font-size:12.5px;flex-wrap:wrap}
+  .steps div{display:flex;align-items:center;gap:8px;padding:0 16px 0 0;color:var(--text-muted)}
+  .steps .n{width:22px;height:22px;border-radius:50%;background:#E7EDF4;color:var(--text-secondary);
+    display:grid;place-items:center;font-weight:700;font-size:11.5px}
+  .steps .on{color:var(--text-primary);font-weight:600}
+  .steps .on .n{background:var(--blue-600);color:#fff}
+</style>
+{% endblock %}
+
 {% block body %}
-<h1>New job</h1>
-<p class="sub">Enter the claim details, then upload the assessor's inventory and photo report.</p>
+<div class="pagehead">
+  <div style="font-size:12.5px;margin-bottom:8px"><a href="/jobs">← Back to claims</a></div>
+  <h1>New claim</h1>
+  <p>Enter the claim details, then import the assessor's inventory and photo report.</p>
+</div>
 
-<form method="post" action="/jobs" enctype="multipart/form-data" style="max-width:760px">
-  <div class="card">
-    <h2 style="margin-top:0">Claim details</h2>
-    <div class="grid2">
-      <div><label for="claim_reference">Insurer claim number</label>
-        <input id="claim_reference" type="text" name="claim_reference" placeholder="e.g. E010021610"></div>
-      <div><label for="reference">Your job reference</label>
-        <input id="reference" type="text" name="reference"></div>
-      <div><label for="insured_name">Insured</label>
-        <input id="insured_name" type="text" name="insured_name"></div>
-      <div><label for="insurer">Insurer</label>
-        <input id="insurer" type="text" name="insurer"></div>
-      <div><label for="peril">Peril</label>
-        <select id="peril" name="peril">
-          <option>Water</option><option>Flood</option><option>Storm</option>
-          <option>Fire</option><option>Mould</option><option>Impact</option><option>Other</option>
-        </select></div>
-      <div><label for="date_of_loss">Date of loss</label>
-        <input id="date_of_loss" type="text" name="date_of_loss" placeholder="e.g. 26 June 2026"></div>
+<div class="steps">
+  <div class="on"><span class="n">1</span> Claim details</div>
+  <div class="on"><span class="n">2</span> Import inventory</div>
+  <div><span class="n">3</span> Evidence pairing</div>
+  <div><span class="n">4</span> AI valuation</div>
+  <div><span class="n">5</span> Review &amp; report</div>
+</div>
+
+<form method="post" action="/jobs" enctype="multipart/form-data" style="max-width:900px">
+  <div class="card" style="margin-bottom:16px">
+    <div class="sec"><h2>Claim details</h2><p>Appears on the settlement report supplied to the insurer.</p></div>
+    <div class="body">
+      <div class="g2">
+        <div class="field"><label for="claim_reference">Insurer claim number</label>
+          <input id="claim_reference" type="text" name="claim_reference" placeholder="e.g. E010021610"></div>
+        <div class="field"><label for="reference">Your job reference</label>
+          <input id="reference" type="text" name="reference"></div>
+        <div class="field"><label for="insured_name">Claimant</label>
+          <input id="insured_name" type="text" name="insured_name"></div>
+        <div class="field"><label for="insurer">Insurer</label>
+          <input id="insurer" type="text" name="insurer"></div>
+        <div class="field"><label for="peril">Claim type</label>
+          <select id="peril" name="peril">
+            <option>Water</option><option>Flood</option><option>Storm</option><option>Fire</option>
+            <option>Mould</option><option>Impact</option><option>Other</option></select></div>
+        <div class="field"><label for="date_of_loss">Loss date</label>
+          <input id="date_of_loss" type="text" name="date_of_loss" placeholder="e.g. 26 June 2026"></div>
+      </div>
+      <div class="field"><label for="site_address">Risk address</label>
+        <input id="site_address" type="text" name="site_address"></div>
+      <div class="g2">
+        <div class="field"><label for="policy_excess">Policy excess</label>
+          <div class="money-input"><span>A$</span>
+            <input id="policy_excess" type="text" name="policy_excess" value="0" inputmode="decimal"></div></div>
+        <div class="field" style="display:flex;align-items:flex-end;padding-bottom:12px">
+          <label style="display:flex;align-items:center;gap:9px;margin:0;font-weight:500;color:var(--text-primary)">
+            <input type="checkbox" name="apply_depreciation" checked>
+            Apply depreciation (settle at indemnity value)</label></div>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin:0">
+        Leave depreciation unticked for a new-for-old policy. This can be changed at any time
+        without re-valuing items.</p>
     </div>
-    <label for="site_address">Site address</label>
-    <input id="site_address" type="text" name="site_address">
-    <label for="policy_excess">Policy excess (AUD)</label>
-    <input id="policy_excess" type="number" step="0.01" name="policy_excess" value="0">
-
-    <label style="display:flex;align-items:center;gap:8px;margin-top:16px">
-      <input type="checkbox" name="apply_depreciation" checked style="width:auto">
-      Apply depreciation (settle at indemnity value)
-    </label>
-    <p class="tiny muted" style="margin:6px 0 0">
-      Leave unticked for a new-for-old policy that settles at full replacement cost.
-      You can change this at any time from the job — it does not require re-valuing items.
-    </p>
   </div>
 
-  <div class="card" style="margin-top:18px">
-    <h2 style="margin-top:0">Source documents</h2>
-    <label for="inventory">Inventory spreadsheet (.xlsx) — required</label>
-    <input id="inventory" type="file" name="inventory" accept=".xlsx,.xlsm" required>
-    <p class="tiny muted" style="margin:6px 0 0">
-      Expects columns: Item, Photo #, Photo Series, Cause of Damage, Location, Make, Model, Serial Number.
-    </p>
-
-    <label for="photos_initial">Photo report — initial attendance (.pdf)</label>
-    <input id="photos_initial" type="file" name="photos_initial" accept=".pdf">
-
-    <label for="photos_second">Photo report — second attendance (.pdf)</label>
-    <input id="photos_second" type="file" name="photos_second" accept=".pdf">
-    <p class="tiny muted" style="margin:6px 0 0">
-      Photographs are matched to items by the numbered label on each image.
-    </p>
+  <div class="card" style="margin-bottom:16px">
+    <div class="sec"><h2>Import inventory</h2>
+      <p>Expects columns: Item, Photo #, Photo Series, Cause of Damage, Location, Make, Model, Serial Number.</p></div>
+    <div class="body">
+      <div class="field"><label for="inventory">Inventory spreadsheet (.xlsx) — required</label>
+        <div class="drop"><input id="inventory" type="file" name="inventory" accept=".xlsx,.xlsm" required></div></div>
+      <div class="g2">
+        <div class="field"><label for="photos_initial">Photo report — initial attendance (.pdf)</label>
+          <div class="drop"><input id="photos_initial" type="file" name="photos_initial" accept=".pdf"></div></div>
+        <div class="field"><label for="photos_second">Photo report — second attendance (.pdf)</label>
+          <div class="drop"><input id="photos_second" type="file" name="photos_second" accept=".pdf"></div></div>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin:0">
+        Photographs are paired to inventory lines automatically using the numbered label on each
+        image in the report.</p>
+    </div>
   </div>
 
-  <p style="margin-top:20px">
-    <button class="btn" type="submit">Create job and ingest</button>
-    <a class="btn ghost" href="/jobs">Cancel</a>
-  </p>
-  <p class="tiny muted">Ingestion of a large photo report can take up to a minute.</p>
+  <div style="display:flex;align-items:center;gap:12px">
+    <button class="btn" type="submit">Create claim and import</button>
+    <a class="btn secondary" href="/jobs">Cancel</a>
+    <span style="font-size:12.5px;color:var(--text-muted)">
+      Importing a large photo report can take up to a minute.</span>
+  </div>
 </form>
 {% endblock %}

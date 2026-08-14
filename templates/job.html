@@ -1,520 +1,981 @@
 {% extends "base.html" %}
-{% block title %}{{ job.claim_reference or "Job" }} — Claimsight{% endblock %}
+{% set active_section = 'claims' %}
+{% block title %}Claim {{ job.claim_reference or job.reference }} — ClaimSight{% endblock %}
+
+{% macro qs(over={}) -%}
+{%- set base = {'q': q, 'view': view, 'sort': sort, 'category': category,
+                'location': location, 'page': page, 'per_page': per_page,
+                'item': selected.id if selected else '', 'tab': tab} -%}
+{%- set merged = dict(base, **over) -%}
+{%- for k, v in merged.items() if v not in ('', None) -%}
+{{ k }}={{ v | urlencode }}{{ '&' if not loop.last }}
+{%- endfor -%}
+{%- endmacro %}
+
+{% macro confidence(item) -%}
+{% if item.confidence %}
+  <span class="badge {{ item.confidence }} tip" tabindex="0">
+    <span class="dot" aria-hidden="true"></span>{{ item.confidence | title }}
+    <span class="tip-body">
+      {% if item.confidence == 'high' %}Model identified precisely and pricing corroborated.
+      {% elif item.confidence == 'medium' %}Close equivalent priced; exact model uncertain.
+      {% else %}Weak identification or contested pre-loss condition. Human review recommended.{% endif %}
+    </span>
+  </span>
+{% else %}<span class="dim">—</span>{% endif %}
+{%- endmacro %}
+
 {% block head %}
 <style>
-  main{max-width:1500px;padding-top:16px}
+  /* ------------------------------------------------------- claim header */
+  .crumb{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-secondary);margin-bottom:10px}
+  .claimhead{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+  .claimhead h1{font-size:27px;line-height:1.2}
+  .claimhead .title-row{display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+  .head-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
 
-  /* ---- compact header ------------------------------------------------- */
-  .jobbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px}
-  .jobbar h1{font-size:19px;margin:0}
-  .jobbar .meta{font-size:12px;color:var(--muted)}
-  .jobbar .meta b{color:var(--ink);font-weight:600}
+  .meta{
+    display:flex;flex-wrap:wrap;gap:0;background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--r-card);box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px;
+  }
+  .meta > div{padding:11px 18px;border-right:1px solid var(--border);min-width:0}
+  .meta > div:last-child{border-right:0}
+  .meta .k{font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:.03em;
+    text-transform:uppercase;margin-bottom:2px}
+  .meta .v{font-size:13.5px;font-weight:600;color:var(--text-primary);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
 
-  /* ---- single strip: figures + basis + excess ------------------------- */
-  .strip{display:flex;align-items:stretch;gap:0;background:var(--card);
-    border:1px solid var(--line);border-radius:9px;margin-bottom:12px;overflow:hidden}
-  .cell{padding:8px 14px;border-right:1px solid var(--line);display:flex;
-    flex-direction:column;justify-content:center;min-width:0}
-  .cell:last-child{border-right:0}
-  .cell .l{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
-  .cell .v{font-size:17px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;
-    line-height:1.25;white-space:nowrap}
-  .cell.on{background:var(--accent-soft)}
-  .cell.on .v{color:var(--accent)}
-  .cell.grow{flex:1;flex-direction:row;align-items:center;gap:10px}
-  .switch{display:flex;align-items:center;gap:6px;margin:0;font-size:12px;font-weight:600;
-    white-space:nowrap;cursor:pointer}
-  .switch input{width:auto;margin:0;cursor:pointer}
-  .strip input[type=text]{width:74px;padding:4px 7px;font-size:12px}
-  .hint{font-size:11px;color:var(--muted);line-height:1.35}
+  /* -------------------------------------------------------------- KPIs */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);
+    padding:15px 16px;box-shadow:var(--shadow);display:flex;gap:13px;align-items:flex-start}
+  .kpi-icon{width:34px;height:34px;border-radius:9px;flex:0 0 34px;display:grid;place-items:center}
+  .kpi-icon svg{width:17px;height:17px}
+  .kpi .k{font-size:11.5px;color:var(--text-secondary);font-weight:600;margin-bottom:3px}
+  .kpi .v{font-size:25px;font-weight:700;letter-spacing:-.025em;line-height:1.15;
+    font-variant-numeric:tabular-nums;color:var(--text-primary)}
+  .kpi .s{font-size:11.5px;color:var(--text-muted);margin-top:3px}
 
-  /* ---- toolbar --------------------------------------------------------- */
-  .tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-  .tools input[type=search]{width:210px;padding:5px 9px;font-size:13px;border:1px solid var(--line);
-    border-radius:6px}
-  .chip{font-size:12px;padding:4px 10px;border:1px solid var(--line);border-radius:20px;
-    background:var(--card);cursor:pointer;white-space:nowrap;color:var(--muted);font-weight:600}
-  .chip.active{background:var(--ink);border-color:var(--ink);color:#fff}
-  .count{font-size:12px;color:var(--muted);margin-left:auto}
+  /* --------------------------------------------------------- workspace */
+  .workspace{display:grid;grid-template-columns:minmax(0,1fr) 356px;gap:18px;align-items:start}
 
-  /* ---- dense table ----------------------------------------------------- */
-  .tblwrap{background:var(--card);border:1px solid var(--line);border-radius:9px;overflow:hidden}
-  table{font-size:13px}
-  thead th{position:sticky;top:53px;background:#fbfcfd;z-index:5;padding:7px 9px;
-    border-bottom:1px solid var(--line);font-size:10px}
-  tbody td{padding:5px 9px;border-bottom:1px solid #eef1f5;vertical-align:middle;line-height:1.35}
-  tbody tr.row:hover{background:#fafbfc}
-  tbody tr.row{cursor:pointer}
-  .idx{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
-  .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:250px}
-  .mt{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;
-    text-overflow:ellipsis;max-width:250px}
-  .idn{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
-  .ph{display:flex;gap:3px;align-items:center}
-  .ph img{width:30px;height:30px;object-fit:cover;border-radius:4px;border:1px solid var(--line);
-    background:#eee;cursor:zoom-in;display:block}
-  .ph .more{font-size:10px;color:var(--muted);font-weight:600}
-  .pill{font-size:10px;padding:1px 6px}
-  .ovr input{width:72px;padding:3px 6px;font-size:12px}
-  .chev{color:var(--accent);font-size:11px;width:12px;display:inline-block;font-weight:700}
-  tbody tr.row:hover .chev{color:var(--ink)}
-  tbody tr.row:hover .nm{text-decoration:underline;text-decoration-color:var(--line)}
-  tr.excluded td:not(.keep){opacity:.4}
-  .dep-off .dep-col{opacity:.3}
+  .toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:13px 15px;
+    border-bottom:1px solid var(--border)}
+  .searchbox{position:relative;flex:0 1 330px;min-width:200px}
+  .searchbox svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);
+    width:15px;height:15px;fill:var(--text-muted);pointer-events:none}
+  .searchbox input{padding-left:33px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px;
+    border:1px solid var(--border-strong);border-radius:16px;background:var(--surface);
+    font-size:12.5px;font-weight:600;color:var(--text-secondary);cursor:pointer;
+    text-decoration:none;transition:all .15s ease;white-space:nowrap}
+  .chip:hover{background:#F7F9FC;text-decoration:none;border-color:#B6C2D2}
+  .chip .n{font-size:11.5px;padding:1px 6px;border-radius:9px;background:#EDF1F6;color:var(--text-secondary)}
+  .chip.on{background:var(--navy-900);border-color:var(--navy-900);color:#fff}
+  .chip.on .n{background:rgba(255,255,255,.18);color:#fff}
+  .chip.on:hover{background:var(--navy-800)}
 
-  /* ---- expandable detail ---------------------------------------------- */
-  tr.detail{display:none;background:#fbfcfd}
-  tr.detail.open{display:table-row}
-  tr.detail td{padding:12px 14px 14px 40px;border-bottom:1px solid var(--line)}
-  .dgrid{display:grid;grid-template-columns:1fr 300px 240px;gap:16px}
-  .dgrid h4{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
-    color:var(--muted)}
-  .dphotos{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
-  .dphotos img{width:74px;height:74px;object-fit:cover;border-radius:5px;
-    border:1px solid var(--line);cursor:zoom-in}
-  .srcs a{display:block;font-size:11px;color:var(--muted);overflow:hidden;
-    text-overflow:ellipsis;white-space:nowrap}
-  .dform{background:#fff;border:1px solid var(--line);border-radius:7px;padding:11px}
-  .dform label{margin:8px 0 3px;font-size:11px}
-  .dform input[type=text],.dform input[type=number]{width:100%;padding:5px 8px;font-size:13px}
-  .flag{color:var(--warn);font-size:11px}
+  /* ------------------------------------------------------------- table */
+  .tbl{width:100%;border-collapse:collapse}
+  .tbl thead th{
+    position:sticky;top:0;z-index:3;background:#FAFCFE;text-align:left;
+    font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);
+    font-weight:700;padding:9px 12px;border-bottom:1px solid var(--border);white-space:nowrap;
+  }
+  .tbl tbody td{padding:11px 12px;border-bottom:1px solid #EDF1F5;vertical-align:middle}
+  .tbl tbody tr{cursor:pointer;transition:background .13s ease}
+  .tbl tbody tr:hover{background:#F8FAFC}
+  .tbl tbody tr.sel{background:#F3F7FF;box-shadow:inset 3px 0 0 var(--blue-500)}
+  .tbl tbody tr.sel:hover{background:#EDF3FF}
+  .tbl tbody tr.ex td:not(.keep){opacity:.45}
+  .row-n{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;width:38px}
+  .it-name{font-size:14.5px;font-weight:600;line-height:1.35;color:var(--text-primary)}
+  .it-sub{font-size:12.5px;color:var(--text-secondary);margin-top:1px}
+  .it-name,.it-sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:290px}
+  .ai-name{font-size:13px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;max-width:250px;color:var(--text-primary)}
+  .ai-sub{font-size:11.5px;color:var(--ai-600);font-weight:600;margin-top:1px}
+  .val{font-size:14.5px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .val-sub{font-size:11.5px;color:var(--text-muted);text-align:right;font-weight:500}
 
-  #lightbox{position:fixed;inset:0;background:rgba(10,12,16,.9);display:none;
-    align-items:center;justify-content:center;z-index:100;cursor:zoom-out}
-  #lightbox img{max-width:92vw;max-height:92vh;border-radius:6px}
-  .banner{background:var(--warn-soft);border:1px solid #f5d99b;color:var(--warn);
-    padding:7px 12px;border-radius:7px;font-size:13px;margin-bottom:10px}
+  .thumbs{display:flex;gap:4px;align-items:center}
+  .thumbs img{width:46px;height:46px;object-fit:cover;border-radius:6px;border:1px solid var(--border);
+    background:#EEF1F5;display:block;transition:transform .15s ease,border-color .15s ease}
+  .thumbs img:hover{transform:scale(1.08);border-color:var(--blue-500)}
+  .thumbs .more{font-size:11.5px;font-weight:700;color:var(--text-secondary);
+    background:#EEF2F6;border-radius:6px;height:46px;min-width:28px;display:grid;place-items:center;padding:0 5px}
+  .no-ev{font-size:11.5px;color:var(--text-muted);font-style:italic}
 
-  /* ---- valuation progress --------------------------------------------- */
-  .prog{background:var(--card);border:1px solid var(--line);border-radius:9px;
-    padding:10px 14px;margin-bottom:12px}
-  .prog[hidden]{display:none}
-  .prow{display:flex;align-items:center;gap:10px;margin-bottom:7px;font-size:13px}
-  .bar{height:6px;background:#eef1f5;border-radius:4px;overflow:hidden}
-  .fill{height:100%;background:var(--accent);border-radius:4px;transition:width .6s ease}
-  .addgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:0 10px}
-  .addgrid label{margin:6px 0 3px;font-size:11px}
-  .addgrid input,.addgrid select{width:100%;padding:5px 8px;font-size:13px}
-  .queued{color:var(--muted)}
-  .working{color:var(--accent);font-weight:600}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
-  .working{animation:pulse 1.6s ease-in-out infinite}
-  @media(max-width:1100px){.dgrid{grid-template-columns:1fr}}
+  .pager{display:flex;align-items:center;gap:10px;padding:12px 15px;border-top:1px solid var(--border);
+    font-size:12.5px;color:var(--text-secondary);flex-wrap:wrap}
+  .pager .pages{margin-left:auto;display:flex;align-items:center;gap:4px}
+  .pager a,.pager span.pg{min-width:30px;height:30px;padding:0 8px;border-radius:6px;
+    display:inline-grid;place-items:center;border:1px solid var(--border);background:var(--surface);
+    font-size:12.5px;font-weight:600;color:var(--text-secondary);text-decoration:none}
+  .pager a:hover{background:#F5F8FB;text-decoration:none}
+  .pager span.pg.on{background:var(--navy-900);border-color:var(--navy-900);color:#fff}
+  .pager select{width:auto;height:30px;font-size:12.5px;padding:0 26px 0 9px}
+
+  /* ------------------------------------------------- selected item panel */
+  .detail{margin-top:18px}
+  .detail-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border)}
+  .tabs{display:flex;gap:2px;padding:0 18px;border-bottom:1px solid var(--border);overflow-x:auto}
+  .tabs a{padding:11px 13px;font-size:13px;font-weight:600;color:var(--text-secondary);
+    border-bottom:2px solid transparent;text-decoration:none;white-space:nowrap;margin-bottom:-1px}
+  .tabs a:hover{color:var(--text-primary);text-decoration:none}
+  .tabs a.on{color:var(--blue-600);border-bottom-color:var(--blue-600)}
+  .tabpane{padding:18px}
+
+  .detail-grid{display:grid;grid-template-columns:252px minmax(0,1fr);gap:22px}
+  .hero{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:9px;border:1px solid var(--border);background:#EEF1F5}
+  .sum-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;
+    border-bottom:1px solid #EFF3F7;font-size:12.5px}
+  .sum-row:last-child{border-bottom:0}
+  .sum-row .k{color:var(--text-secondary)}
+  .sum-row .v{font-weight:600;text-align:right}
+
+  /* AI match flow */
+  .flow{display:grid;grid-template-columns:1fr 26px 1fr 26px 1fr;gap:0;align-items:stretch}
+  .flow-card{border:1px solid var(--border);border-radius:9px;padding:13px;background:#FCFDFE;min-width:0}
+  .flow-card h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--text-muted);margin-bottom:9px;font-weight:700}
+  .flow-arrow{display:grid;place-items:center;color:var(--border-strong)}
+  .flow-thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+  .flow-thumbs img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:5px;border:1px solid var(--border)}
+  .src-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px;
+    border-bottom:1px solid #EFF3F7}
+  .src-row:last-child{border-bottom:0}
+  .src-row .host{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .favi{width:15px;height:15px;border-radius:3px;flex:0 0 15px;background:#EEF2F6}
+
+  .ai-summary{background:var(--ai-100);border:1px solid #CFEBE8;border-radius:9px;padding:13px 15px;margin-top:16px}
+  .ai-summary h4{font-size:12.5px;color:var(--ai-600);display:flex;align-items:center;gap:7px;margin-bottom:6px}
+  .ai-summary p{margin:0;font-size:13px;line-height:1.6;color:#14413F}
+
+  /* ------------------------------------------------ valuation inspector */
+  .inspector{position:sticky;top:18px}
+  .insp-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  .insp-head h3{font-size:14.5px}
+  .insp-body{padding:16px}
+  .ai-value{background:var(--blue-100);border:1px solid #D6E4FF;border-radius:9px;padding:13px 14px;margin-bottom:16px}
+  .ai-value .k{font-size:11.5px;color:var(--text-secondary);font-weight:600;margin-bottom:2px}
+  .ai-value .v{font-size:24px;font-weight:700;letter-spacing:-.025em;font-variant-numeric:tabular-nums}
+  .settle{border-top:1px solid var(--border);margin-top:4px;padding-top:14px}
+  .settle .k{font-size:12px;color:var(--text-secondary);font-weight:600}
+  .settle .v{font-size:27px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;
+    line-height:1.2;color:var(--text-primary)}
+  .settle .s{font-size:11.5px;color:var(--text-muted)}
+  .calc{font-size:11.5px;color:var(--text-secondary);background:#F7F9FC;border-radius:7px;
+    padding:9px 11px;margin-top:10px;line-height:1.7}
+  .calc div{display:flex;justify-content:space-between}
+
+  .timeline{margin-top:6px}
+  .tl{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #EFF3F7}
+  .tl:last-child{border-bottom:0}
+  .tl-dot{width:7px;height:7px;border-radius:50%;background:var(--border-strong);margin-top:6px;flex:0 0 7px}
+  .tl-dot.valuation{background:var(--ai-600)}
+  .tl-dot.override,.tl-dot.settlement{background:var(--blue-600)}
+  .tl-dot.review{background:var(--green-600)}
+  .tl-dot.flag{background:var(--amber-600)}
+  .tl .who{font-size:12.5px;font-weight:600}
+  .tl .when{font-size:11px;color:var(--text-muted)}
+  .tl .what{font-size:12.5px;color:var(--text-secondary);margin-top:2px}
+  .tl .delta{font-size:12px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+
+  /* progress + empty states */
+  .prog{padding:12px 15px;border-bottom:1px solid var(--border);background:#FBFDFF}
+  .bar{height:5px;background:#E6ECF3;border-radius:3px;overflow:hidden;margin-top:8px}
+  .fill{height:100%;background:var(--blue-600);border-radius:3px;transition:width .6s ease}
+  .empty{padding:56px 24px;text-align:center}
+  .empty h3{font-size:15px;margin-bottom:5px}
+  .empty p{font-size:13px;color:var(--text-secondary);margin:0}
+  .spinner{width:14px;height:14px;border:2px solid var(--border-strong);border-top-color:var(--blue-600);
+    border-radius:50%;display:inline-block;animation:spin .8s linear infinite;vertical-align:-2px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  #lightbox{position:fixed;inset:0;background:rgba(9,25,44,.9);display:none;align-items:center;
+    justify-content:center;z-index:100;cursor:zoom-out;padding:36px}
+  #lightbox img{max-width:92vw;max-height:88vh;border-radius:8px}
+  #lightbox .cap{position:absolute;bottom:20px;left:0;right:0;text-align:center;color:#fff;font-size:13px}
+
+  @media (max-width:1500px){ .kpis{grid-template-columns:repeat(3,1fr)} }
+  @media (max-width:1350px){
+    .workspace{grid-template-columns:minmax(0,1fr)}
+    .inspector{position:static}
+    .flow{grid-template-columns:1fr;gap:9px}
+    .flow-arrow{transform:rotate(90deg);height:20px}
+  }
+  @media (max-width:900px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .detail-grid{grid-template-columns:1fr}
+    .tbl thead{display:none}
+    .tbl tbody tr{display:grid;grid-template-columns:1fr auto;gap:6px;padding:12px;
+      border-bottom:1px solid var(--border)}
+    .tbl tbody td{border:0;padding:2px 0}
+    .tbl tbody td.hide-sm{display:none}
+    .it-name,.it-sub,.ai-name{max-width:none;white-space:normal}
+  }
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="jobbar">
-  <h1>{{ job.claim_reference or job.reference or "Untitled job" }}</h1>
-  <div class="meta">
-    {% if job.insured_name %}<b>{{ job.insured_name }}</b> · {% endif %}
-    {% if job.insurer %}{{ job.insurer }} · {% endif %}
-    {{ job.site_address }}{% if job.date_of_loss %} · loss {{ job.date_of_loss }}{% endif %}
-    · {{ job.peril }}
-  </div>
-  <div style="flex:1"></div>
-  <form method="post" action="/jobs/{{ job.id }}/value" style="display:inline"
-        onsubmit="return confirmCost(this)">
-    <button class="btn small" type="submit" {% if not has_api_key %}disabled{% endif %}>
-      {% if totals.priced %}Value remaining{% else %}Run AI valuation{% endif %}
-    </button>
-  </form>
-  <button class="btn small" type="button" onclick="openAdd()"
-          style="background:#0f7b47">+ Add item</button>
-  <a class="btn ghost small" href="/jobs/{{ job.id }}/report" target="_blank">Report</a>
-  <a class="btn ghost small" href="/jobs/{{ job.id }}/export.csv">CSV</a>
+{% set ref = job.claim_reference or job.reference or 'Untitled claim' %}
+{% set rt = qs() %}
+
+<div class="crumb">
+  <a href="/jobs">← Back to claims</a>
 </div>
 
-{% if job.status_detail %}<div class="banner" id="statusbar">{{ job.status_detail }}</div>{% endif %}
-
-<div class="prog" id="prog" {% if not (pending or running) %}hidden{% endif %}>
-  <div class="prow">
-    <strong id="p-head">Valuing…</strong>
-    <span class="hint" id="p-sub"></span>
-    <span style="flex:1"></span>
-    <span class="hint" id="p-eta"></span>
-    <button class="btn ghost small" type="button" onclick="location.reload()">Refresh now</button>
-  </div>
-  <div class="bar"><div class="fill" id="p-fill" style="width:0%"></div></div>
-  <div class="hint" id="p-now" style="margin-top:5px"></div>
-</div>
-
-<form method="post" action="/jobs/{{ job.id }}/settings" class="strip">
-  <div class="cell"><span class="l">Items</span>
-    <span class="v">{{ totals.count }}<span class="hint" style="font-weight:400"> · {{ totals.priced }} valued</span></span></div>
-  <div class="cell {% if not job.apply_depreciation %}on{% endif %}"><span class="l">Replacement</span>
-    <span class="v">${{ "{:,.0f}".format(totals.replacement) }}</span></div>
-  <div class="cell {% if job.apply_depreciation %}on{% endif %} dep-col"><span class="l">Indemnity</span>
-    <span class="v">{% if job.apply_depreciation %}${{ "{:,.0f}".format(totals.indemnity) }}{% else %}—{% endif %}</span></div>
-  <div class="cell"><span class="l">Net settlement</span>
-    <span class="v">${{ "{:,.0f}".format(totals.settlement) }}</span></div>
-  <div class="cell" title="What AI research has cost on this job so far">
-    <span class="l">Research spend</span>
-    <span class="v" style="font-size:15px">US${{ "{:,.2f}".format(totals.research_cost) }}</span>
-    <span class="hint">{{ totals.searches }} searches
-      {%- if totals.priced %} · {{ "{:.3f}".format(totals.research_cost / totals.priced) }}/item{% endif %}</span></div>
-  <div class="cell grow">
-    <label class="switch">
-      <input type="checkbox" name="apply_depreciation" {% if job.apply_depreciation %}checked{% endif %}
-             onchange="this.form.submit()">
-      Apply depreciation
-    </label>
-    <span class="hint">{% if job.apply_depreciation %}Settling at indemnity value.{% else %}Settling new for old; depreciation ignored.{% endif %}</span>
-    <span style="flex:1"></span>
-    <label class="switch" style="font-weight:400;color:var(--muted)">Excess $
-      <input type="text" name="policy_excess" value="{{ "{:.0f}".format(job.policy_excess or 0) }}"></label>
-    <button class="btn ghost small" type="submit">Save</button>
-  </div>
-</form>
-
-<div class="tools">
-  <span class="hint" style="margin-right:2px">Click any row to expand</span>
-  <input type="search" id="q" placeholder="Search items, makes, models…" oninput="applyFilters()">
-  <span class="chip active" data-f="all"      onclick="setFilter(this)">All</span>
-  <span class="chip" data-f="review"          onclick="setFilter(this)">Needs review</span>
-  <span class="chip" data-f="low"             onclick="setFilter(this)">Low confidence</span>
-  <span class="chip" data-f="unvalued"        onclick="setFilter(this)">Unvalued</span>
-  <span class="chip" data-f="flagged"         onclick="setFilter(this)">Assessor flag</span>
-  <span class="chip" data-f="excluded"        onclick="setFilter(this)">Excluded</span>
-  <span class="chip" style="margin-left:6px" onclick="toggleAll()">Expand all</span>
-  <span class="count" id="count"></span>
-</div>
-
-<div class="prog" id="additem" hidden style="border-color:var(--accent)">
-  <form method="post" action="/jobs/{{ job.id }}/items">
-    <div class="prow" style="margin-bottom:9px">
-      <strong>Add an item to this claim</strong>
-      <span class="hint">For anything the assessor's inventory missed.</span>
+<div class="claimhead">
+  <div>
+    <div class="title-row">
+      <h1>Claim {{ ref }}</h1>
+      {% if job.status.value == 'valued' %}
+        <span class="badge high lg"><span class="dot"></span>Assessment complete</span>
+      {% elif job.status.value == 'valuing' %}
+        <span class="badge info lg"><span class="dot"></span>Research in progress</span>
+      {% else %}
+        <span class="badge info lg"><span class="dot"></span>Assessment in progress</span>
+      {% endif %}
     </div>
-    <div class="addgrid">
-      <div style="grid-column:span 2"><label>Description *</label>
-        <input type="text" name="description" required placeholder="e.g. Commercial glass door fridge"></div>
-      <div><label>Make</label><input type="text" name="make"></div>
-      <div><label>Model</label><input type="text" name="model"></div>
-      <div><label>Serial</label><input type="text" name="serial"></div>
-      <div><label>Qty</label><input type="number" name="quantity" value="1" min="1"></div>
-      <div><label>Location</label><input type="text" name="location" placeholder="Storage shed"></div>
-      <div><label>Cause of damage</label><input type="text" name="cause_of_damage" placeholder="{{ job.peril }}"></div>
-      <div><label>Photo series</label>
-        <select name="photo_series">
-          <option value="">none</option>
-          <option value="initial">initial</option>
-          <option value="second">second</option>
-        </select></div>
-      <div><label>Photo numbers</label><input type="text" name="photo_refs" placeholder="e.g. 12, 13"></div>
-      <div style="grid-column:span 2"><label>Assessor note</label>
-        <input type="text" name="assessor_note" placeholder="Condition, context for the AI…"></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:12px;margin-top:11px">
-      <label class="switch" style="font-weight:400">
-        <input type="checkbox" name="value_now" checked {% if not has_api_key %}disabled{% endif %}>
-        Value with AI immediately
-      </label>
-      <button class="btn small" type="submit">Add item</button>
-      <span class="hint">Photo numbers must exist in the uploaded report to display.</span>
-    </div>
-  </form>
+  </div>
+  <div class="head-actions">
+    <form method="post" action="/jobs/{{ job.id }}/value" onsubmit="return confirmCost(this)">
+      <input type="hidden" name="return_to" value="{{ rt }}">
+      <button class="btn secondary sm" type="submit" {% if not has_api_key %}disabled{% endif %}>
+        {% if totals.priced %}Value remaining{% else %}Run AI valuation{% endif %}
+      </button>
+    </form>
+    <a class="btn secondary sm" href="/jobs/{{ job.id }}/export.csv">Export</a>
+    <a class="btn sm" href="/jobs/{{ job.id }}/report" target="_blank">Generate Report</a>
+  </div>
 </div>
 
-<div class="tblwrap {% if not job.apply_depreciation %}dep-off{% endif %}">
-<table>
-  <thead><tr>
-    <th style="width:34px"></th>
-    <th style="width:250px">Item</th>
-    <th style="width:140px">Photos</th>
-    <th>Identified as</th>
-    <th style="width:64px">Conf.</th>
-    <th class="num dep-col" style="width:72px">Age/life</th>
-    <th class="num" style="width:92px">Replacement</th>
-    <th class="num dep-col" style="width:92px">Indemnity</th>
-    <th style="width:170px">Override / edit</th>
-  </tr></thead>
-  <tbody>
-  {% for item in job.items %}
-  {% set st = item.valuation_status.value %}
-  <tr class="row{% if item.excluded %} excluded{% endif %}" id="item-{{ item.id }}"
-      data-search="{{ (item.description ~ ' ' ~ item.make ~ ' ' ~ item.model ~ ' ' ~ item.identified_as)|lower }}"
-      data-status="{{ st }}" data-conf="{{ item.confidence }}"
-      data-excluded="{{ 1 if item.excluded else 0 }}"
-      data-flagged="{{ 1 if item.assessor_note else 0 }}"
-      onclick="toggleRow(event,'d-{{ item.id }}')">
-    <td class="idx keep"><span class="chev" id="c-{{ item.id }}">▸</span> {{ loop.index }}</td>
-    <td>
-      <div class="nm" title="{{ item.description }}">{{ item.description }}{% if (item.quantity or 1) > 1 %} <span class="muted">×{{ item.quantity }}</span>{% endif %}</div>
-      <div class="mt">{{ item.make }}{% if item.model %} · {{ item.model }}{% endif %}{% if item.assessor_note %} <span class="flag">⚑</span>{% endif %}</div>
-    </td>
-    <td><div class="ph">
-      {% set keys = item.photo_key_list %}
-      {% for key in keys[:4] %}{% if key in photos %}
-        <img src="/photos/{{ photos[key].id }}" loading="lazy" alt="" onclick="zoom(event,this.src)">
-      {% endif %}{% endfor %}
-      {% if keys|length > 4 %}<span class="more">+{{ keys|length - 4 }}</span>{% endif %}
-    </div></td>
-    <td>
-      {% if st in ('complete','overridden') %}
-        <div class="idn" title="{{ item.identified_as }}">{{ item.identified_as or item.category }}</div>
-      {% elif st == 'running' %}<span class="pill working">researching…</span>
-      {% elif st == 'failed' %}<span class="pill low">failed</span>
-      {% elif job.status.value == 'valuing' %}<span class="pill queued">queued</span>
-      {% else %}<span class="pill">not valued</span>{% endif %}
-    </td>
-    <td>{% if item.confidence %}<span class="pill {{ item.confidence }}">{{ item.confidence }}</span>{% endif %}</td>
-    <td class="num dep-col" style="font-size:11px;color:var(--muted)">
-      {% if item.estimated_age_years is not none %}{{ item.estimated_age_years|round|int }}/{{ item.effective_life_years|round|int }}y
-        <br>−{{ "{:.0f}".format((item.depreciation_rate or 0) * 100) }}%{% else %}—{% endif %}
-    </td>
-    <td class="num">{% if item.replacement_value is not none %}
-        <strong>${{ "{:,.0f}".format(item.replacement_value * (item.quantity or 1)) }}</strong>
-        {% if item.manual_override %}<div style="font-size:10px;color:var(--accent)">manual</div>{% endif %}
-      {% else %}—{% endif %}</td>
-    <td class="num dep-col">{% if item.indemnity_value is not none %}
-        ${{ "{:,.0f}".format(item.indemnity_value * (item.quantity or 1)) }}{% else %}—{% endif %}</td>
-    <td class="ovr keep" onclick="event.stopPropagation()">
-      <div style="display:flex;gap:3px;align-items:center">
-        <form method="post" action="/items/{{ item.id }}" style="display:flex;gap:3px">
-          <input type="text" name="replacement_value" placeholder="$ ea"
-                 title="Override unit replacement cost, then press Enter">
-          <input type="hidden" name="quantity" value="{{ item.quantity or 1 }}">
-          {% if item.excluded %}<input type="hidden" name="excluded" value="on">{% endif %}
-          <button class="btn ghost small" type="submit" style="padding:3px 7px"
-                  title="Save override">↵</button>
-        </form>
-        <button class="btn ghost small" type="button" style="padding:3px 8px"
-                title="Edit details and re-value with AI"
-                onclick="openEdit('{{ item.id }}')">Edit</button>
+<div class="meta">
+  <div><div class="k">Claimant</div><div class="v">{{ job.insured_name or '—' }}</div></div>
+  <div><div class="k">Claim type</div><div class="v">{{ job.peril }} damage</div></div>
+  <div><div class="k">Location</div><div class="v" title="{{ job.site_address }}">{{ job.site_address or '—' }}</div></div>
+  <div><div class="k">Insurer</div><div class="v">{{ job.insurer or '—' }}</div></div>
+  <div><div class="k">Policy excess</div><div class="v">A${{ "{:,.0f}".format(job.policy_excess or 0) }}</div></div>
+  <div><div class="k">Loss date</div><div class="v">{{ job.date_of_loss or '—' }}</div></div>
+  <div><div class="k">Assessor</div><div class="v">{{ user.organisation.name }}</div></div>
+</div>
+
+<div class="kpis">
+  <div class="kpi">
+    <div class="kpi-icon" style="background:var(--blue-100);color:var(--blue-600)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1 2 4v8l6 3 6-3V4L8 1Zm0 1.7L12.2 5 8 7.1 3.8 5 8 2.7Z"/></svg></div>
+    <div><div class="k">Inventory items</div>
+      <div class="v">{{ totals.count }}</div>
+      <div class="s">{{ totals.needs_review }} need review</div></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-icon" style="background:var(--green-100);color:var(--green-600)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm.8 10.6v1H7.3v-1c-1-.2-1.8-.8-1.9-1.9h1.4c.1.5.5.8 1.3.8.7 0 1.1-.3 1.1-.8s-.3-.7-1.4-.9c-1.4-.3-2.2-.8-2.2-2 0-1 .7-1.6 1.7-1.8v-1h1.5v1c1 .2 1.6.9 1.7 1.8H9.1c-.1-.5-.4-.8-1.1-.8s-1 .3-1 .7.4.7 1.4.9c1.5.3 2.2.9 2.2 2 0 1-.7 1.7-1.8 2Z"/></svg></div>
+    <div><div class="k">Replacement value</div>
+      <div class="v">A${{ "{:,.0f}".format(totals.replacement) }}</div>
+      <div class="s">{{ totals.priced }} of {{ totals.count }} priced</div></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-icon" style="background:var(--amber-100);color:var(--amber-600)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5A6.5 6.5 0 1 0 14.5 8h-1.5A5 5 0 1 1 8 3V1.5Zm.75 1.6V7.4l3.4-2a5 5 0 0 0-3.4-2.3Z"/></svg></div>
+    <div><div class="k">Depreciation</div>
+      <div class="v">{% if job.apply_depreciation %}A${{ "{:,.0f}".format(totals.depreciation) }}{% else %}<span class="dim" style="font-size:19px">Not applied</span>{% endif %}</div>
+      <div class="s">{% if job.apply_depreciation %}{{ totals.depreciation_pct }}% of replacement{% else %}Settling new for old{% endif %}</div></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-icon" style="background:#E7EDF8;color:var(--navy-800)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2.5H2V3Zm0 4h12v6H2V7Zm2 2v2h4V9H4Z"/></svg></div>
+    <div><div class="k">Settlement estimate</div>
+      <div class="v">A${{ "{:,.0f}".format(totals.settlement) }}</div>
+      <div class="s">{% if job.apply_depreciation %}After depreciation{% else %}Replacement basis{% endif %}, less excess</div></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-icon" style="background:var(--ai-100);color:var(--ai-600)">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.2 9.5 5 13.3 6.5 9.5 8 8 11.8 6.5 8 2.7 6.5 6.5 5 8 1.2Zm4.5 7.6.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8.8-2Z"/></svg></div>
+    <div><div class="k">AI review</div>
+      <div class="v">{{ totals.flagged }}</div>
+      <div class="s">items flagged</div></div>
+  </div>
+</div>
+
+<div class="workspace">
+  <div>
+    <div class="card" style="overflow:hidden">
+      {% if pending or running %}
+      <div class="prog" id="prog">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px">
+          <span class="spinner" aria-hidden="true"></span>
+          <strong id="p-head">Researching replacement costs…</strong>
+          <span class="dim" id="p-sub"></span>
+          <span style="flex:1"></span>
+          <span class="dim" id="p-eta"></span>
+        </div>
+        <div class="bar"><div class="fill" id="p-fill" style="width:0%"></div></div>
+        <div class="dim" id="p-now" style="font-size:11.5px;margin-top:6px">
+          Comparing product identity, specifications and available Australian replacement sources.</div>
       </div>
-    </td>
-  </tr>
-  <tr class="detail" id="d-{{ item.id }}"><td colspan="9">
-    <div class="dgrid">
-      <div>
-        <h4>Assessment</h4>
-        <div>{{ item.identified_as or "Not yet valued." }}</div>
-        {% if item.category %}<div class="tiny muted">{{ item.category }}</div>{% endif %}
-        {% if item.valuation_notes %}<div class="small muted" style="margin-top:6px">{{ item.valuation_notes }}</div>{% endif %}
-        {% if item.assessor_note %}<div class="small" style="margin-top:6px;color:var(--warn)">⚑ Assessor note: {{ item.assessor_note }}</div>{% endif %}
-        {% if item.error %}<div class="small" style="margin-top:6px;color:var(--bad)">Error: {{ item.error }}</div>{% endif %}
+      {% endif %}
 
-        <div class="tiny muted" style="margin-top:8px">
-          {{ item.cause_of_damage }} damage · {{ item.location }}
-          {% if item.serial %} · S/N {{ item.serial }}{% endif %}
-          · photos {{ item.photo_refs }} ({{ item.photo_series }} attendance)
-          {% if item.cost_usd %} · researched for US${{ "{:.4f}".format(item.cost_usd) }}
-            in {{ item.search_count }} search(es) via {{ item.valuation_model }}{% endif %}
+      <form class="toolbar" method="get" action="/jobs/{{ job.id }}" id="filterform">
+        <div class="searchbox">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.7 10.3 15 13.6 13.6 15l-3.3-3.3a6 6 0 1 1 1.4-1.4ZM7 11A4 4 0 1 0 7 3a4 4 0 0 0 0 8Z"/></svg>
+          <label class="sr-only" for="q">Search items</label>
+          <input type="search" id="q" name="q" value="{{ q }}"
+                 placeholder="Search items by name, make, model or notes…">
+        </div>
+        <div class="chips">
+          {% for key, label in [('all','All'),('review','Needs review'),('high','High confidence'),
+                                ('medium','Medium'),('low','Low'),('overridden','Overridden'),
+                                ('unvalued','Unvalued'),('excluded','Excluded')] %}
+            <a class="chip {% if view == key %}on{% endif %}"
+               href="/jobs/{{ job.id }}?{{ qs({'view': key, 'page': 1, 'item': ''}) }}">
+              {{ label }} <span class="n">{{ counts[key] }}</span></a>
+          {% endfor %}
+        </div>
+        <span style="flex:1"></span>
+        {% if categories %}
+        <select name="category" onchange="this.form.submit()" aria-label="Filter by category"
+                style="width:auto;height:32px;font-size:12.5px">
+          <option value="">All categories</option>
+          {% for c in categories %}<option value="{{ c }}" {% if category==c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+        </select>
+        {% endif %}
+        <select name="sort" onchange="this.form.submit()" aria-label="Sort items"
+                style="width:auto;height:32px;font-size:12.5px">
+          <option value="order" {% if sort=='order' %}selected{% endif %}>Inventory order</option>
+          <option value="value_desc" {% if sort=='value_desc' %}selected{% endif %}>Highest value</option>
+          <option value="value_asc" {% if sort=='value_asc' %}selected{% endif %}>Lowest value</option>
+          <option value="confidence" {% if sort=='confidence' %}selected{% endif %}>Lowest confidence</option>
+          <option value="name" {% if sort=='name' %}selected{% endif %}>Name A–Z</option>
+        </select>
+        <input type="hidden" name="view" value="{{ view }}">
+        <input type="hidden" name="per_page" value="{{ per_page }}">
+        <button class="btn secondary sm" type="button" onclick="openAdd()">+ Add item</button>
+        <a class="btn secondary sm" href="/jobs/new">Import Inventory (XLS)</a>
+      </form>
+
+      <!-- add item -->
+      <div id="additem" hidden style="padding:16px;border-bottom:1px solid var(--border);background:#FBFDFF">
+        <form method="post" action="/jobs/{{ job.id }}/items">
+          <input type="hidden" name="return_to" value="{{ rt }}">
+          <h3 style="font-size:14px;margin-bottom:3px">Add an item to this claim</h3>
+          <p class="dim" style="font-size:12.5px;margin:0 0 12px">For anything the assessor's inventory missed.</p>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+            <div style="grid-column:span 2"><label for="ni-d">Description</label>
+              <input id="ni-d" type="text" name="description" required placeholder="e.g. Commercial glass door fridge"></div>
+            <div><label for="ni-mk">Make</label><input id="ni-mk" type="text" name="make"></div>
+            <div><label for="ni-md">Model</label><input id="ni-md" type="text" name="model"></div>
+            <div><label for="ni-q">Quantity</label><input id="ni-q" type="number" name="quantity" value="1" min="1"></div>
+            <div><label for="ni-l">Location</label><input id="ni-l" type="text" name="location" placeholder="Storage shed"></div>
+            <div><label for="ni-c">Cause of damage</label><input id="ni-c" type="text" name="cause_of_damage" placeholder="{{ job.peril }}"></div>
+            <div><label for="ni-s">Photo series</label>
+              <select id="ni-s" name="photo_series">
+                <option value="">None</option><option value="initial">Initial attendance</option>
+                <option value="second">Second attendance</option></select></div>
+            <div><label for="ni-p">Photo numbers</label><input id="ni-p" type="text" name="photo_refs" placeholder="e.g. 12, 13"></div>
+            <div style="grid-column:span 3"><label for="ni-n">Assessor note</label>
+              <input id="ni-n" type="text" name="assessor_note" placeholder="Condition, context for the AI…"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;margin-top:14px">
+            <label style="display:flex;align-items:center;gap:7px;margin:0;font-weight:500;color:var(--text-primary)">
+              <input type="checkbox" name="value_now" checked {% if not has_api_key %}disabled{% endif %}>
+              Value with AI immediately</label>
+            <button class="btn sm" type="submit">Add item</button>
+            <button class="btn tertiary sm" type="button" onclick="document.getElementById('additem').hidden=true">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr>
+          <th class="row-n">#</th>
+          <th>Item</th>
+          <th class="hide-sm">Category</th>
+          <th class="hide-sm">Evidence</th>
+          <th class="hide-sm">AI match</th>
+          <th class="hide-sm">Confidence</th>
+          <th style="text-align:right">Replacement</th>
+          <th style="width:44px"><span class="sr-only">Actions</span></th>
+        </tr></thead>
+        <tbody>
+        {% for it in rows %}
+        {% set keys = it.photo_key_list %}
+        <tr class="{% if selected and it.id == selected.id %}sel{% endif %} {% if it.excluded %}ex{% endif %}"
+            onclick="location.href='/jobs/{{ job.id }}?{{ qs({'item': it.id}) }}'"
+            tabindex="0" onkeydown="if(event.key==='Enter')this.click()"
+            aria-label="Select {{ it.description }}">
+          <td class="row-n keep">{{ it.sort_order + 1 }}</td>
+          <td>
+            <div class="it-name" title="{{ it.description }}">{{ it.description }}{% if (it.quantity or 1) > 1 %} <span class="dim">×{{ it.quantity }}</span>{% endif %}</div>
+            <div class="it-sub">{{ it.make or '—' }}{% if it.model %} · {{ it.model }}{% endif %}</div>
+          </td>
+          <td class="hide-sm"><span class="badge">{{ it.category or 'Uncategorised' }}</span></td>
+          <td class="hide-sm">
+            {% if keys %}
+            <div class="thumbs">
+              {% for k in keys[:3] %}{% if k in photos %}
+                <img src="/photos/{{ photos[k].id }}" loading="lazy" alt="Evidence photo {{ photos[k].number }}"
+                     onclick="event.stopPropagation();zoom('/photos/{{ photos[k].id }}','{{ it.description }}')">
+              {% endif %}{% endfor %}
+              {% if keys|length > 3 %}<span class="more">+{{ keys|length - 3 }}</span>{% endif %}
+            </div>
+            {% else %}<span class="no-ev">No evidence</span>{% endif %}
+          </td>
+          <td class="hide-sm">
+            {% if it.valuation_status.value in ('complete','overridden') %}
+              <div class="ai-name" title="{{ it.identified_as }}">{{ it.identified_as or '—' }}</div>
+            {% elif it.valuation_status.value == 'running' %}
+              <span class="dim" style="font-size:12.5px"><span class="spinner"></span> Researching…</span>
+            {% elif it.valuation_status.value == 'failed' %}
+              <span class="badge low">Research failed</span>
+            {% else %}<span class="dim" style="font-size:12.5px">Queued</span>{% endif %}
+          </td>
+          <td class="hide-sm">{{ confidence(it) }}</td>
+          <td>
+            {% if it.replacement_value is not none %}
+              <div class="val">A${{ "{:,.0f}".format(it.replacement_value * (it.quantity or 1)) }}</div>
+              {% if job.apply_depreciation and it.indemnity_value is not none %}
+                <div class="val-sub">A${{ "{:,.0f}".format(it.indemnity_value * (it.quantity or 1)) }} settle</div>
+              {% endif %}
+            {% else %}<div class="val dim">—</div>{% endif %}
+          </td>
+          <td class="keep" style="text-align:center">
+            {% if it.flagged %}<span class="tip" tabindex="0" style="color:var(--amber-600)">⚑
+              <span class="tip-body">Flagged for review</span></span>
+            {% elif it.reviewed %}<span class="tip" tabindex="0" style="color:var(--green-600)">✓
+              <span class="tip-body">Reviewed and approved</span></span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">
+          <div class="empty">
+            <h3>No items match this view</h3>
+            <p>Adjust the filters or search to see more of the inventory.</p>
+          </div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+
+      <div class="pager">
+        <span>Showing {{ range_start }}–{{ range_end }} of {{ total_rows }} items</span>
+        <form method="get" action="/jobs/{{ job.id }}" style="display:inline-flex;align-items:center;gap:6px">
+          <input type="hidden" name="q" value="{{ q }}"><input type="hidden" name="view" value="{{ view }}">
+          <input type="hidden" name="sort" value="{{ sort }}"><input type="hidden" name="category" value="{{ category }}">
+          <select name="per_page" onchange="this.form.submit()" aria-label="Items per page">
+            {% for n in per_page_options %}<option value="{{ n }}" {% if per_page==n %}selected{% endif %}>{{ n }} / page</option>{% endfor %}
+          </select>
+        </form>
+        <div class="pages">
+          {% if page > 1 %}<a href="/jobs/{{ job.id }}?{{ qs({'page': page-1, 'item': ''}) }}" aria-label="Previous page">←</a>{% endif %}
+          {% for p in range(1, pages + 1) %}
+            {% if p <= 2 or p > pages - 2 or (p >= page - 1 and p <= page + 1) %}
+              {% if p == page %}<span class="pg on" aria-current="page">{{ p }}</span>
+              {% else %}<a href="/jobs/{{ job.id }}?{{ qs({'page': p, 'item': ''}) }}">{{ p }}</a>{% endif %}
+            {% elif p == 3 and page > 4 %}<span class="pg" style="border:0;background:none">…</span>
+            {% elif p == pages - 2 and page < pages - 3 %}<span class="pg" style="border:0;background:none">…</span>
+            {% endif %}
+          {% endfor %}
+          {% if page < pages %}<a href="/jobs/{{ job.id }}?{{ qs({'page': page+1, 'item': ''}) }}" aria-label="Next page">→</a>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ---------------------------------------------- selected item detail #}
+    {% if selected %}
+    {% set skeys = selected.photo_key_list %}
+    <div class="card detail">
+      <div class="detail-head">
+        <div>
+          <h3 style="font-size:15.5px">{{ selected.description }}</h3>
+          <div class="dim" style="font-size:12.5px">
+            Item #{{ selected.sort_order + 1 }}{% if selected.make %} · {{ selected.make }}{% endif %}
+            {%- if selected.model %} {{ selected.model }}{% endif %}
+          </div>
+        </div>
+        <span style="flex:1"></span>
+        <span class="badge {% if selected.review_state in ('reviewed',) %}high{% elif selected.review_state in ('flagged','insufficient evidence') %}medium{% elif selected.review_state=='excluded' %}low{% else %}ai{% endif %}">
+          {{ selected.review_state | title }}</span>
+      </div>
+
+      <div class="tabs" role="tablist">
+        {% for key, label in [('overview','Overview'),('evidence','Evidence'),
+                              ('research','AI Research'),('comparables','Comparable Pricing'),
+                              ('audit','Audit')] %}
+          <a role="tab" aria-selected="{{ 'true' if tab==key else 'false' }}"
+             class="{% if tab==key %}on{% endif %}"
+             href="/jobs/{{ job.id }}?{{ qs({'tab': key}) }}">{{ label }}
+             {%- if key=='evidence' and skeys %} ({{ skeys|length }}){% endif %}
+             {%- if key=='audit' and events %} ({{ events|length }}){% endif %}</a>
+        {% endfor %}
+      </div>
+
+      <div class="tabpane">
+      {% if tab == 'overview' %}
+        <div class="detail-grid">
+          <div>
+            {% if skeys and skeys[0] in photos %}
+              <img class="hero" src="/photos/{{ photos[skeys[0]].id }}" alt="Primary evidence"
+                   onclick="zoom(this.src,'{{ selected.description }}')" style="cursor:zoom-in">
+            {% else %}
+              <div class="hero" style="display:grid;place-items:center">
+                <span class="dim" style="font-size:12.5px">No evidence image</span></div>
+            {% endif %}
+            <div style="margin-top:12px">
+              <div class="sum-row"><span class="k">Category</span><span class="v">{{ selected.category or '—' }}</span></div>
+              <div class="sum-row"><span class="k">Quantity</span><span class="v">{{ selected.quantity or 1 }}</span></div>
+              <div class="sum-row"><span class="k">Location</span><span class="v">{{ selected.location or '—' }}</span></div>
+              <div class="sum-row"><span class="k">Cause of damage</span><span class="v">{{ selected.cause_of_damage or '—' }}</span></div>
+              {% if selected.serial %}<div class="sum-row"><span class="k">Serial</span><span class="v">{{ selected.serial }}</span></div>{% endif %}
+              <div class="sum-row"><span class="k">AI confidence</span><span class="v">{{ confidence(selected) }}</span></div>
+              <div class="sum-row"><span class="k">Status</span><span class="v">{{ selected.review_state | title }}</span></div>
+              {% if selected.valued_at %}
+              <div class="sum-row"><span class="k">Researched</span>
+                <span class="v">{{ selected.valued_at.strftime('%d %b %Y') }}</span></div>{% endif %}
+            </div>
+          </div>
+
+          <div>
+            <div class="flow">
+              <div class="flow-card">
+                <h4>Source evidence</h4>
+                {% if skeys %}
+                  <div class="flow-thumbs">
+                    {% for k in skeys[:6] %}{% if k in photos %}
+                      <img src="/photos/{{ photos[k].id }}" loading="lazy" alt="Evidence {{ photos[k].number }}"
+                           style="cursor:zoom-in" onclick="zoom(this.src,'{{ selected.description }}')">
+                    {% endif %}{% endfor %}
+                  </div>
+                  <div class="dim" style="font-size:11.5px;margin-top:8px">
+                    {{ skeys|length }} photo{{ '' if skeys|length == 1 else 's' }} ·
+                    {{ selected.photo_series or 'unassigned' }} attendance</div>
+                {% else %}
+                  <p class="dim" style="font-size:12.5px;margin:0">No evidence images matched.
+                    Review image pairing for this item.</p>
+                {% endif %}
+              </div>
+              <div class="flow-arrow" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3Z"/></svg></div>
+
+              <div class="flow-card">
+                <h4>AI identified product</h4>
+                {% if selected.identified_as %}
+                  <div style="font-size:13px;font-weight:600;line-height:1.4">{{ selected.identified_as }}</div>
+                  {% if selected.category %}<div class="dim" style="font-size:12px;margin-top:3px">{{ selected.category }}</div>{% endif %}
+                  <div style="margin-top:9px">{{ confidence(selected) }}</div>
+                {% elif selected.valuation_status.value in ('pending','running') %}
+                  <p class="dim" style="font-size:12.5px;margin:0">
+                    <span class="spinner"></span> Researching replacement cost…</p>
+                {% else %}
+                  <p class="dim" style="font-size:12.5px;margin:0">Not yet identified.</p>
+                {% endif %}
+              </div>
+              <div class="flow-arrow" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5V3Z"/></svg></div>
+
+              <div class="flow-card">
+                <h4>Researched pricing</h4>
+                {% if selected.source_list %}
+                  {% for src in selected.source_list[:4] %}
+                    <div class="src-row">
+                      <span class="favi" aria-hidden="true"></span>
+                      <a class="host" href="{{ src }}" target="_blank" rel="noopener"
+                         title="{{ src }}">{{ src | replace('https://','') | replace('http://','') | truncate(30, true) }}</a>
+                    </div>
+                  {% endfor %}
+                  <div class="dim" style="font-size:11.5px;margin-top:7px">
+                    {{ selected.source_list|length }} source{{ '' if selected.source_list|length == 1 else 's' }} cited</div>
+                {% else %}
+                  <p class="dim" style="font-size:12.5px;margin:0">No pricing sources recorded for this line.</p>
+                {% endif %}
+                {% if selected.replacement_value is not none %}
+                  <div style="margin-top:10px;padding-top:9px;border-top:1px solid var(--border)">
+                    <div class="dim" style="font-size:11px">Assessed replacement</div>
+                    <div style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums">
+                      A${{ "{:,.2f}".format(selected.replacement_value) }}</div>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            {% if selected.valuation_notes or selected.assessor_note %}
+            <div class="ai-summary">
+              <h4><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1.2 9.5 5 13.3 6.5 9.5 8 8 11.8 6.5 8 2.7 6.5 6.5 5 8 1.2Z"/></svg>
+                AI assessment summary</h4>
+              {% if selected.valuation_notes %}<p>{{ selected.valuation_notes }}</p>{% endif %}
+              {% if selected.assessor_note %}
+                <p style="margin-top:8px;color:var(--amber-600);font-weight:500">
+                  ⚑ Assessor note: {{ selected.assessor_note }}</p>{% endif %}
+              <a class="btn tertiary sm" style="margin-top:6px;padding-left:0"
+                 href="/jobs/{{ job.id }}?{{ qs({'tab':'research'}) }}">View full AI research →</a>
+            </div>
+            {% endif %}
+
+            {% if selected.confidence == 'low' %}
+            <div style="margin-top:14px;background:var(--amber-100);border:1px solid #F0DDB6;
+                        border-radius:9px;padding:11px 14px">
+              <strong style="font-size:13px;color:var(--amber-600)">Human review recommended</strong>
+              <p style="margin:3px 0 0;font-size:12.5px;color:#7A4E0C">
+                Identification or pre-loss condition is uncertain on this line. An insurer is
+                likely to contest it without further evidence.</p>
+            </div>
+            {% endif %}
+          </div>
         </div>
 
-        {% if item.source_list %}
-          <h4 style="margin-top:10px">Pricing sources</h4>
-          <div class="srcs">{% for src in item.source_list %}
-            <a href="{{ src }}" target="_blank" rel="noopener">{{ src }}</a>{% endfor %}</div>
+      {% elif tab == 'evidence' %}
+        {% if skeys %}
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px">
+            {% for k in skeys %}{% if k in photos %}
+              <figure style="margin:0">
+                <img src="/photos/{{ photos[k].id }}" loading="lazy" alt="Evidence {{ photos[k].number }}"
+                     style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;
+                            border:1px solid var(--border);cursor:zoom-in"
+                     onclick="zoom(this.src,'{{ photos[k].caption or selected.description }}')">
+                <figcaption class="dim" style="font-size:11.5px;margin-top:5px">
+                  Photo {{ photos[k].number }} · {{ selected.photo_series }} attendance
+                  {%- if photos[k].caption %}<br>{{ photos[k].caption | truncate(70, true) }}{% endif %}
+                </figcaption>
+              </figure>
+            {% endif %}{% endfor %}
+          </div>
+        {% else %}
+          <div class="empty"><h3>No evidence images matched</h3>
+            <p>Review image pairing for this inventory item. Photo references:
+              {{ selected.photo_refs or 'none recorded' }}.</p></div>
         {% endif %}
 
-        <div class="dphotos">
-          {% for key in item.photo_key_list %}{% if key in photos %}
-            <img src="/photos/{{ photos[key].id }}" loading="lazy" alt="" onclick="zoom(event,this.src)">
-          {% endif %}{% endfor %}
+      {% elif tab == 'research' %}
+        <div style="max-width:820px">
+          {% if selected.identified_as %}
+            <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px">Identification</h4>
+            <p style="margin:0 0 16px;font-size:14px;line-height:1.6">{{ selected.identified_as }}</p>
+          {% endif %}
+          {% if selected.valuation_notes %}
+            <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px">Research notes</h4>
+            <p style="margin:0 0 16px;font-size:14px;line-height:1.65">{{ selected.valuation_notes }}</p>
+          {% endif %}
+          <div class="sum-row"><span class="k">Estimated age</span>
+            <span class="v">{% if selected.estimated_age_years is not none %}{{ selected.estimated_age_years }} years{% else %}—{% endif %}</span></div>
+          <div class="sum-row"><span class="k">Effective life</span>
+            <span class="v">{% if selected.effective_life_years %}{{ selected.effective_life_years }} years{% else %}—{% endif %}</span></div>
+          <div class="sum-row"><span class="k">Model used</span><span class="v">{{ selected.valuation_model or '—' }}</span></div>
+          <div class="sum-row"><span class="k">Web searches</span><span class="v">{{ selected.search_count or 0 }}</span></div>
+          <div class="sum-row"><span class="k">Research cost</span>
+            <span class="v">{% if selected.cost_usd %}US${{ "{:.4f}".format(selected.cost_usd) }}{% else %}—{% endif %}</span></div>
+          {% if selected.error %}
+            <div style="margin-top:14px;background:var(--red-100);border:1px solid #F2CFCF;border-radius:8px;padding:11px 14px">
+              <strong style="font-size:13px;color:var(--red-600)">Research failed</strong>
+              <p style="margin:3px 0 0;font-size:12.5px;color:#8A3030">{{ selected.error }}</p></div>
+          {% endif %}
         </div>
-      </div>
 
-      <div class="dform">
-        <h4 style="margin:0 0 2px">Item details</h4>
-        <p class="tiny muted" style="margin:0 0 4px">
-          What the AI researches. Correct a misspelt make or add a model number,
-          then re-value.
-        </p>
-        <form method="post" action="/items/{{ item.id }}/edit">
-          <label>Description</label>
-          <input type="text" name="description" value="{{ item.description }}" required>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px">
-            <div><label>Make</label>
-              <input type="text" name="make" value="{{ item.make }}"></div>
-            <div><label>Model</label>
-              <input type="text" name="model" value="{{ item.model }}"></div>
-            <div><label>Serial</label>
-              <input type="text" name="serial" value="{{ item.serial }}"></div>
-            <div><label>Quantity</label>
-              <input type="number" name="quantity" value="{{ item.quantity or 1 }}" min="1"></div>
-            <div><label>Location</label>
-              <input type="text" name="location" value="{{ item.location }}"></div>
-            <div><label>Cause of damage</label>
-              <input type="text" name="cause_of_damage" value="{{ item.cause_of_damage }}"></div>
+      {% elif tab == 'comparables' %}
+        {% if selected.source_list %}
+          <p class="dim" style="font-size:12.5px;margin:0 0 12px">
+            Sources the AI cited when pricing this item. Each can be opened to verify the figure independently.</p>
+          <div style="max-width:820px">
+          {% for src in selected.source_list %}
+            <div class="src-row" style="padding:10px 0">
+              <span class="favi" aria-hidden="true"></span>
+              <a class="host" href="{{ src }}" target="_blank" rel="noopener">{{ src }}</a>
+              <span class="badge">Source {{ loop.index }}</span>
+            </div>
+          {% endfor %}
           </div>
-          <label>Photo numbers ({{ item.photo_series or "n/a" }} attendance)</label>
-          <input type="text" name="photo_refs" value="{{ item.photo_refs }}" placeholder="e.g. 21, 22, 23">
-          <label>Assessor note</label>
-          <input type="text" name="assessor_note" value="{{ item.assessor_note }}"
-                 placeholder="Condition, doubts, context for the AI…">
-          <label class="switch" style="margin-top:10px;font-weight:400">
-            <input type="checkbox" name="revalue" checked {% if not has_api_key %}disabled{% endif %}>
-            Re-value with AI after saving
-          </label>
-          <p style="margin:9px 0 0"><button class="btn small" type="submit" style="width:100%">Save &amp; re-value</button></p>
-        </form>
-      </div>
+        {% else %}
+          <div class="empty"><h3>No pricing sources recorded</h3>
+            <p>This line was either priced without web research or valued manually by the assessor.</p></div>
+        {% endif %}
 
-      <div class="dform">
-        <h4 style="margin:0 0 4px">Valuation</h4>
-        <form method="post" action="/items/{{ item.id }}">
-          <label>Replacement cost, each (AUD)</label>
-          <input type="text" name="replacement_value"
-                 placeholder="{% if item.replacement_value is not none %}{{ "{:.2f}".format(item.replacement_value) }}{% else %}not valued{% endif %}">
-          <input type="hidden" name="quantity" value="{{ item.quantity or 1 }}">
-          <label>Reason for override</label>
-          <input type="text" name="valuation_notes" placeholder="e.g. per-unit average">
-          <label class="switch" style="margin-top:10px;font-weight:400">
-            <input type="checkbox" name="excluded" {% if item.excluded %}checked{% endif %}>
-            Exclude from claim
-          </label>
-          <p style="margin:9px 0 0"><button class="btn small" type="submit" style="width:100%">Save value</button></p>
-          {% if item.replacement_value is not none %}
-          <p class="tiny muted" style="margin:7px 0 0">
-            Recalculates indemnity at the same
-            {{ "{:.0f}".format((item.depreciation_rate or 0) * 100) }}% depreciation.
-          </p>{% endif %}
-        </form>
-        <form method="post" action="/items/{{ item.id }}/value" style="margin-top:8px">
-          <button class="btn ghost small" type="submit" style="width:100%"
-                  {% if not has_api_key %}disabled{% endif %}>Re-value with AI</button>
-        </form>
-        <form method="post" action="/items/{{ item.id }}/delete" style="margin-top:6px"
-              onsubmit="return confirm('Delete this item from the claim?')">
-          <button class="btn ghost small" type="submit"
-                  style="width:100%;color:var(--bad)">Delete item</button>
-        </form>
+      {% elif tab == 'audit' %}
+        {% if events %}
+          <div style="max-width:760px">
+          {% for e in events %}
+            <div class="tl">
+              <span class="tl-dot {{ e.kind }}" aria-hidden="true"></span>
+              <div style="flex:1">
+                <div style="display:flex;gap:9px;align-items:baseline;flex-wrap:wrap">
+                  <span class="who">{{ e.user_name }}</span>
+                  <span class="when">{{ e.created_at.strftime('%d %b %Y · %H:%M') }}</span>
+                  <span class="badge">{{ e.kind | title }}</span>
+                </div>
+                <div class="what">{{ e.summary }}</div>
+                {% if e.old_value or e.new_value %}
+                  <div class="delta">
+                    {% if e.old_value %}<span class="dim">{{ e.old_value }}</span> → {% endif %}{{ e.new_value }}</div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty"><h3>No recorded activity</h3>
+            <p>Adjustments, overrides and approvals against this item will appear here.</p></div>
+        {% endif %}
+      {% endif %}
       </div>
     </div>
-  </td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+    {% endif %}
+  </div>
+
+  {# ------------------------------------------------- valuation inspector #}
+  <aside class="card inspector" aria-label="Valuation and adjustment">
+    {% if selected %}
+    <div class="insp-head">
+      <h3>Valuation &amp; Adjustment</h3>
+      <span style="flex:1"></span>
+      <span class="dim" style="font-size:11.5px">Item #{{ selected.sort_order + 1 }}</span>
+    </div>
+    <div class="insp-body">
+      <div class="ai-value">
+        <div class="k">Replacement cost {% if selected.manual_override %}(assessor){% else %}(AI){% endif %}</div>
+        <div class="v">{% if selected.replacement_value is not none %}A${{ "{:,.2f}".format(selected.replacement_value) }}{% else %}—{% endif %}</div>
+        {% if selected.source_list %}
+          <a class="btn tertiary xs" style="padding-left:0;margin-top:4px"
+             href="/jobs/{{ job.id }}?{{ qs({'tab':'research'}) }}">View AI research details →</a>
+        {% endif %}
+      </div>
+
+      <form method="post" action="/items/{{ selected.id }}">
+        <input type="hidden" name="return_to" value="{{ rt }}">
+        <div class="field">
+          <label for="ov">Manual replacement cost (each)</label>
+          <div class="money-input">
+            <span>A$</span>
+            <input id="ov" type="text" name="replacement_value" inputmode="decimal"
+                   placeholder="{% if selected.replacement_value is not none %}{{ '{:,.2f}'.format(selected.replacement_value) }}{% else %}0.00{% endif %}">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="field">
+            <label for="qty">Quantity</label>
+            <input id="qty" type="number" name="quantity" value="{{ selected.quantity or 1 }}" min="1">
+          </div>
+          <div class="field">
+            <label for="cond">Condition</label>
+            <select id="cond" name="condition">
+              {% for c in conditions %}
+                <option value="{{ c }}" {% if (selected.condition or 'average')==c %}selected{% endif %}>{{ c|title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="dep">Depreciation applied
+            <span class="dim" style="font-weight:400">· {{ "{:.0f}".format(selected.effective_depreciation * 100) }}% current</span></label>
+          <div class="money-input">
+            <span style="left:auto;right:11px">%</span>
+            <input id="dep" type="text" name="depreciation_override" inputmode="decimal"
+                   style="padding-left:11px;text-align:left"
+                   placeholder="{{ '{:.0f}'.format(selected.effective_depreciation * 100) }}"
+                   {% if not job.apply_depreciation %}disabled title="Depreciation is switched off for this claim"{% endif %}>
+          </div>
+          <p class="dim" style="font-size:11.5px;margin:5px 0 0">
+            {% if selected.estimated_age_years is not none %}
+              Derived from {{ selected.estimated_age_years }}y age against
+              {{ selected.effective_life_years }}y life, adjusted for condition.
+            {% else %}Leave blank to use the assessed rate.{% endif %}</p>
+        </div>
+        <div class="field">
+          <label for="rsn">Override reason</label>
+          <input id="rsn" type="text" name="valuation_notes" placeholder="e.g. per-unit average for bulk lot">
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:500;color:var(--text-primary);margin-bottom:14px">
+          <input type="checkbox" name="excluded" {% if selected.excluded %}checked{% endif %}>
+          Exclude from claim</label>
+
+        <div class="settle">
+          <div class="k">Settlement value</div>
+          <div class="v">
+            {% if selected.replacement_value is not none %}
+              {% set unit = selected.indemnity_value if job.apply_depreciation else selected.replacement_value %}
+              A${{ "{:,.2f}".format((unit or 0) * (selected.quantity or 1)) }}
+            {% else %}—{% endif %}
+          </div>
+          <div class="s">{% if job.apply_depreciation %}After depreciation{% else %}Replacement basis, new for old{% endif %}</div>
+          {% if selected.replacement_value is not none %}
+          <div class="calc">
+            <div><span>Replacement × {{ selected.quantity or 1 }}</span>
+              <span>A${{ "{:,.2f}".format(selected.replacement_value * (selected.quantity or 1)) }}</span></div>
+            {% if job.apply_depreciation %}
+            <div><span>Less depreciation {{ "{:.0f}".format(selected.effective_depreciation * 100) }}%</span>
+              <span>−A${{ "{:,.2f}".format((selected.replacement_value - (selected.indemnity_value or 0)) * (selected.quantity or 1)) }}</span></div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        <button class="btn block" type="submit" style="margin-top:14px">Save adjustment</button>
+      </form>
+
+      <form method="post" action="/items/{{ selected.id }}/state" style="margin-top:8px">
+        <input type="hidden" name="return_to" value="{{ rt }}">
+        <input type="hidden" name="action" value="accept">
+        <button class="btn secondary block" type="submit"
+                {% if selected.replacement_value is none %}disabled{% endif %}>Accept AI valuation</button>
+      </form>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <form method="post" action="/items/{{ selected.id }}/state">
+          <input type="hidden" name="return_to" value="{{ rt }}">
+          <input type="hidden" name="action" value="{{ 'unflag' if selected.flagged else 'flag' }}">
+          <button class="btn secondary block" type="submit">
+            {{ 'Clear flag' if selected.flagged else 'Flag for review' }}</button>
+        </form>
+        <form method="post" action="/items/{{ selected.id }}/value">
+          <input type="hidden" name="return_to" value="{{ rt }}">
+          <button class="btn secondary block" type="submit" {% if not has_api_key %}disabled{% endif %}>
+            Re-value with AI</button>
+        </form>
+      </div>
+
+      <details style="margin-top:16px">
+        <summary style="cursor:pointer;font-size:12.5px;font-weight:600;color:var(--text-secondary)">
+          Edit item details for research</summary>
+        <form method="post" action="/items/{{ selected.id }}/edit" style="margin-top:12px">
+          <input type="hidden" name="return_to" value="{{ rt }}">
+          <div class="field"><label for="e-d">Description</label>
+            <input id="e-d" type="text" name="description" value="{{ selected.description }}" required></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="field"><label for="e-mk">Make</label>
+              <input id="e-mk" type="text" name="make" value="{{ selected.make }}"></div>
+            <div class="field"><label for="e-md">Model</label>
+              <input id="e-md" type="text" name="model" value="{{ selected.model }}"></div>
+          </div>
+          <div class="field"><label for="e-sn">Serial</label>
+            <input id="e-sn" type="text" name="serial" value="{{ selected.serial }}"></div>
+          <div class="field"><label for="e-lo">Location</label>
+            <input id="e-lo" type="text" name="location" value="{{ selected.location }}"></div>
+          <div class="field"><label for="e-ca">Cause of damage</label>
+            <input id="e-ca" type="text" name="cause_of_damage" value="{{ selected.cause_of_damage }}"></div>
+          <div class="field"><label for="e-ph">Photo numbers</label>
+            <input id="e-ph" type="text" name="photo_refs" value="{{ selected.photo_refs }}"></div>
+          <div class="field"><label for="e-no">Assessor note</label>
+            <input id="e-no" type="text" name="assessor_note" value="{{ selected.assessor_note }}"></div>
+          <input type="hidden" name="quantity" value="{{ selected.quantity or 1 }}">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:500;color:var(--text-primary);margin-bottom:12px">
+            <input type="checkbox" name="revalue" checked {% if not has_api_key %}disabled{% endif %}>
+            Re-value with AI after saving</label>
+          <button class="btn secondary block" type="submit">Save &amp; re-value</button>
+        </form>
+        <form method="post" action="/items/{{ selected.id }}/delete" style="margin-top:8px"
+              onsubmit="return confirm('Delete this item from the claim?')">
+          <input type="hidden" name="return_to" value="{{ rt }}">
+          <button class="btn danger block" type="submit">Delete item</button>
+        </form>
+      </details>
+
+      {% if events %}
+      <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:14px">
+        <h4 style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)">
+          Recent adjustments</h4>
+        <div class="timeline">
+          {% for e in events[:4] %}
+          <div class="tl">
+            <span class="tl-dot {{ e.kind }}" aria-hidden="true"></span>
+            <div style="flex:1;min-width:0">
+              <div class="who">{{ e.user_name }}</div>
+              <div class="when">{{ e.created_at.strftime('%d %b %Y · %H:%M') }}</div>
+              <div class="what">{{ e.summary }}</div>
+              {% if e.old_value and e.new_value %}
+                <div class="delta"><span class="dim">{{ e.old_value }}</span> → {{ e.new_value }}</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <a class="btn tertiary xs" style="padding-left:0"
+           href="/jobs/{{ job.id }}?{{ qs({'tab':'audit'}) }}">View full audit trail →</a>
+      </div>
+      {% endif %}
+
+      <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
+        <form method="post" action="/jobs/{{ job.id }}/settings">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:500;color:var(--text-primary)">
+            <input type="checkbox" name="apply_depreciation" {% if job.apply_depreciation %}checked{% endif %}
+                   onchange="this.form.submit()">
+            Apply depreciation to this claim</label>
+          <p class="dim" style="font-size:11.5px;margin:5px 0 10px">
+            {% if job.apply_depreciation %}Settling at indemnity value.
+            {% else %}Settling at full replacement cost, new for old.{% endif %}</p>
+          <label for="exc">Policy excess</label>
+          <div class="money-input"><span>A$</span>
+            <input id="exc" type="text" name="policy_excess" value="{{ '{:.0f}'.format(job.policy_excess or 0) }}"></div>
+          <button class="btn secondary block sm" type="submit" style="margin-top:9px">Update claim settings</button>
+        </form>
+        <p class="dim" style="font-size:11px;margin:12px 0 0">
+          AI research spend on this claim: US${{ "{:,.2f}".format(totals.research_cost) }}
+          across {{ totals.searches }} searches.</p>
+      </div>
+    </div>
+    {% else %}
+    <div class="insp-head"><h3>Valuation &amp; Adjustment</h3></div>
+    <div class="empty"><h3>No item selected</h3>
+      <p>Select a line from the inventory to review its valuation.</p></div>
+    {% endif %}
+  </aside>
 </div>
 
-<div id="lightbox" onclick="this.style.display='none'"><img id="lightbox-img" alt=""></div>
+<div id="lightbox" onclick="this.style.display='none'">
+  <img id="lightbox-img" alt=""><div class="cap" id="lightbox-cap"></div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-function zoom(e, src){
-  e.stopPropagation();
+function zoom(src, caption){
   document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox-cap').textContent = caption || '';
   document.getElementById('lightbox').style.display = 'flex';
-}
-function toggleRow(e, id){
-  const d = document.getElementById(id);
-  const chev = document.getElementById('c-' + id.slice(2));
-  const open = d.classList.toggle('open');
-  if (chev) chev.textContent = open ? '▾' : '▸';
-}
-function openAdd(){
-  const p = document.getElementById('additem');
-  p.hidden = false;
-  p.scrollIntoView({behavior:'smooth', block:'center'});
-  const first = p.querySelector('input[name=description]');
-  if (first) setTimeout(() => first.focus(), 300);
-}
-// Open a row's detail panel and jump straight to its edit form.
-function openEdit(id){
-  const d = document.getElementById('d-' + id);
-  const chev = document.getElementById('c-' + id);
-  d.classList.add('open');
-  if (chev) chev.textContent = '▾';
-  d.scrollIntoView({behavior:'smooth', block:'center'});
-  const first = d.querySelector('input[name=description]');
-  if (first) setTimeout(() => { first.focus(); first.select(); }, 300);
-}
-let allOpen = false;
-function toggleAll(){
-  allOpen = !allOpen;
-  document.querySelectorAll('tr.detail').forEach(d => d.classList.toggle('open', allOpen));
-  document.querySelectorAll('.chev').forEach(c => c.textContent = allOpen ? '▾' : '▸');
-  event.target.textContent = allOpen ? 'Collapse all' : 'Expand all';
-}
-let filter = 'all';
-function setFilter(el){
-  document.querySelectorAll('.chip[data-f]').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  filter = el.dataset.f;
-  applyFilters();
-}
-function applyFilters(){
-  const q = document.getElementById('q').value.trim().toLowerCase();
-  let shown = 0;
-  document.querySelectorAll('tr.row').forEach(row => {
-    const st = row.dataset.status, conf = row.dataset.conf;
-    const excluded = row.dataset.excluded === '1', flagged = row.dataset.flagged === '1';
-    let ok = true;
-    if (filter === 'review')        ok = (conf === 'low' || st === 'failed' || flagged) && !excluded;
-    else if (filter === 'low')      ok = conf === 'low' && !excluded;
-    else if (filter === 'unvalued') ok = (st === 'pending' || st === 'failed' || st === 'running');
-    else if (filter === 'flagged')  ok = flagged;
-    else if (filter === 'excluded') ok = excluded;
-    if (ok && q) ok = row.dataset.search.includes(q);
-    row.style.display = ok ? '' : 'none';
-    const d = document.getElementById('d-' + row.id.slice(5));
-    if (d && !ok) { d.classList.remove('open'); d.style.display = 'none'; }
-    else if (d) { d.style.display = ''; }
-    if (ok) shown++;
-  });
-  document.getElementById('count').textContent = shown + ' of {{ job.items|length }} shown';
 }
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.getElementById('lightbox').style.display = 'none';
 });
-applyFilters();
-// Never let a bulk run start without showing what it is likely to cost.
+function openAdd(){
+  const p = document.getElementById('additem');
+  p.hidden = false;
+  p.scrollIntoView({behavior:'smooth', block:'center'});
+  const f = p.querySelector('input[name=description]');
+  if (f) setTimeout(() => f.focus(), 280);
+}
+// Never start a bulk run without showing the likely API cost first.
 const UNVALUED = {{ pending }};
-const COST_PER_ITEM = {% if totals.priced %}{{ totals.research_cost / totals.priced }}{% else %}0.025{% endif %};
+const COST_PER_ITEM = {% if totals.priced %}{{ totals.research_cost / totals.priced }}{% else %}0.03{% endif %};
 function confirmCost(form){
   if (!UNVALUED) return true;
-  const est = (UNVALUED * COST_PER_ITEM);
   return confirm(
     'Value ' + UNVALUED + ' item(s) using {{ model }}?\n\n' +
-    'Estimated API cost: about US$' + est.toFixed(2) +
-    ' (~US$' + COST_PER_ITEM.toFixed(3) + ' per item, up to {{ max_searches }} web searches each).\n\n' +
-    'This is charged to your Anthropic account.'
-  );
-}
-function fmtEta(s){
-  if (s === null || s === undefined) return 'estimating…';
-  if (s < 60) return '~' + s + 's remaining';
-  const m = Math.round(s / 60);
-  return '~' + m + ' min remaining';
+    'Estimated API cost: about US$' + (UNVALUED * COST_PER_ITEM).toFixed(2) +
+    ' (~US$' + COST_PER_ITEM.toFixed(3) + ' per item, up to {{ max_searches }} searches each).\n\n' +
+    'This is charged to your Anthropic account.');
 }
 {% if pending or running %}
 (function(){
-  const prog = document.getElementById('prog');
-  let lastDone = -1, stalls = 0;
-  prog.hidden = false;
-
+  let last = -1, stalls = 0;
   async function poll(){
-    try {
+    try{
       const r = await fetch('/jobs/{{ job.id }}/progress');
       const d = await r.json();
-
       document.getElementById('p-fill').style.width = d.percent + '%';
       document.getElementById('p-head').textContent =
-        d.done + ' of ' + d.total + ' valued (' + d.percent + '%)';
+        'Researching replacement costs — ' + d.done + ' of ' + d.total + ' (' + d.percent + '%)';
       document.getElementById('p-sub').textContent =
-        d.counts.running + ' researching now · ' + d.counts.pending + ' queued · ' +
-        d.workers + ' at a time' +
-        (d.counts.failed ? ' · ' + d.counts.failed + ' failed' : '');
+        d.counts.running + ' in progress · ' + d.counts.pending + ' queued';
       document.getElementById('p-eta').textContent =
-        fmtEta(d.eta_seconds) + (d.average_seconds ? ' · ' + d.average_seconds + 's per item' : '') +
-        ' · US$' + d.cost.toFixed(2) + ' spent' +
-        (d.cost_projected ? ' (≈$' + d.cost_projected.toFixed(2) + ' total)' : '');
-      document.getElementById('p-now').textContent =
-        d.researching.length ? 'Now: ' + d.researching.join(' · ') : '';
-
-      const bar = document.getElementById('statusbar');
-      if (bar) bar.textContent = d.detail || '';
-
-      // Pull in newly valued rows periodically so figures stay current.
-      if (d.done !== lastDone) { stalls = 0; lastDone = d.done; }
-      else if (++stalls > 60) { return; }   // 5 min with no movement: stop polling
-
-      if (d.outstanding === 0) { location.reload(); return; }
+        (d.eta_seconds === null ? 'estimating…'
+          : d.eta_seconds < 60 ? '~' + d.eta_seconds + 's remaining'
+          : '~' + Math.round(d.eta_seconds/60) + ' min remaining')
+        + ' · US$' + d.cost.toFixed(2) + ' spent';
+      if (d.researching.length)
+        document.getElementById('p-now').textContent = 'Now: ' + d.researching.join(' · ');
+      if (d.done !== last){ stalls = 0; last = d.done; } else if (++stalls > 75) return;
+      if (d.outstanding === 0){ location.reload(); return; }
       setTimeout(poll, 4000);
-    } catch (err) { setTimeout(poll, 8000); }
+    }catch(e){ setTimeout(poll, 8000); }
   }
   poll();
 })();

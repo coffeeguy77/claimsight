@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Settings — ClaimSight{% endblock %}
+{% block head %}
+<style>
+  .pagehead{margin-bottom:20px}
+  .pagehead h1{font-size:26px}
+  .pagehead p{margin:3px 0 0;font-size:13.5px;color:var(--text-secondary)}
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start}
+  .sec{padding:15px 18px;border-bottom:1px solid var(--border)}
+  .sec h2{font-size:14.5px}
+  .sec p{margin:2px 0 0;font-size:12.5px;color:var(--text-secondary)}
+  .r{display:flex;justify-content:space-between;gap:14px;padding:12px 18px;border-bottom:1px solid #EDF1F5;font-size:13.5px}
+  .r:last-child{border-bottom:0}
+  .r .k{color:var(--text-secondary)}
+  .r .v{font-weight:600;text-align:right}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="pagehead">
+  <h1>Settings</h1>
+  <p>Account, organisation and AI valuation configuration.</p>
+</div>
+
+<div class="cols">
+  <div class="card">
+    <div class="sec"><h2>Organisation</h2><p>Claims are private to this organisation.</p></div>
+    <div class="r"><span class="k">Name</span><span class="v">{{ user.organisation.name }}</span></div>
+    <div class="r"><span class="k">Claims on file</span><span class="v">{{ claims }}</span></div>
+    <div class="r"><span class="k">Members</span><span class="v">{{ members | length }}</span></div>
+    <div class="r"><span class="k">Created</span>
+      <span class="v">{{ user.organisation.created_at.strftime('%d %b %Y') }}</span></div>
+  </div>
+
+  <div class="card">
+    <div class="sec"><h2>Your account</h2><p>Signed in as an {{ user.role or 'assessor' }}.</p></div>
+    <div class="r"><span class="k">Name</span><span class="v">{{ user.name or '—' }}</span></div>
+    <div class="r"><span class="k">Email</span><span class="v">{{ user.email }}</span></div>
+    <div class="r"><span class="k">Role</span><span class="v">{{ (user.role or 'assessor') | title }}</span></div>
+    <div style="padding:14px 18px"><a class="btn secondary sm" href="/logout">Sign out</a></div>
+  </div>
+
+  <div class="card">
+    <div class="sec"><h2>AI valuation</h2>
+      <p>Controls how replacement costs are researched. Configured per deployment.</p></div>
+    <div class="r"><span class="k">Status</span>
+      <span class="v">{% if has_api_key %}<span class="badge high"><span class="dot"></span>Connected</span>
+        {% else %}<span class="badge low"><span class="dot"></span>No API key</span>{% endif %}</span></div>
+    <div class="r"><span class="k">Model</span><span class="v">{{ model }}</span></div>
+    <div class="r"><span class="k">Web searches per item</span><span class="v">{{ max_searches }}</span></div>
+    <div class="r"><span class="k">Concurrent workers</span><span class="v">{{ workers }}</span></div>
+    <div class="r"><span class="k">Total research spend</span><span class="v">US${{ "{:,.2f}".format(spend) }}</span></div>
+    <div style="padding:13px 18px;font-size:12px;color:var(--text-muted);line-height:1.6">
+      Change these with the <code>VALUATION_MODEL</code>, <code>MAX_SEARCHES_PER_ITEM</code> and
+      <code>VALUATION_WORKERS</code> environment variables. More searches improve accuracy on
+      obscure items but increase cost faster than linearly.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec"><h2>Valuation basis</h2>
+      <p>Depreciation is set per claim, not globally, because policies differ.</p></div>
+    <div style="padding:14px 18px;font-size:13px;line-height:1.7;color:var(--text-secondary)">
+      Indemnity settlement applies straight-line depreciation over each item's assessed
+      effective life, adjusted for recorded condition and floored at 10% residual value.
+      Replacement settlement pays the full new-for-old cost with no depreciation.
+      <br><br>
+      Switch basis from the valuation inspector on any claim. Per-item indemnity figures are
+      retained either way, so the basis can be changed without re-valuing anything.
+    </div>
+  </div>
+</div>
+{% endblock %}

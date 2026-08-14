@@ -153,15 +153,34 @@ class Job(Base):
         # The settlement basis decides which column the claim is paid on.
         gross = indemnity if self.apply_depreciation else replacement
         spend = sum(i.cost_usd or 0.0 for i in self.items)
+        depreciation = max(replacement - indemnity, 0.0)
+        active = [i for i in self.items if not i.excluded]
         return {
             "replacement": round(replacement, 2),
             "indemnity": round(indemnity, 2),
+            "depreciation": round(depreciation, 2),
+            "depreciation_pct": round(depreciation / replacement * 100, 1) if replacement else 0.0,
             "gross": round(gross, 2),
             "priced": priced,
-            "count": sum(1 for i in self.items if not i.excluded),
+            "count": len(active),
+            "total_items": len(self.items),
             "settlement": round(max(gross - (self.policy_excess or 0.0), 0.0), 2),
             "research_cost": round(spend, 4),
             "searches": sum(i.search_count or 0 for i in self.items),
+            "flagged": sum(
+                1
+                for i in active
+                if i.flagged
+                or i.confidence == "low"
+                or i.valuation_status == ValuationStatus.failed
+            ),
+            "needs_review": sum(1 for i in active if not i.reviewed),
+            "reviewed": sum(1 for i in active if i.reviewed),
+            "unvalued": sum(
+                1
+                for i in active
+                if i.valuation_status in (ValuationStatus.pending, ValuationStatus.running)
+            ),
         }
 
 
@@ -206,7 +225,58 @@ class Item(Base):
     manual_override = Column(Boolean, default=False)
     valued_at = Column(DateTime(timezone=True))
 
+    # Assessment state
+    condition = Column(String(20), default="average")   # see CONDITION_ADJUSTMENT
+    depreciation_override = Column(Float)               # 0..1, set by the assessor
+    flagged = Column(Boolean, default=False)            # flagged for human review
+    reviewed = Column(Boolean, default=False)           # assessor has signed this line off
+
     job = relationship("Job", back_populates="items")
+    events = relationship(
+        "ItemEvent",
+        back_populates="item",
+        cascade="all, delete-orphan",
+        order_by="ItemEvent.created_at.desc()",
+    )
+
+    @property
+    def review_state(self) -> str:
+        """Single label describing where this line sits in the assessment."""
+        if self.excluded:
+            return "excluded"
+        if self.flagged:
+            return "flagged"
+        if self.valuation_status == ValuationStatus.failed:
+            return "insufficient evidence"
+        if self.valuation_status in (ValuationStatus.pending, ValuationStatus.running):
+            return "awaiting research"
+        if self.reviewed:
+            return "reviewed"
+        if self.manual_override or self.valuation_status == ValuationStatus.overridden:
+            return "overridden"
+        return "ai suggested"
+
+    @property
+    def effective_depreciation(self) -> float:
+        """Depreciation actually applied, after condition and assessor override."""
+        if self.depreciation_override is not None:
+            return min(max(self.depreciation_override, 0.0), 0.95)
+        base = self.depreciation_rate
+        if base is None:
+            life = self.effective_life_years or 10.0
+            age = self.estimated_age_years if self.estimated_age_years is not None else life / 2
+            base = age / life if life else 0.5
+        base += CONDITION_ADJUSTMENT.get((self.condition or "average").lower(), 0.0)
+        return min(max(base, 0.0), 0.95)
+
+    def recompute_indemnity(self) -> None:
+        """Re-derive the depreciated value from the current replacement cost."""
+        if self.replacement_value is None:
+            self.indemnity_value = None
+            return
+        rate = self.effective_depreciation
+        self.depreciation_rate = round(rate, 4)
+        self.indemnity_value = round(self.replacement_value * (1.0 - rate), 2)
 
     @property
     def source_list(self) -> list[str]:
@@ -215,6 +285,36 @@ class Item(Base):
     @property
     def photo_key_list(self) -> list[str]:
         return [f"{self.photo_series}:{n}" for n in (self.photo_refs or "").split(",") if n.strip()]
+
+# How condition shifts depreciation relative to straight-line age. An item in
+# poor condition for its age depreciates further; one in excellent condition
+# less. Deliberately conservative so the figures stay defensible.
+CONDITION_ADJUSTMENT: dict[str, float] = {
+    "new": -0.25,
+    "excellent": -0.12,
+    "good": -0.05,
+    "average": 0.0,
+    "fair": 0.06,
+    "poor": 0.15,
+}
+
+
+class ItemEvent(Base):
+    """Audit trail. Every assessor action against a line is recorded here."""
+
+    __tablename__ = "item_events"
+    id = Column(String(32), primary_key=True, default=_uuid)
+    item_id = Column(String(32), ForeignKey("items.id"), nullable=False, index=True)
+    job_id = Column(String(32), ForeignKey("jobs.id"), index=True)
+    user_id = Column(String(32), ForeignKey("users.id"))
+    user_name = Column(String(200), default="")
+    kind = Column(String(40), default="")        # valuation | override | condition | flag | review | edit
+    summary = Column(Text, default="")           # human-readable description
+    old_value = Column(String(120), default="")
+    new_value = Column(String(120), default="")
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+    item = relationship("Item", back_populates="events")
 
 
 class Photo(Base):
@@ -246,6 +346,10 @@ _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("items", "cost_usd", "DOUBLE PRECISION DEFAULT 0"),
     ("items", "search_count", "INTEGER DEFAULT 0"),
     ("items", "valuation_model", "VARCHAR(80) DEFAULT ''"),
+    ("items", "condition", "VARCHAR(20) DEFAULT 'average'"),
+    ("items", "depreciation_override", "DOUBLE PRECISION"),
+    ("items", "flagged", "BOOLEAN DEFAULT FALSE"),
+    ("items", "reviewed", "BOOLEAN DEFAULT FALSE"),
 ]
 
 

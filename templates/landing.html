@@ -1,26 +1,40 @@
 {% extends "base.html" %}
-{% block body %}
-<div style="max-width:660px;margin:60px auto;text-align:center">
-  <div class="brand" style="font-size:26px;margin-bottom:10px">Claim<span>sight</span></div>
-  <h1 style="font-size:32px">Contents claims, valued and evidenced.</h1>
-  <p class="sub" style="font-size:16px">
-    Upload the assessor's inventory and photo report. Claimsight builds the asset schedule,
-    attaches every photograph to the right line, researches current Australian replacement
-    costs, and produces an insurer-ready settlement report.
-  </p>
-  <p>
-    <a class="btn" href="/signup">Create an account</a>
-    <a class="btn ghost" href="/login">Sign in</a>
-  </p>
-  <div class="card" style="margin-top:44px;text-align:left">
-    <h2 style="margin-top:0">How it works</h2>
-    <ol class="small muted" style="margin:0;padding-left:20px;line-height:2">
-      <li>Create a job with the claim details and policy excess.</li>
-      <li>Upload the inventory spreadsheet and the photo report PDFs.</li>
-      <li>Items and photographs are extracted and matched automatically by photo number.</li>
-      <li>Each item is researched for current AUD replacement cost and depreciated to an indemnity value.</li>
-      <li>Review, override anything you disagree with, and export the schedule and report.</li>
-    </ol>
+{% block title %}ClaimSight — contents claim assessment{% endblock %}
+{% block anon %}
+<div style="min-height:100vh;background:var(--navy-950);color:#fff">
+  <div style="max-width:1080px;margin:0 auto;padding:26px 28px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="brand-mark">C</span>
+      <span style="font-size:17px;font-weight:700;letter-spacing:-.02em">ClaimSight</span>
+      <span style="flex:1"></span>
+      <a class="btn secondary sm" href="/login">Sign in</a>
+      <a class="btn sm" href="/signup">Create account</a>
+    </div>
+
+    <div style="padding:76px 0 60px;max-width:660px">
+      <h1 style="font-size:42px;line-height:1.15;letter-spacing:-.03em;margin-bottom:18px">
+        Contents claims, valued and evidenced.</h1>
+      <p style="font-size:16px;line-height:1.7;color:var(--sidebar-muted);margin:0 0 28px">
+        Upload the assessor's inventory and photo report. ClaimSight pairs every photograph to
+        its inventory line, researches current Australian replacement costs, applies defensible
+        depreciation, and produces a settlement schedule an insurer can audit line by line.</p>
+      <a class="btn" href="/signup" style="height:44px;padding:0 22px;font-size:14.5px">Get started</a>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;
+                padding-bottom:70px">
+      {% for title, body in [
+        ('Evidence pairing','Photo reports are parsed and each image matched to its inventory line by the numbered label the assessor already uses.'),
+        ('Researched pricing','Every item is priced against current Australian retail sources, with the URLs recorded so any figure can be verified.'),
+        ('Defensible depreciation','Straight-line depreciation over assessed effective life, adjusted for condition, with a residual floor.'),
+        ('Full audit trail','Every override, condition change and approval is recorded against the line with user and timestamp.')] %}
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);
+                  border-radius:10px;padding:18px">
+        <h3 style="font-size:14.5px;margin-bottom:7px">{{ title }}</h3>
+        <p style="font-size:13px;line-height:1.65;color:var(--sidebar-muted);margin:0">{{ body }}</p>
+      </div>
+      {% endfor %}
+    </div>
   </div>
 </div>
 {% endblock %}

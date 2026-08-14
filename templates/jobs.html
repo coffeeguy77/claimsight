@@ -1,45 +1,78 @@
 {% extends "base.html" %}
+{% block title %}Claims — ClaimSight{% endblock %}
+{% block head %}
+<style>
+  .pagehead{display:flex;align-items:flex-start;gap:16px;margin-bottom:20px}
+  .pagehead h1{font-size:26px}
+  .pagehead p{margin:3px 0 0;font-size:13.5px;color:var(--text-secondary)}
+  .tbl{width:100%;border-collapse:collapse}
+  .tbl thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--text-muted);font-weight:700;padding:11px 16px;border-bottom:1px solid var(--border)}
+  .tbl tbody td{padding:15px 16px;border-bottom:1px solid #EDF1F5;vertical-align:middle}
+  .tbl tbody tr:last-child td{border-bottom:0}
+  .tbl tbody tr:hover{background:#F8FAFC}
+  .ref{font-size:14.5px;font-weight:600}
+  .sub{font-size:12.5px;color:var(--text-secondary);margin-top:1px}
+  .money{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+  .prog-mini{height:4px;background:#E9EEF4;border-radius:2px;overflow:hidden;width:110px;margin-top:5px}
+  .prog-mini i{display:block;height:100%;background:var(--green-600)}
+</style>
+{% endblock %}
+
 {% block body %}
-<div style="display:flex;align-items:flex-start">
+<div class="pagehead">
   <div>
-    <h1>Jobs</h1>
-    <p class="sub">Claims assessed by {{ user.organisation.name }}.</p>
+    <h1>{{ heading | default('Claims') }}</h1>
+    <p>{{ subheading | default('Contents assessments handled by ' ~ user.organisation.name ~ '.') }}</p>
   </div>
-  <div class="spacer" style="flex:1"></div>
-  <a class="btn" href="/jobs/new">New job</a>
+  <span style="flex:1"></span>
+  <a class="btn" href="/jobs/new">New claim</a>
 </div>
 
-<div class="card" style="padding:0;overflow:hidden">
+<div class="card" style="overflow:hidden">
 {% if jobs %}
-<table>
+<table class="tbl">
   <thead><tr>
-    <th>Claim</th><th>Insured</th><th>Site</th><th>Peril</th>
-    <th class="num">Items</th><th class="num">Replacement</th><th class="num">Indemnity</th><th>Status</th>
+    <th>Claim</th><th>Claimant</th><th>Insurer</th><th>Peril</th>
+    <th>Progress</th><th style="text-align:right">Replacement</th>
+    <th style="text-align:right">Settlement</th><th>Status</th>
   </tr></thead>
   <tbody>
   {% for job in jobs %}
     {% set t = job.totals %}
-    <tr>
-      <td><a href="/jobs/{{ job.id }}"><strong>{{ job.claim_reference or job.reference or "Untitled" }}</strong></a>
-        <div class="tiny muted">{{ job.created_at.strftime("%d %b %Y") }}</div></td>
-      <td>{{ job.insured_name or "—" }}<div class="tiny muted">{{ job.insurer }}</div></td>
-      <td class="small">{{ job.site_address or "—" }}</td>
-      <td class="small">{{ job.peril }}</td>
-      <td class="num">{{ t.count }}</td>
-      <td class="num">{% if t.replacement %}${{ "{:,.0f}".format(t.replacement) }}{% else %}—{% endif %}</td>
-      <td class="num">
-        {% if not job.apply_depreciation %}<span class="tiny muted">n/a</span>
-        {% elif t.indemnity %}${{ "{:,.0f}".format(t.indemnity) }}
-        {% else %}—{% endif %}</td>
-      <td><span class="pill {% if job.status.value == 'valued' %}ok{% endif %}">{{ job.status.value }}</span></td>
+    <tr onclick="location.href='/jobs/{{ job.id }}'" style="cursor:pointer" tabindex="0"
+        onkeydown="if(event.key==='Enter')this.click()">
+      <td>
+        <div class="ref"><a href="/jobs/{{ job.id }}">{{ job.claim_reference or job.reference or 'Untitled' }}</a></div>
+        <div class="sub">{{ job.created_at.strftime('%d %b %Y') }}</div>
+      </td>
+      <td><div style="font-size:13.5px;font-weight:500">{{ job.insured_name or '—' }}</div>
+        <div class="sub">{{ job.site_address | truncate(38, true) }}</div></td>
+      <td style="font-size:13.5px">{{ job.insurer or '—' }}</td>
+      <td><span class="badge">{{ job.peril }}</span></td>
+      <td>
+        <div style="font-size:12.5px">{{ t.priced }} / {{ t.count }} valued</div>
+        <div class="prog-mini"><i style="width:{{ (t.priced / t.count * 100) if t.count else 0 }}%"></i></div>
+        {% if t.flagged %}<div class="sub" style="color:var(--amber-600)">{{ t.flagged }} flagged</div>{% endif %}
+      </td>
+      <td class="money">{% if t.replacement %}A${{ "{:,.0f}".format(t.replacement) }}{% else %}—{% endif %}</td>
+      <td class="money">{% if t.settlement %}A${{ "{:,.0f}".format(t.settlement) }}{% else %}—{% endif %}</td>
+      <td>
+        {% if job.status.value == 'valued' %}<span class="badge high"><span class="dot"></span>Complete</span>
+        {% elif job.status.value == 'valuing' %}<span class="badge info"><span class="dot"></span>Researching</span>
+        {% elif job.status.value == 'failed' %}<span class="badge low"><span class="dot"></span>Failed</span>
+        {% else %}<span class="badge"><span class="dot"></span>{{ job.status.value | title }}</span>{% endif %}
+      </td>
     </tr>
   {% endfor %}
   </tbody>
 </table>
 {% else %}
-<div style="padding:48px;text-align:center">
-  <p class="muted">No jobs yet.</p>
-  <a class="btn" href="/jobs/new">Create your first job</a>
+<div style="padding:64px 24px;text-align:center">
+  <h3 style="font-size:16px;margin-bottom:6px">No claims yet</h3>
+  <p style="font-size:13.5px;color:var(--text-secondary);margin:0 0 18px">
+    Create a claim, then import the assessor's inventory and photo report.</p>
+  <a class="btn" href="/jobs/new">Create your first claim</a>
 </div>
 {% endif %}
 </div>
