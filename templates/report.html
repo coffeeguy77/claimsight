@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Settlement report — {{ job.claim_reference }}{% endblock %}
+{% block head %}
+<style>
+  body{background:#fff}
+  main{max-width:900px}
+  .rep-head{border-bottom:3px solid var(--ink);padding-bottom:14px;margin-bottom:22px}
+  .rep-head h1{font-size:25px;margin:0 0 2px}
+  .meta{display:grid;grid-template-columns:1fr 1fr;gap:2px 28px;font-size:14px;margin:18px 0 26px}
+  .meta div{display:flex;justify-content:space-between;border-bottom:1px dotted var(--line);padding:5px 0}
+  .meta .k{color:var(--muted)}
+  .meta .v{font-weight:600;text-align:right}
+  .summary{border:2px solid var(--ink);border-radius:8px;padding:16px 18px;margin:24px 0}
+  .summary div{display:flex;justify-content:space-between;padding:6px 0;font-size:15px}
+  .summary .total{border-top:2px solid var(--ink);margin-top:8px;padding-top:12px;
+    font-size:19px;font-weight:700}
+  .entry{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:12px;
+    display:grid;grid-template-columns:180px 1fr 150px;gap:16px;page-break-inside:avoid}
+  .entry .ph{display:flex;flex-wrap:wrap;gap:4px}
+  .entry .ph img{width:84px;height:84px;object-fit:cover;border-radius:4px;border:1px solid var(--line)}
+  .entry h3{margin:0 0 3px;font-size:15px}
+  .money{text-align:right;font-variant-numeric:tabular-nums}
+  .money .big{font-size:19px;font-weight:700}
+  .disclaimer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);
+    margin-top:32px;padding-top:14px;line-height:1.7}
+  .noprint{margin-bottom:20px}
+  @media print{
+    .noprint,header.top{display:none}
+    main{padding:0;max-width:none}
+    .entry{border-color:#ccc}
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="noprint">
+  <a class="btn ghost" href="/jobs/{{ job.id }}">← Back to job</a>
+  <button class="btn" onclick="window.print()">Print / Save as PDF</button>
+  <a class="btn ghost" href="/jobs/{{ job.id }}/export.csv">Download schedule (CSV)</a>
+</div>
+
+<div class="rep-head">
+  <h1>Contents Loss Assessment &amp; Settlement Schedule</h1>
+  <div class="muted small">Prepared by {{ user.organisation.name }} &middot; {{ generated }}</div>
+</div>
+
+<div class="meta">
+  <div><span class="k">Claim number</span><span class="v">{{ job.claim_reference or "—" }}</span></div>
+  <div><span class="k">Assessor reference</span><span class="v">{{ job.reference or "—" }}</span></div>
+  <div><span class="k">Insured</span><span class="v">{{ job.insured_name or "—" }}</span></div>
+  <div><span class="k">Insurer</span><span class="v">{{ job.insurer or "—" }}</span></div>
+  <div><span class="k">Risk address</span><span class="v">{{ job.site_address or "—" }}</span></div>
+  <div><span class="k">Date of loss</span><span class="v">{{ job.date_of_loss or "—" }}</span></div>
+  <div><span class="k">Peril</span><span class="v">{{ job.peril }}</span></div>
+  <div><span class="k">Items assessed</span><span class="v">{{ totals.count }}</span></div>
+</div>
+
+<div class="summary">
+  <div><span>Total replacement value (new for old, incl. GST)</span>
+       <span>${{ "{:,.2f}".format(totals.replacement) }}</span></div>
+  <div><span>Total indemnity value (after depreciation)</span>
+       <span>${{ "{:,.2f}".format(totals.indemnity) }}</span></div>
+  <div><span>Less policy excess</span>
+       <span>−${{ "{:,.2f}".format(job.policy_excess or 0) }}</span></div>
+  <div class="total"><span>Net settlement recommended</span>
+       <span>${{ "{:,.2f}".format(totals.settlement) }}</span></div>
+</div>
+
+<h2>Schedule of non-restorable items</h2>
+{% for item in job.items if not item.excluded %}
+<div class="entry">
+  <div class="ph">
+    {% for key in item.photo_key_list[:4] %}{% if key in photos %}
+      <img src="/photos/{{ photos[key].id }}" alt="Photograph {{ photos[key].number }}">
+    {% endif %}{% endfor %}
+  </div>
+  <div>
+    <h3>{{ loop.index }}. {{ item.description }}{% if (item.quantity or 1) > 1 %} (×{{ item.quantity }}){% endif %}</h3>
+    <div class="small muted">
+      {% if item.make %}Make: {{ item.make }}. {% endif %}
+      {% if item.model %}Model: {{ item.model }}. {% endif %}
+      {% if item.serial %}Serial: {{ item.serial }}. {% endif %}
+      Cause of damage: {{ item.cause_of_damage }}. Location: {{ item.location }}.
+    </div>
+    {% if item.identified_as %}<div class="small" style="margin-top:6px">{{ item.identified_as }}</div>{% endif %}
+    {% if item.valuation_notes %}<div class="small muted" style="margin-top:4px">{{ item.valuation_notes }}</div>{% endif %}
+    {% if item.assessor_note %}<div class="small" style="margin-top:4px">Assessor note: {{ item.assessor_note }}</div>{% endif %}
+    <div class="tiny muted" style="margin-top:6px">
+      Photographs {{ item.photo_refs }} ({{ item.photo_series }} attendance).
+      {% if item.estimated_age_years is not none %}
+        Estimated age {{ item.estimated_age_years }} years against an effective life of
+        {{ item.effective_life_years }} years, depreciation
+        {{ "{:.0f}".format((item.depreciation_rate or 0) * 100) }}%.{% endif %}
+      {% if item.confidence %} Confidence: {{ item.confidence }}.{% endif %}
+    </div>
+    {% if item.source_list %}
+    <div class="tiny muted">Pricing sources: {% for s in item.source_list[:3] %}<a href="{{ s }}">{{ s }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</div>
+    {% endif %}
+  </div>
+  <div class="money">
+    {% if item.replacement_value is not none %}
+      <div class="tiny muted">Replacement</div>
+      <div>${{ "{:,.2f}".format(item.replacement_value * (item.quantity or 1)) }}</div>
+      <div class="tiny muted" style="margin-top:6px">Indemnity</div>
+      <div class="big">${{ "{:,.2f}".format((item.indemnity_value or 0) * (item.quantity or 1)) }}</div>
+    {% else %}
+      <div class="tiny muted">Not valued</div>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+
+<div class="disclaimer">
+  <strong>Basis of assessment.</strong> Replacement values are the cost of acquiring a new
+  equivalent item from an Australian retailer at the date of this report, inclusive of GST.
+  Where the exact model is discontinued, the closest current-production equivalent has been
+  priced and the substitution noted against the item. Indemnity values apply straight-line
+  depreciation over the item's assessed effective life, subject to a residual floor of 10% of
+  replacement cost. Ages are estimated from model identification, styling and production dates
+  and should be treated as indicative.
+  <br><br>
+  Pricing research was performed with AI assistance and reviewed by the assessor named above.
+  Source references are provided against each line so that any figure may be independently
+  verified. Items flagged as being of uncertain pre-loss working condition are identified in
+  the schedule and may warrant separate consideration.
+  <br><br>
+  This report addresses non-restorable contents only. It does not constitute a determination
+  of policy liability, which remains a matter for the insurer.
+</div>
+{% endblock %}

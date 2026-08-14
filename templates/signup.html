@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block body %}
+<div style="max-width:420px;margin:60px auto">
+  <div class="brand" style="font-size:22px;margin-bottom:18px;text-align:center">Claim<span>sight</span></div>
+  <div class="card">
+    <h1 style="font-size:19px;margin-bottom:4px">Create your account</h1>
+    <p class="small muted" style="margin:0 0 12px">Your jobs are private to your organisation.</p>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <form method="post" action="/signup">
+      <label for="organisation">Assessing firm</label>
+      <input id="organisation" type="text" name="organisation" required autofocus
+             placeholder="e.g. Revive Disaster Recovery Pty Ltd">
+      <label for="name">Your name</label>
+      <input id="name" type="text" name="name">
+      <label for="email">Email</label>
+      <input id="email" type="email" name="email" required>
+      <label for="password">Password</label>
+      <input id="password" type="password" name="password" required minlength="8">
+      <p class="tiny muted" style="margin:6px 0 0">At least 8 characters.</p>
+      <p style="margin:20px 0 0"><button class="btn" style="width:100%" type="submit">Create account</button></p>
+    </form>
+  </div>
+  <p class="small muted" style="text-align:center;margin-top:16px">
+    Already registered? <a href="/login">Sign in</a>
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>New job</h1>
+<p class="sub">Enter the claim details, then upload the assessor's inventory and photo report.</p>
+
+<form method="post" action="/jobs" enctype="multipart/form-data" style="max-width:760px">
+  <div class="card">
+    <h2 style="margin-top:0">Claim details</h2>
+    <div class="grid2">
+      <div><label for="claim_reference">Insurer claim number</label>
+        <input id="claim_reference" type="text" name="claim_reference" placeholder="e.g. E010021610"></div>
+      <div><label for="reference">Your job reference</label>
+        <input id="reference" type="text" name="reference"></div>
+      <div><label for="insured_name">Insured</label>
+        <input id="insured_name" type="text" name="insured_name"></div>
+      <div><label for="insurer">Insurer</label>
+        <input id="insurer" type="text" name="insurer"></div>
+      <div><label for="peril">Peril</label>
+        <select id="peril" name="peril">
+          <option>Water</option><option>Flood</option><option>Storm</option>
+          <option>Fire</option><option>Mould</option><option>Impact</option><option>Other</option>
+        </select></div>
+      <div><label for="date_of_loss">Date of loss</label>
+        <input id="date_of_loss" type="text" name="date_of_loss" placeholder="e.g. 26 June 2026"></div>
+    </div>
+    <label for="site_address">Site address</label>
+    <input id="site_address" type="text" name="site_address">
+    <label for="policy_excess">Policy excess (AUD)</label>
+    <input id="policy_excess" type="number" step="0.01" name="policy_excess" value="0">
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <h2 style="margin-top:0">Source documents</h2>
+    <label for="inventory">Inventory spreadsheet (.xlsx) — required</label>
+    <input id="inventory" type="file" name="inventory" accept=".xlsx,.xlsm" required>
+    <p class="tiny muted" style="margin:6px 0 0">
+      Expects columns: Item, Photo #, Photo Series, Cause of Damage, Location, Make, Model, Serial Number.
+    </p>
+
+    <label for="photos_initial">Photo report — initial attendance (.pdf)</label>
+    <input id="photos_initial" type="file" name="photos_initial" accept=".pdf">
+
+    <label for="photos_second">Photo report — second attendance (.pdf)</label>
+    <input id="photos_second" type="file" name="photos_second" accept=".pdf">
+    <p class="tiny muted" style="margin:6px 0 0">
+      Photographs are matched to items by the numbered label on each image.
+    </p>
+  </div>
+
+  <p style="margin-top:20px">
+    <button class="btn" type="submit">Create job and ingest</button>
+    <a class="btn ghost" href="/jobs">Cancel</a>
+  </p>
+  <p class="tiny muted">Ingestion of a large photo report can take up to a minute.</p>
+</form>
+{% endblock %}

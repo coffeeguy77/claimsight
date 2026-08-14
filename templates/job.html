@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}{{ job.claim_reference or "Job" }} — Claimsight{% endblock %}
+{% block head %}
+<style>
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0 26px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .kpi .label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+  .kpi .value{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-top:3px;
+    font-variant-numeric:tabular-nums}
+  .thumbs{display:flex;gap:5px;flex-wrap:wrap}
+  .thumbs img{width:52px;height:52px;object-fit:cover;border-radius:5px;border:1px solid var(--line);
+    cursor:zoom-in;background:#eee}
+  .itemname{font-weight:600}
+  .srcs a{display:block;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;max-width:220px}
+  .ovr input[type=text]{width:96px;padding:5px 8px;font-size:13px}
+  .ovr input[type=number]{width:56px;padding:5px 8px;font-size:13px}
+  tr.excluded{opacity:.45}
+  #lightbox{position:fixed;inset:0;background:rgba(10,12,16,.9);display:none;
+    align-items:center;justify-content:center;z-index:100;cursor:zoom-out}
+  #lightbox img{max-width:92vw;max-height:92vh;border-radius:6px}
+  .banner{background:var(--warn-soft);border:1px solid #f5d99b;color:var(--warn);
+    padding:11px 14px;border-radius:8px;font-size:14px;margin-bottom:18px}
+</style>
+{% endblock %}
+
+{% block body %}
+<div style="display:flex;align-items:flex-start;gap:16px">
+  <div>
+    <h1>{{ job.claim_reference or job.reference or "Untitled job" }}</h1>
+    <p class="sub" style="margin-bottom:0">
+      {{ job.insured_name }}{% if job.insurer %} &middot; {{ job.insurer }}{% endif %}<br>
+      <span class="small">{{ job.site_address }}{% if job.date_of_loss %} &middot; loss {{ job.date_of_loss }}{% endif %}
+      &middot; {{ job.peril }} damage</span>
+    </p>
+  </div>
+  <div style="flex:1"></div>
+  <div style="text-align:right">
+    <form method="post" action="/jobs/{{ job.id }}/value" style="display:inline">
+      <button class="btn" type="submit" {% if not has_api_key %}disabled title="ANTHROPIC_API_KEY not configured"{% endif %}>
+        {% if totals.priced %}Value remaining items{% else %}Run AI valuation{% endif %}
+      </button>
+    </form>
+    <a class="btn ghost" href="/jobs/{{ job.id }}/report" target="_blank">Report</a>
+    <a class="btn ghost" href="/jobs/{{ job.id }}/export.csv">CSV</a>
+  </div>
+</div>
+
+{% if job.status_detail %}<div class="banner" id="statusbar">{{ job.status_detail }}</div>{% endif %}
+
+<div class="kpis">
+  <div class="kpi"><div class="label">Items on claim</div>
+    <div class="value">{{ totals.count }}</div>
+    <div class="tiny muted">{{ totals.priced }} valued</div></div>
+  <div class="kpi"><div class="label">Replacement value</div>
+    <div class="value">${{ "{:,.0f}".format(totals.replacement) }}</div>
+    <div class="tiny muted">new for old, incl. GST</div></div>
+  <div class="kpi"><div class="label">Indemnity value</div>
+    <div class="value">${{ "{:,.0f}".format(totals.indemnity) }}</div>
+    <div class="tiny muted">after depreciation</div></div>
+  <div class="kpi"><div class="label">Net settlement</div>
+    <div class="value">${{ "{:,.0f}".format(totals.settlement) }}</div>
+    <div class="tiny muted">less ${{ "{:,.0f}".format(job.policy_excess or 0) }} excess</div></div>
+</div>
+
+<div class="card" style="padding:0;overflow-x:auto">
+<table>
+  <thead><tr>
+    <th style="width:26px">#</th>
+    <th style="min-width:230px">Item</th>
+    <th style="width:150px">Photos</th>
+    <th style="min-width:230px">AI assessment</th>
+    <th class="num">Age / life</th>
+    <th class="num">Replacement</th>
+    <th class="num">Indemnity</th>
+    <th style="width:210px">Adjust</th>
+  </tr></thead>
+  <tbody>
+  {% for item in job.items %}
+  <tr id="item-{{ item.id }}" class="{% if item.excluded %}excluded{% endif %}">
+    <td class="tiny muted">{{ loop.index }}</td>
+    <td>
+      <div class="itemname">{{ item.description }}</div>
+      <div class="tiny muted">
+        {{ item.make }}{% if item.model %} · {{ item.model }}{% endif %}
+        {% if item.serial %}<br>S/N {{ item.serial }}{% endif %}
+        <br>{{ item.cause_of_damage }} damage · {{ item.location }}
+      </div>
+      {% if item.assessor_note %}
+        <div class="tiny" style="color:var(--warn);margin-top:4px">⚑ {{ item.assessor_note }}</div>
+      {% endif %}
+    </td>
+    <td><div class="thumbs">
+      {% for key in item.photo_key_list %}{% if key in photos %}
+        <img src="/photos/{{ photos[key].id }}" loading="lazy" alt="Photo {{ key }}"
+             onclick="zoom(this.src)">
+      {% endif %}{% endfor %}
+    </div></td>
+    <td>
+      {% if item.valuation_status.value == 'complete' or item.valuation_status.value == 'overridden' %}
+        <div class="small">{{ item.identified_as }}</div>
+        {% if item.category %}<div class="tiny muted">{{ item.category }}</div>{% endif %}
+        {% if item.valuation_notes %}
+          <div class="tiny muted" style="margin-top:4px">{{ item.valuation_notes }}</div>{% endif %}
+        {% if item.source_list %}
+          <div class="srcs" style="margin-top:4px">
+          {% for src in item.source_list[:3] %}<a href="{{ src }}" target="_blank" rel="noopener">{{ src }}</a>{% endfor %}
+          </div>
+        {% endif %}
+        {% if item.confidence %}<span class="pill {{ item.confidence }}" style="margin-top:5px">{{ item.confidence }} confidence</span>{% endif %}
+      {% elif item.valuation_status.value == 'running' %}
+        <span class="pill">researching…</span>
+      {% elif item.valuation_status.value == 'failed' %}
+        <span class="pill low">failed</span>
+        <div class="tiny muted">{{ item.error[:160] }}</div>
+      {% else %}
+        <span class="pill">not valued</span>
+      {% endif %}
+    </td>
+    <td class="num tiny muted">
+      {% if item.estimated_age_years is not none %}{{ item.estimated_age_years }}y{% else %}—{% endif %}
+      / {% if item.effective_life_years %}{{ item.effective_life_years }}y{% else %}—{% endif %}
+      {% if item.depreciation_rate is not none %}
+        <br>−{{ "{:.0f}".format(item.depreciation_rate * 100) }}%{% endif %}
+    </td>
+    <td class="num">
+      {% if item.replacement_value is not none %}
+        <strong>${{ "{:,.0f}".format(item.replacement_value) }}</strong>
+        {% if (item.quantity or 1) > 1 %}
+          <div class="tiny muted">×{{ item.quantity }} = ${{ "{:,.0f}".format(item.replacement_value * item.quantity) }}</div>
+        {% endif %}
+        {% if item.manual_override %}<div class="tiny" style="color:var(--accent)">manual</div>{% endif %}
+      {% else %}—{% endif %}
+    </td>
+    <td class="num">
+      {% if item.indemnity_value is not none %}
+        <strong>${{ "{:,.0f}".format(item.indemnity_value) }}</strong>
+        {% if (item.quantity or 1) > 1 %}
+          <div class="tiny muted">×{{ item.quantity }} = ${{ "{:,.0f}".format(item.indemnity_value * item.quantity) }}</div>
+        {% endif %}
+      {% else %}—{% endif %}
+    </td>
+    <td class="ovr">
+      <form method="post" action="/items/{{ item.id }}">
+        <input type="text" name="replacement_value" placeholder="$ override">
+        <input type="number" name="quantity" value="{{ item.quantity or 1 }}" min="1" title="Quantity">
+        <label class="tiny" style="display:inline-flex;align-items:center;gap:4px;margin:6px 0 0;font-weight:400">
+          <input type="checkbox" name="excluded" {% if item.excluded %}checked{% endif %} style="width:auto">
+          exclude
+        </label>
+        <button class="btn ghost small" type="submit" style="margin-top:4px">Save</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<div id="lightbox" onclick="this.style.display='none'"><img id="lightbox-img" alt=""></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function zoom(src){
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').style.display = 'flex';
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('lightbox').style.display = 'none';
+});
+{% if pending or running %}
+// Poll while a valuation run is in flight, then refresh once it settles.
+(function(){
+  let idle = 0;
+  const timer = setInterval(async () => {
+    try {
+      const r = await fetch('/jobs/{{ job.id }}/progress');
+      const d = await r.json();
+      const bar = document.getElementById('statusbar');
+      if (bar) bar.textContent = d.detail || '';
+      if (d.counts.running === 0 && d.counts.pending === 0) {
+        clearInterval(timer);
+        location.reload();
+      } else if (++idle > 240) {
+        clearInterval(timer);
+      }
+    } catch (err) { /* transient; keep polling */ }
+  }, 5000);
+})();
+{% endif %}
+</script>
+{% endblock %}

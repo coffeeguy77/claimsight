@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Claimsight{% endblock %}</title>
+<style>
+  :root{
+    --ink:#12151a; --muted:#5d6673; --line:#e2e6ec; --bg:#f6f7f9;
+    --card:#fff; --accent:#1c4ed8; --accent-soft:#eef2ff;
+    --good:#0f7b47; --warn:#a1650a; --bad:#b42318; --warn-soft:#fef6e7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  header.top{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  header.top .inner{max-width:1240px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:20px}
+  .brand{font-weight:700;font-size:17px;letter-spacing:-.02em;color:var(--ink)}
+  .brand span{color:var(--accent)}
+  .spacer{flex:1}
+  .nav-user{color:var(--muted);font-size:13px}
+  main{max-width:1240px;margin:0 auto;padding:28px 24px 80px}
+  h1{font-size:24px;letter-spacing:-.02em;margin:0 0 4px}
+  h2{font-size:17px;margin:32px 0 12px}
+  .sub{color:var(--muted);margin:0 0 24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px}
+  .btn{display:inline-block;background:var(--accent);color:#fff;border:0;border-radius:7px;
+    padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none}
+  .btn:hover{background:#173fae;text-decoration:none}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn.ghost:hover{background:#f2f4f7}
+  .btn.small{padding:5px 11px;font-size:13px}
+  label{display:block;font-size:13px;font-weight:600;margin:14px 0 5px}
+  input[type=text],input[type=email],input[type=password],input[type=number],textarea,select{
+    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:7px;font-size:14px;
+    font-family:inherit;background:#fff}
+  input:focus,textarea:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  .err{background:#fef3f2;border:1px solid #fecdc9;color:var(--bad);padding:10px 13px;
+    border-radius:7px;font-size:14px;margin-bottom:8px}
+  .pill{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.04em;padding:3px 8px;border-radius:20px;background:#eef1f5;color:var(--muted)}
+  .pill.high{background:#e7f6ee;color:var(--good)}
+  .pill.medium{background:var(--warn-soft);color:var(--warn)}
+  .pill.low{background:#fef3f2;color:var(--bad)}
+  .pill.ok{background:#e7f6ee;color:var(--good)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--muted);padding:9px 10px;border-bottom:1px solid var(--line)}
+  td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .muted{color:var(--muted)}
+  .small{font-size:13px}
+  .tiny{font-size:12px}
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+{% if user is defined and user %}
+<header class="top"><div class="inner">
+  <a class="brand" href="/jobs">Claim<span>sight</span></a>
+  <a href="/jobs" class="small">Jobs</a>
+  <div class="spacer"></div>
+  <span class="nav-user">{{ user.organisation.name }} &middot; {{ user.email }}</span>
+  <a href="/logout" class="small">Sign out</a>
+</div></header>
+{% endif %}
+<main>{% block body %}{% endblock %}</main>
+{% block scripts %}{% endblock %}
+</body>
+</html>
