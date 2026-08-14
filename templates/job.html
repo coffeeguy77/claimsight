@@ -82,6 +82,18 @@
   #lightbox img{max-width:92vw;max-height:92vh;border-radius:6px}
   .banner{background:var(--warn-soft);border:1px solid #f5d99b;color:var(--warn);
     padding:7px 12px;border-radius:7px;font-size:13px;margin-bottom:10px}
+
+  /* ---- valuation progress --------------------------------------------- */
+  .prog{background:var(--card);border:1px solid var(--line);border-radius:9px;
+    padding:10px 14px;margin-bottom:12px}
+  .prog[hidden]{display:none}
+  .prow{display:flex;align-items:center;gap:10px;margin-bottom:7px;font-size:13px}
+  .bar{height:6px;background:#eef1f5;border-radius:4px;overflow:hidden}
+  .fill{height:100%;background:var(--accent);border-radius:4px;transition:width .6s ease}
+  .queued{color:var(--muted)}
+  .working{color:var(--accent);font-weight:600}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .working{animation:pulse 1.6s ease-in-out infinite}
   @media(max-width:1100px){.dgrid{grid-template-columns:1fr}}
 </style>
 {% endblock %}
@@ -106,6 +118,18 @@
 </div>
 
 {% if job.status_detail %}<div class="banner" id="statusbar">{{ job.status_detail }}</div>{% endif %}
+
+<div class="prog" id="prog" {% if not (pending or running) %}hidden{% endif %}>
+  <div class="prow">
+    <strong id="p-head">Valuing…</strong>
+    <span class="hint" id="p-sub"></span>
+    <span style="flex:1"></span>
+    <span class="hint" id="p-eta"></span>
+    <button class="btn ghost small" type="button" onclick="location.reload()">Refresh now</button>
+  </div>
+  <div class="bar"><div class="fill" id="p-fill" style="width:0%"></div></div>
+  <div class="hint" id="p-now" style="margin-top:5px"></div>
+</div>
 
 <form method="post" action="/jobs/{{ job.id }}/settings" class="strip">
   <div class="cell"><span class="l">Items</span>
@@ -179,8 +203,9 @@
     <td>
       {% if st in ('complete','overridden') %}
         <div class="idn" title="{{ item.identified_as }}">{{ item.identified_as or item.category }}</div>
-      {% elif st == 'running' %}<span class="pill">researching…</span>
+      {% elif st == 'running' %}<span class="pill working">researching…</span>
       {% elif st == 'failed' %}<span class="pill low">failed</span>
+      {% elif job.status.value == 'valuing' %}<span class="pill queued">queued</span>
       {% else %}<span class="pill">not valued</span>{% endif %}
     </td>
     <td>{% if item.confidence %}<span class="pill {{ item.confidence }}">{{ item.confidence }}</span>{% endif %}</td>
@@ -248,6 +273,12 @@
             Exclude from claim
           </label>
           <p style="margin:10px 0 0"><button class="btn small" type="submit" style="width:100%">Save line</button></p>
+        </form>
+        <form method="post" action="/items/{{ item.id }}/value" style="margin-top:6px">
+          <button class="btn ghost small" type="submit" style="width:100%"
+                  {% if not has_api_key %}disabled{% endif %}>Re-value this item</button>
+        </form>
+        <form>
           {% if item.replacement_value is not none %}
           <p class="tiny muted" style="margin:8px 0 0">
             Overriding recalculates indemnity at the same
@@ -317,19 +348,47 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.getElementById('lightbox').style.display = 'none';
 });
 applyFilters();
+function fmtEta(s){
+  if (s === null || s === undefined) return 'estimating…';
+  if (s < 60) return '~' + s + 's remaining';
+  const m = Math.round(s / 60);
+  return '~' + m + ' min remaining';
+}
 {% if pending or running %}
 (function(){
-  let idle = 0;
-  const timer = setInterval(async () => {
+  const prog = document.getElementById('prog');
+  let lastDone = -1, stalls = 0;
+  prog.hidden = false;
+
+  async function poll(){
     try {
       const r = await fetch('/jobs/{{ job.id }}/progress');
       const d = await r.json();
+
+      document.getElementById('p-fill').style.width = d.percent + '%';
+      document.getElementById('p-head').textContent =
+        d.done + ' of ' + d.total + ' valued (' + d.percent + '%)';
+      document.getElementById('p-sub').textContent =
+        d.counts.running + ' researching now · ' + d.counts.pending + ' queued · ' +
+        d.workers + ' at a time' +
+        (d.counts.failed ? ' · ' + d.counts.failed + ' failed' : '');
+      document.getElementById('p-eta').textContent =
+        fmtEta(d.eta_seconds) + (d.average_seconds ? ' · ' + d.average_seconds + 's per item' : '');
+      document.getElementById('p-now').textContent =
+        d.researching.length ? 'Now: ' + d.researching.join(' · ') : '';
+
       const bar = document.getElementById('statusbar');
       if (bar) bar.textContent = d.detail || '';
-      if (d.counts.running === 0 && d.counts.pending === 0) { clearInterval(timer); location.reload(); }
-      else if (++idle > 240) clearInterval(timer);
-    } catch (err) {}
-  }, 5000);
+
+      // Pull in newly valued rows periodically so figures stay current.
+      if (d.done !== lastDone) { stalls = 0; lastDone = d.done; }
+      else if (++stalls > 60) { return; }   // 5 min with no movement: stop polling
+
+      if (d.outstanding === 0) { location.reload(); return; }
+      setTimeout(poll, 4000);
+    } catch (err) { setTimeout(poll, 8000); }
+  }
+  poll();
 })();
 {% endif %}
 </script>

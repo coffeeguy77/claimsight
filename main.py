@@ -9,6 +9,7 @@ import re
 import secrets
 import tempfile
 import threading
+import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 
@@ -51,6 +52,28 @@ VALUATION_WORKERS = int(os.environ.get("VALUATION_WORKERS", "4"))
 
 _executor = ThreadPoolExecutor(max_workers=VALUATION_WORKERS)
 _job_locks: dict[str, threading.Lock] = {}
+
+# Items handed to a worker but not yet finished. Guards against a second
+# "Value remaining" click re-queueing work that is already in flight.
+_inflight: set[str] = set()
+_inflight_lock = threading.Lock()
+
+# Rolling average of how long one item takes, used to estimate time remaining.
+_timing = {"seconds": 0.0, "count": 0}
+_timing_lock = threading.Lock()
+
+
+def _record_duration(seconds: float) -> None:
+    with _timing_lock:
+        _timing["seconds"] += seconds
+        _timing["count"] += 1
+
+
+def _average_seconds() -> float:
+    with _timing_lock:
+        if not _timing["count"]:
+            return 0.0
+        return _timing["seconds"] / _timing["count"]
 
 
 @app.on_event("startup")
@@ -476,18 +499,29 @@ def start_valuation(
         db.commit()
         return RedirectResponse(f"/jobs/{job_id}", status_code=303)
 
-    targets = [
-        i.id
-        for i in job.items
-        if not i.excluded
-        and not i.manual_override
-        and i.valuation_status in (ValuationStatus.pending, ValuationStatus.failed)
-    ]
+    with _inflight_lock:
+        targets = [
+            i.id
+            for i in job.items
+            if not i.excluded
+            and not i.manual_override
+            and i.valuation_status in (ValuationStatus.pending, ValuationStatus.failed)
+            and i.id not in _inflight
+        ]
+        _inflight.update(targets)
+
+    if not targets:
+        job.status_detail = "Nothing left to value."
+        db.commit()
+        return RedirectResponse(f"/jobs/{job_id}", status_code=303)
+
+    # Items stay pending (= queued) and are flipped to running by the worker
+    # that actually picks them up, so the UI can distinguish the two.
     for item in job.items:
-        if item.id in targets:
-            item.valuation_status = ValuationStatus.running
+        if item.id in targets and item.valuation_status == ValuationStatus.failed:
+            item.valuation_status = ValuationStatus.pending
     job.status = JobStatus.valuing
-    job.status_detail = f"Valuing {len(targets)} items…"
+    job.status_detail = f"Queued {len(targets)} items for valuation."
     db.commit()
 
     _executor.submit(_run_valuations, job_id, targets)
@@ -530,11 +564,16 @@ def _run_valuations(job_id: str, item_ids: list[str]) -> None:
 
 
 def _value_one(item_id: str) -> None:
+    started = time.monotonic()
     db = get_session()
     try:
         item = db.get(Item, item_id)
         if item is None:
             return
+        # Claim it now so the UI shows this one as actively researching.
+        item.valuation_status = ValuationStatus.running
+        db.commit()
+
         captions = [
             p.caption
             for p in db.scalars(
@@ -562,7 +601,19 @@ def _value_one(item_id: str) -> None:
             item.sources = "\n".join(result.sources or [])
         item.valued_at = dt.datetime.now(dt.timezone.utc)
         db.commit()
+
+        elapsed = time.monotonic() - started
+        _record_duration(elapsed)
+        # Surfaced in the Railway logs so a long run can be watched from outside.
+        print(
+            f"[valuation] {item.description[:48]!r} -> "
+            f"{'FAILED' if result.error else f'${item.replacement_value}'} "
+            f"in {elapsed:.0f}s",
+            flush=True,
+        )
     finally:
+        with _inflight_lock:
+            _inflight.discard(item_id)
         db.close()
 
 
@@ -574,9 +625,62 @@ def valuation_progress(
 ):
     job = owned_job(db, job_id, user)
     counts = {status.value: 0 for status in ValuationStatus}
+    rows = []
     for item in job.items:
         counts[item.valuation_status.value] += 1
-    return {"status": job.status.value, "detail": job.status_detail, "counts": counts, "totals": job.totals}
+        if item.valuation_status == ValuationStatus.running:
+            rows.append(item.description[:60])
+
+    total = sum(counts.values())
+    done = counts["complete"] + counts["overridden"] + counts["failed"]
+    outstanding = counts["pending"] + counts["running"]
+
+    average = _average_seconds()
+    eta = None
+    if outstanding and average:
+        # Items run VALUATION_WORKERS at a time.
+        eta = int((outstanding / max(VALUATION_WORKERS, 1)) * average)
+
+    return {
+        "status": job.status.value,
+        "detail": job.status_detail,
+        "counts": counts,
+        "totals": job.totals,
+        "done": done,
+        "total": total,
+        "outstanding": outstanding,
+        "percent": round(done / total * 100) if total else 0,
+        "eta_seconds": eta,
+        "average_seconds": round(average, 1),
+        "researching": rows,
+        "workers": VALUATION_WORKERS,
+    }
+
+
+@app.post("/items/{item_id}/value")
+def value_single_item(
+    item_id: str,
+    user: User = Depends(require_user),
+    db: Session = Depends(db_dependency),
+):
+    """Re-run valuation for one line without touching the rest of the job."""
+    item = db.get(Item, item_id)
+    if not item:
+        raise HTTPException(404, "Item not found")
+    job = owned_job(db, item.job_id, user)
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        raise HTTPException(400, "ANTHROPIC_API_KEY is not configured.")
+
+    with _inflight_lock:
+        if item_id in _inflight:
+            return RedirectResponse(f"/jobs/{job.id}#item-{item_id}", status_code=303)
+        _inflight.add(item_id)
+
+    item.valuation_status = ValuationStatus.pending
+    item.manual_override = False
+    db.commit()
+    _executor.submit(_value_one, item_id)
+    return RedirectResponse(f"/jobs/{job.id}#item-{item_id}", status_code=303)
 
 
 @app.post("/items/{item_id}")
