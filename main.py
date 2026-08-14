@@ -27,6 +27,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 import ingest
+import report_view
 import valuation
 from models import (
     CONDITION_ADJUSTMENT,
@@ -1129,12 +1130,15 @@ def report(
 ):
     job = owned_job(db, job_id, user)
     photos = _photo_index(db, job.id)
+    rows = report_view.build_items(job, photos)
     return templates.TemplateResponse(
         request,
         "report.html",
         {"user": user,
             "job": job,
             "photos": photos,
+            "rows": rows,
+            "mix": report_view.build_summary(rows),
             "totals": job.totals,
             "generated": dt.datetime.now(dt.timezone.utc).strftime("%d %B %Y"),
         },
