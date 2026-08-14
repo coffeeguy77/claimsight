@@ -56,6 +56,27 @@ _job_locks: dict[str, threading.Lock] = {}
 @app.on_event("startup")
 def on_startup() -> None:
     init_db()
+    _release_orphaned_valuations()
+
+
+def _release_orphaned_valuations() -> None:
+    """Reset items left mid-valuation by a restart.
+
+    Valuation runs in-process, so a redeploy or crash strands items in the
+    `running` state where the re-run button would never pick them up again.
+    """
+    db = get_session()
+    try:
+        stranded = db.scalars(
+            select(Item).where(Item.valuation_status == ValuationStatus.running)
+        ).all()
+        for item in stranded:
+            item.valuation_status = ValuationStatus.pending
+        if stranded:
+            db.commit()
+            print(f"Released {len(stranded)} orphaned valuation(s) back to pending.")
+    finally:
+        db.close()
 
 
 # --------------------------------------------------------------------------- auth
