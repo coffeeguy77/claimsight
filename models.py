@@ -116,6 +116,11 @@ class Job(Base):
     policy_excess = Column(Float, default=0.0)
     notes = Column(Text, default="")
 
+    # Settlement basis. When False the claim settles at full replacement cost
+    # (new for old) and depreciation is ignored in all totals and reports.
+    # Per-item indemnity figures are still stored, so this is reversible.
+    apply_depreciation = Column(Boolean, default=True, nullable=False)
+
     status = Column(Enum(JobStatus), default=JobStatus.draft)
     status_detail = Column(Text, default="")
     created_at = Column(DateTime(timezone=True), default=_now)
@@ -128,23 +133,32 @@ class Job(Base):
     photos = relationship("Photo", back_populates="job", cascade="all, delete-orphan")
 
     @property
+    def basis_label(self) -> str:
+        return "Indemnity (depreciated)" if self.apply_depreciation else "Replacement (new for old)"
+
+    @property
     def totals(self) -> dict[str, float]:
         replacement = indemnity = 0.0
         priced = 0
         for item in self.items:
             if item.excluded:
                 continue
+            quantity = item.quantity or 1
             if item.replacement_value is not None:
-                replacement += item.replacement_value * (item.quantity or 1)
+                replacement += item.replacement_value * quantity
                 priced += 1
             if item.indemnity_value is not None:
-                indemnity += item.indemnity_value * (item.quantity or 1)
+                indemnity += item.indemnity_value * quantity
+
+        # The settlement basis decides which column the claim is paid on.
+        gross = indemnity if self.apply_depreciation else replacement
         return {
             "replacement": round(replacement, 2),
             "indemnity": round(indemnity, 2),
+            "gross": round(gross, 2),
             "priced": priced,
             "count": sum(1 for i in self.items if not i.excluded),
-            "settlement": round(max(indemnity - (self.policy_excess or 0.0), 0.0), 2),
+            "settlement": round(max(gross - (self.policy_excess or 0.0), 0.0), 2),
         }
 
 
@@ -217,8 +231,31 @@ class Photo(Base):
         return f"{self.series}:{self.number}"
 
 
+# Columns added after the first release. Applied on startup so an existing
+# deployment picks them up without a separate migration step.
+_ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
+    ("jobs", "apply_depreciation", "BOOLEAN NOT NULL DEFAULT TRUE"),
+]
+
+
+def _apply_additive_migrations() -> None:
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(ENGINE)
+    tables = set(inspector.get_table_names())
+    with ENGINE.begin() as conn:
+        for table, column, ddl in _ADDITIVE_COLUMNS:
+            if table not in tables:
+                continue
+            existing = {c["name"] for c in inspector.get_columns(table)}
+            if column in existing:
+                continue
+            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))
+
+
 def init_db() -> None:
     Base.metadata.create_all(ENGINE)
+    _apply_additive_migrations()
 
 
 def get_session() -> Session:

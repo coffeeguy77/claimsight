@@ -21,6 +21,14 @@
   #lightbox img{max-width:92vw;max-height:92vh;border-radius:6px}
   .banner{background:var(--warn-soft);border:1px solid #f5d99b;color:var(--warn);
     padding:11px 14px;border-radius:8px;font-size:14px;margin-bottom:18px}
+  .kpi.basis{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .basisbar{display:flex;align-items:center;gap:14px;background:var(--card);
+    border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:22px}
+  .switch{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;font-weight:600;
+    white-space:nowrap;cursor:pointer}
+  .switch input{width:auto;margin:0;cursor:pointer}
+  .dep-col{transition:opacity .15s}
+  .dep-off .dep-col{opacity:.35}
 </style>
 {% endblock %}
 
@@ -52,27 +60,51 @@
   <div class="kpi"><div class="label">Items on claim</div>
     <div class="value">{{ totals.count }}</div>
     <div class="tiny muted">{{ totals.priced }} valued</div></div>
-  <div class="kpi"><div class="label">Replacement value</div>
+  <div class="kpi {% if not job.apply_depreciation %}basis{% endif %}">
+    <div class="label">Replacement value</div>
     <div class="value">${{ "{:,.0f}".format(totals.replacement) }}</div>
-    <div class="tiny muted">new for old, incl. GST</div></div>
-  <div class="kpi"><div class="label">Indemnity value</div>
-    <div class="value">${{ "{:,.0f}".format(totals.indemnity) }}</div>
-    <div class="tiny muted">after depreciation</div></div>
+    <div class="tiny muted">new for old, incl. GST{% if not job.apply_depreciation %} · settling on this{% endif %}</div></div>
+  <div class="kpi {% if job.apply_depreciation %}basis{% endif %}">
+    <div class="label">Indemnity value</div>
+    <div class="value">{% if job.apply_depreciation %}${{ "{:,.0f}".format(totals.indemnity) }}{% else %}<span class="muted">not applied</span>{% endif %}</div>
+    <div class="tiny muted">after depreciation{% if job.apply_depreciation %} · settling on this{% endif %}</div></div>
   <div class="kpi"><div class="label">Net settlement</div>
     <div class="value">${{ "{:,.0f}".format(totals.settlement) }}</div>
     <div class="tiny muted">less ${{ "{:,.0f}".format(job.policy_excess or 0) }} excess</div></div>
 </div>
 
-<div class="card" style="padding:0;overflow-x:auto">
+<form method="post" action="/jobs/{{ job.id }}/settings" class="basisbar">
+  <label class="switch">
+    <input type="checkbox" name="apply_depreciation" {% if job.apply_depreciation %}checked{% endif %}
+           onchange="this.form.submit()">
+    <span>Apply depreciation</span>
+  </label>
+  <span class="tiny muted">
+    {% if job.apply_depreciation %}
+      Settling at indemnity value — replacement cost reduced by each item's assessed age.
+    {% else %}
+      Settling at full replacement cost, new for old. Depreciation is ignored in all totals and reports.
+    {% endif %}
+  </span>
+  <span style="flex:1"></span>
+  <label class="tiny muted" style="display:flex;align-items:center;gap:6px;margin:0;font-weight:400">
+    Policy excess $
+    <input type="text" name="policy_excess" value="{{ "{:.0f}".format(job.policy_excess or 0) }}"
+           style="width:86px;padding:5px 8px;font-size:13px">
+  </label>
+  <button class="btn ghost small" type="submit">Save</button>
+</form>
+
+<div class="card {% if not job.apply_depreciation %}dep-off{% endif %}" style="padding:0;overflow-x:auto">
 <table>
   <thead><tr>
     <th style="width:26px">#</th>
     <th style="min-width:230px">Item</th>
     <th style="width:150px">Photos</th>
     <th style="min-width:230px">AI assessment</th>
-    <th class="num">Age / life</th>
+    <th class="num dep-col">Age / life</th>
     <th class="num">Replacement</th>
-    <th class="num">Indemnity</th>
+    <th class="num dep-col">Indemnity</th>
     <th style="width:210px">Adjust</th>
   </tr></thead>
   <tbody>
@@ -117,7 +149,7 @@
         <span class="pill">not valued</span>
       {% endif %}
     </td>
-    <td class="num tiny muted">
+    <td class="num tiny muted dep-col">
       {% if item.estimated_age_years is not none %}{{ item.estimated_age_years }}y{% else %}—{% endif %}
       / {% if item.effective_life_years %}{{ item.effective_life_years }}y{% else %}—{% endif %}
       {% if item.depreciation_rate is not none %}
@@ -132,7 +164,7 @@
         {% if item.manual_override %}<div class="tiny" style="color:var(--accent)">manual</div>{% endif %}
       {% else %}—{% endif %}
     </td>
-    <td class="num">
+    <td class="num dep-col">
       {% if item.indemnity_value is not none %}
         <strong>${{ "{:,.0f}".format(item.indemnity_value) }}</strong>
         {% if (item.quantity or 1) > 1 %}

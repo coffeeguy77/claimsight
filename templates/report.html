@@ -58,8 +58,11 @@
 <div class="summary">
   <div><span>Total replacement value (new for old, incl. GST)</span>
        <span>${{ "{:,.2f}".format(totals.replacement) }}</span></div>
+  {% if job.apply_depreciation %}
   <div><span>Total indemnity value (after depreciation)</span>
        <span>${{ "{:,.2f}".format(totals.indemnity) }}</span></div>
+  {% endif %}
+  <div><span>Settlement basis</span><span>{{ job.basis_label }}</span></div>
   <div><span>Less policy excess</span>
        <span>−${{ "{:,.2f}".format(job.policy_excess or 0) }}</span></div>
   <div class="total"><span>Net settlement recommended</span>
@@ -87,7 +90,7 @@
     {% if item.assessor_note %}<div class="small" style="margin-top:4px">Assessor note: {{ item.assessor_note }}</div>{% endif %}
     <div class="tiny muted" style="margin-top:6px">
       Photographs {{ item.photo_refs }} ({{ item.photo_series }} attendance).
-      {% if item.estimated_age_years is not none %}
+      {% if job.apply_depreciation and item.estimated_age_years is not none %}
         Estimated age {{ item.estimated_age_years }} years against an effective life of
         {{ item.effective_life_years }} years, depreciation
         {{ "{:.0f}".format((item.depreciation_rate or 0) * 100) }}%.{% endif %}
@@ -100,9 +103,13 @@
   <div class="money">
     {% if item.replacement_value is not none %}
       <div class="tiny muted">Replacement</div>
-      <div>${{ "{:,.2f}".format(item.replacement_value * (item.quantity or 1)) }}</div>
-      <div class="tiny muted" style="margin-top:6px">Indemnity</div>
-      <div class="big">${{ "{:,.2f}".format((item.indemnity_value or 0) * (item.quantity or 1)) }}</div>
+      {% if job.apply_depreciation %}
+        <div>${{ "{:,.2f}".format(item.replacement_value * (item.quantity or 1)) }}</div>
+        <div class="tiny muted" style="margin-top:6px">Indemnity</div>
+        <div class="big">${{ "{:,.2f}".format((item.indemnity_value or 0) * (item.quantity or 1)) }}</div>
+      {% else %}
+        <div class="big">${{ "{:,.2f}".format(item.replacement_value * (item.quantity or 1)) }}</div>
+      {% endif %}
     {% else %}
       <div class="tiny muted">Not valued</div>
     {% endif %}
@@ -114,10 +121,17 @@
   <strong>Basis of assessment.</strong> Replacement values are the cost of acquiring a new
   equivalent item from an Australian retailer at the date of this report, inclusive of GST.
   Where the exact model is discontinued, the closest current-production equivalent has been
-  priced and the substitution noted against the item. Indemnity values apply straight-line
-  depreciation over the item's assessed effective life, subject to a residual floor of 10% of
-  replacement cost. Ages are estimated from model identification, styling and production dates
-  and should be treated as indicative.
+  priced and the substitution noted against the item.
+  {% if job.apply_depreciation %}
+  Indemnity values apply straight-line depreciation over the item's assessed effective life,
+  subject to a residual floor of 10% of replacement cost. Ages are estimated from model
+  identification, styling and production dates and should be treated as indicative. This
+  claim settles on the indemnity basis.
+  {% else %}
+  This claim settles on a replacement basis, new for old. No depreciation has been applied
+  to any item and no allowance has been made for the age or condition of the items prior to
+  the loss.
+  {% endif %}
   <br><br>
   Pricing research was performed with AI assistance and reviewed by the assessor named above.
   Source references are provided against each line so that any figure may be independently

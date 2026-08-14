@@ -27,7 +27,10 @@
       <td class="small">{{ job.peril }}</td>
       <td class="num">{{ t.count }}</td>
       <td class="num">{% if t.replacement %}${{ "{:,.0f}".format(t.replacement) }}{% else %}—{% endif %}</td>
-      <td class="num">{% if t.indemnity %}${{ "{:,.0f}".format(t.indemnity) }}{% else %}—{% endif %}</td>
+      <td class="num">
+        {% if not job.apply_depreciation %}<span class="tiny muted">n/a</span>
+        {% elif t.indemnity %}${{ "{:,.0f}".format(t.indemnity) }}
+        {% else %}—{% endif %}</td>
       <td><span class="pill {% if job.status.value == 'valued' %}ok{% endif %}">{{ job.status.value }}</span></td>
     </tr>
   {% endfor %}

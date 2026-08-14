@@ -27,6 +27,15 @@
     <input id="site_address" type="text" name="site_address">
     <label for="policy_excess">Policy excess (AUD)</label>
     <input id="policy_excess" type="number" step="0.01" name="policy_excess" value="0">
+
+    <label style="display:flex;align-items:center;gap:8px;margin-top:16px">
+      <input type="checkbox" name="apply_depreciation" checked style="width:auto">
+      Apply depreciation (settle at indemnity value)
+    </label>
+    <p class="tiny muted" style="margin:6px 0 0">
+      Leave unticked for a new-for-old policy that settles at full replacement cost.
+      You can change this at any time from the job — it does not require re-valuing items.
+    </p>
   </div>
 
   <div class="card" style="margin-top:18px">

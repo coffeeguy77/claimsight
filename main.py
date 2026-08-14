@@ -268,6 +268,7 @@ async def create_job(
     peril: str = Form("Water"),
     date_of_loss: str = Form(""),
     policy_excess: float = Form(0.0),
+    apply_depreciation: str = Form(""),
     inventory: UploadFile = File(...),
     photos_initial: UploadFile | None = File(None),
     photos_second: UploadFile | None = File(None),
@@ -285,6 +286,7 @@ async def create_job(
         peril=peril.strip(),
         date_of_loss=date_of_loss.strip(),
         policy_excess=policy_excess or 0.0,
+        apply_depreciation=apply_depreciation == "on",
         status=JobStatus.ingesting,
     )
     db.add(job)
@@ -397,6 +399,26 @@ def job_detail(
             "has_api_key": bool(os.environ.get("ANTHROPIC_API_KEY")),
         },
     )
+
+
+@app.post("/jobs/{job_id}/settings")
+def update_job_settings(
+    job_id: str,
+    apply_depreciation: str = Form(""),
+    policy_excess: str = Form(""),
+    user: User = Depends(require_user),
+    db: Session = Depends(db_dependency),
+):
+    """Switch the settlement basis and excess without touching valuations."""
+    job = owned_job(db, job_id, user)
+    job.apply_depreciation = apply_depreciation == "on"
+    if policy_excess.strip():
+        try:
+            job.policy_excess = float(policy_excess.replace("$", "").replace(",", ""))
+        except ValueError:
+            pass
+    db.commit()
+    return RedirectResponse(f"/jobs/{job_id}", status_code=303)
 
 
 @app.get("/photos/{photo_id}")
@@ -631,13 +653,12 @@ def export_csv(
             ]
         )
     totals = job.totals
+    pad = [""] * 15
     writer.writerow([])
-    writer.writerow(["", "TOTALS", "", "", "", "", "", "", "", "", "", "", "", "",
-                     "", "", totals["replacement"], totals["indemnity"]])
-    writer.writerow(["", "Less policy excess", "", "", "", "", "", "", "", "", "",
-                     "", "", "", "", "", "", -(job.policy_excess or 0)])
-    writer.writerow(["", "NET SETTLEMENT", "", "", "", "", "", "", "", "", "", "",
-                     "", "", "", "", "", totals["settlement"]])
+    writer.writerow(["", "TOTALS", *pad, totals["replacement"], totals["indemnity"]])
+    writer.writerow(["", f"Settlement basis: {job.basis_label}", *pad, "", totals["gross"]])
+    writer.writerow(["", "Less policy excess", *pad, "", -(job.policy_excess or 0)])
+    writer.writerow(["", "NET SETTLEMENT", *pad, "", totals["settlement"]])
 
     filename = f"{job.claim_reference or job.reference or 'claim'}-schedule.csv"
     return StreamingResponse(
