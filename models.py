@@ -152,6 +152,7 @@ class Job(Base):
 
         # The settlement basis decides which column the claim is paid on.
         gross = indemnity if self.apply_depreciation else replacement
+        spend = sum(i.cost_usd or 0.0 for i in self.items)
         return {
             "replacement": round(replacement, 2),
             "indemnity": round(indemnity, 2),
@@ -159,6 +160,8 @@ class Job(Base):
             "priced": priced,
             "count": sum(1 for i in self.items if not i.excluded),
             "settlement": round(max(gross - (self.policy_excess or 0.0), 0.0), 2),
+            "research_cost": round(spend, 4),
+            "searches": sum(i.search_count or 0 for i in self.items),
         }
 
 
@@ -192,6 +195,11 @@ class Item(Base):
     valuation_notes = Column(Text, default="")
     sources = Column(Text, default="")             # newline-separated URLs
     error = Column(Text, default="")
+
+    # What this line cost to research, so spend is never a surprise.
+    cost_usd = Column(Float, default=0.0)
+    search_count = Column(Integer, default=0)
+    valuation_model = Column(String(80), default="")
 
     # Assessor control
     excluded = Column(Boolean, default=False)
@@ -235,6 +243,9 @@ class Photo(Base):
 # deployment picks them up without a separate migration step.
 _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("jobs", "apply_depreciation", "BOOLEAN NOT NULL DEFAULT TRUE"),
+    ("items", "cost_usd", "DOUBLE PRECISION DEFAULT 0"),
+    ("items", "search_count", "INTEGER DEFAULT 0"),
+    ("items", "valuation_model", "VARCHAR(80) DEFAULT ''"),
 ]
 
 

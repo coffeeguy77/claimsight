@@ -441,6 +441,8 @@ def job_detail(
             "pending": pending,
             "running": running,
             "has_api_key": bool(os.environ.get("ANTHROPIC_API_KEY")),
+            "model": valuation.MODEL,
+            "max_searches": valuation.MAX_SEARCHES,
         },
     )
 
@@ -583,6 +585,10 @@ def _value_one(item_id: str) -> None:
         ]
         result = valuation.value_item(item, captions)
 
+        item.cost_usd = (item.cost_usd or 0.0) + (result.cost_usd or 0.0)
+        item.search_count = (item.search_count or 0) + (result.searches or 0)
+        item.valuation_model = result.model
+
         if result.error:
             item.valuation_status = ValuationStatus.failed
             item.error = result.error[:2000]
@@ -606,9 +612,10 @@ def _value_one(item_id: str) -> None:
         _record_duration(elapsed)
         # Surfaced in the Railway logs so a long run can be watched from outside.
         print(
-            f"[valuation] {item.description[:48]!r} -> "
-            f"{'FAILED' if result.error else f'${item.replacement_value}'} "
-            f"in {elapsed:.0f}s",
+            f"[valuation] {item.description[:44]!r} -> "
+            f"{'FAILED' if result.error else f'AUD {item.replacement_value}'} "
+            f"in {elapsed:.0f}s | {result.searches} searches | "
+            f"US${result.cost_usd:.4f}",
             flush=True,
         )
     finally:
@@ -654,6 +661,10 @@ def valuation_progress(
         "average_seconds": round(average, 1),
         "researching": rows,
         "workers": VALUATION_WORKERS,
+        "cost": job.totals["research_cost"],
+        "cost_projected": round(
+            job.totals["research_cost"] / done * total, 2
+        ) if done else None,
     }
 
 

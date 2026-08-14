@@ -17,8 +17,45 @@ from dataclasses import dataclass, asdict
 
 import anthropic
 
-MODEL = os.environ.get("VALUATION_MODEL", "claude-sonnet-5")
+# Haiku is more than capable of "find the current Australian retail price of X"
+# and costs a fifth of Sonnet once web-search token volume is accounted for.
+MODEL = os.environ.get("VALUATION_MODEL", "claude-haiku-4-5-20251001")
 MAX_RETRIES = 3
+
+# Each additional search iteration re-sends every previous result as input
+# tokens, so cost grows faster than linearly with this number. Two is enough to
+# find a retail price and sanity-check it against a second source.
+MAX_SEARCHES = int(os.environ.get("MAX_SEARCHES_PER_ITEM", "2"))
+MAX_TOKENS = int(os.environ.get("VALUATION_MAX_TOKENS", "1200"))
+
+# USD per million tokens: (input, output, cache read). Used to price each run
+# so the assessor sees the spend as it happens.
+PRICES: dict[str, tuple[float, float, float]] = {
+    "claude-haiku-4-5-20251001": (1.0, 5.0, 0.10),
+    "claude-haiku-4-5": (1.0, 5.0, 0.10),
+    "claude-sonnet-5": (2.0, 10.0, 0.20),
+    "claude-opus-5": (5.0, 25.0, 0.50),
+}
+WEB_SEARCH_USD = 10.0 / 1000.0  # $10 per 1,000 searches
+
+
+def price_run(
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    cache_read: int = 0,
+    cache_write: int = 0,
+    searches: int = 0,
+) -> float:
+    in_price, out_price, cache_price = PRICES.get(model, PRICES["claude-haiku-4-5-20251001"])
+    return round(
+        (input_tokens * in_price / 1e6)
+        + (output_tokens * out_price / 1e6)
+        + (cache_read * cache_price / 1e6)
+        + (cache_write * in_price * 1.25 / 1e6)
+        + (searches * WEB_SEARCH_USD),
+        6,
+    )
 # Floor value as a fraction of replacement cost: even a fully depreciated item in
 # working order retains some worth. Australian loss adjusting convention.
 SALVAGE_FLOOR = 0.10
@@ -88,6 +125,9 @@ class ValuationResult:
     indemnity_value_aud: float | None = None
     depreciation_rate: float | None = None
     error: str = ""
+    cost_usd: float = 0.0
+    searches: int = 0
+    model: str = ""
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -136,11 +176,21 @@ def _extract_json(text: str) -> dict:
     return json.loads(text[start : end + 1])
 
 
-def _call_model(client: anthropic.Anthropic, prompt: str, use_search: bool) -> str:
+def _call_model(
+    client: anthropic.Anthropic, prompt: str, use_search: bool
+) -> tuple[str, dict]:
     kwargs: dict = {
         "model": MODEL,
-        "max_tokens": 2000,
-        "system": SYSTEM_PROMPT,
+        "max_tokens": MAX_TOKENS,
+        # Cache the system prompt: it is identical on every item, so after the
+        # first call it bills at a tenth of the input rate.
+        "system": [
+            {
+                "type": "text",
+                "text": SYSTEM_PROMPT,
+                "cache_control": {"type": "ephemeral"},
+            }
+        ],
         "messages": [{"role": "user", "content": prompt}],
     }
     if use_search:
@@ -148,12 +198,24 @@ def _call_model(client: anthropic.Anthropic, prompt: str, use_search: bool) -> s
             {
                 "type": "web_search_20250305",
                 "name": "web_search",
-                "max_uses": 6,
+                "max_uses": MAX_SEARCHES,
                 "user_location": {"type": "approximate", "country": "AU"},
             }
         ]
     response = client.messages.create(**kwargs)
-    return "".join(block.text for block in response.content if block.type == "text")
+    text = "".join(block.text for block in response.content if block.type == "text")
+
+    usage = getattr(response, "usage", None)
+    server_tool_use = getattr(usage, "server_tool_use", None)
+    stats = {
+        "input_tokens": getattr(usage, "input_tokens", 0) or 0,
+        "output_tokens": getattr(usage, "output_tokens", 0) or 0,
+        "cache_read": getattr(usage, "cache_read_input_tokens", 0) or 0,
+        "cache_write": getattr(usage, "cache_creation_input_tokens", 0) or 0,
+        "searches": getattr(server_tool_use, "web_search_requests", 0) or 0,
+    }
+    stats["cost_usd"] = price_run(MODEL, **{k: v for k, v in stats.items()})
+    return text, stats
 
 
 def compute_indemnity(
@@ -181,10 +243,15 @@ def value_item(item, photo_captions: list[str] | None = None) -> ValuationResult
     client = _client()
     use_search = os.environ.get("ENABLE_WEB_SEARCH", "1") != "0"
     last_error = ""
+    spent = 0.0
+    searched = 0
 
     for attempt in range(MAX_RETRIES):
         try:
-            raw = _call_model(client, prompt, use_search)
+            raw, stats = _call_model(client, prompt, use_search)
+            # Failed attempts still cost money; carry the running total forward.
+            spent += stats["cost_usd"]
+            searched += stats["searches"]
             data = _extract_json(raw)
 
             replacement = data.get("replacement_value_aud")
@@ -210,6 +277,9 @@ def value_item(item, photo_captions: list[str] | None = None) -> ValuationResult
                 sources=[str(s) for s in sources][:10],
                 indemnity_value_aud=indemnity,
                 depreciation_rate=rate,
+                cost_usd=round(spent, 6),
+                searches=searched,
+                model=MODEL,
             )
         except anthropic.BadRequestError as exc:
             # Most likely the web search tool is unavailable on this account.
@@ -226,4 +296,10 @@ def value_item(item, photo_captions: list[str] | None = None) -> ValuationResult
             last_error = str(exc)
             time.sleep(1)
 
-    return ValuationResult(error=last_error or "Valuation failed.", confidence="low")
+    return ValuationResult(
+        error=last_error or "Valuation failed.",
+        confidence="low",
+        cost_usd=round(spent, 6),
+        searches=searched,
+        model=MODEL,
+    )

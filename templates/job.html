@@ -111,7 +111,8 @@
     · {{ job.peril }}
   </div>
   <div style="flex:1"></div>
-  <form method="post" action="/jobs/{{ job.id }}/value" style="display:inline">
+  <form method="post" action="/jobs/{{ job.id }}/value" style="display:inline"
+        onsubmit="return confirmCost(this)">
     <button class="btn small" type="submit" {% if not has_api_key %}disabled{% endif %}>
       {% if totals.priced %}Value remaining{% else %}Run AI valuation{% endif %}
     </button>
@@ -143,6 +144,11 @@
     <span class="v">{% if job.apply_depreciation %}${{ "{:,.0f}".format(totals.indemnity) }}{% else %}—{% endif %}</span></div>
   <div class="cell"><span class="l">Net settlement</span>
     <span class="v">${{ "{:,.0f}".format(totals.settlement) }}</span></div>
+  <div class="cell" title="What AI research has cost on this job so far">
+    <span class="l">Research spend</span>
+    <span class="v" style="font-size:15px">US${{ "{:,.2f}".format(totals.research_cost) }}</span>
+    <span class="hint">{{ totals.searches }} searches
+      {%- if totals.priced %} · {{ "{:.3f}".format(totals.research_cost / totals.priced) }}/item{% endif %}</span></div>
   <div class="cell grow">
     <label class="switch">
       <input type="checkbox" name="apply_depreciation" {% if job.apply_depreciation %}checked{% endif %}
@@ -283,6 +289,8 @@
           {{ item.cause_of_damage }} damage · {{ item.location }}
           {% if item.serial %} · S/N {{ item.serial }}{% endif %}
           · photos {{ item.photo_refs }} ({{ item.photo_series }} attendance)
+          {% if item.cost_usd %} · researched for US${{ "{:.4f}".format(item.cost_usd) }}
+            in {{ item.search_count }} search(es) via {{ item.valuation_model }}{% endif %}
         </div>
 
         {% if item.source_list %}
@@ -426,6 +434,19 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.getElementById('lightbox').style.display = 'none';
 });
 applyFilters();
+// Never let a bulk run start without showing what it is likely to cost.
+const UNVALUED = {{ pending }};
+const COST_PER_ITEM = {% if totals.priced %}{{ totals.research_cost / totals.priced }}{% else %}0.025{% endif %};
+function confirmCost(form){
+  if (!UNVALUED) return true;
+  const est = (UNVALUED * COST_PER_ITEM);
+  return confirm(
+    'Value ' + UNVALUED + ' item(s) using {{ model }}?\n\n' +
+    'Estimated API cost: about US$' + est.toFixed(2) +
+    ' (~US$' + COST_PER_ITEM.toFixed(3) + ' per item, up to {{ max_searches }} web searches each).\n\n' +
+    'This is charged to your Anthropic account.'
+  );
+}
 function fmtEta(s){
   if (s === null || s === undefined) return 'estimating…';
   if (s < 60) return '~' + s + 's remaining';
@@ -451,7 +472,9 @@ function fmtEta(s){
         d.workers + ' at a time' +
         (d.counts.failed ? ' · ' + d.counts.failed + ' failed' : '');
       document.getElementById('p-eta').textContent =
-        fmtEta(d.eta_seconds) + (d.average_seconds ? ' · ' + d.average_seconds + 's per item' : '');
+        fmtEta(d.eta_seconds) + (d.average_seconds ? ' · ' + d.average_seconds + 's per item' : '') +
+        ' · US$' + d.cost.toFixed(2) + ' spent' +
+        (d.cost_projected ? ' (≈$' + d.cost_projected.toFixed(2) + ' total)' : '');
       document.getElementById('p-now').textContent =
         d.researching.length ? 'Now: ' + d.researching.join(' · ') : '';
 
