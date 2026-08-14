@@ -4,177 +4,673 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Settlement schedule — {{ job.claim_reference or job.reference }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --ink:#152235; --sec:#65758B; --muted:#8A98A9; --line:#DFE5EC;
-    --green:#17875D; --amber:#C9780E; --red:#C64646; --blue:#2864DC;
+/* ============================================================ page geometry
+   True A4. 184mm of usable width, which every block below fills. The screen
+   preview draws the same sheet at the same millimetre dimensions, so what is
+   on screen is what comes out of the printer.                              */
+
+@page {
+  size: A4 portrait;
+  margin: 12mm 13mm 14mm 13mm;
+}
+
+/* Rendering this server-side (WeasyPrint, Prince, Paged.js) rather than from
+   the browser gives real page numbers. Uncomment, and drop .runner-foot.
+
+@page {
+  @bottom-left   { content: "ClaimSight · Contents Loss Assessment"; }
+  @bottom-center { content: "Confidential"; }
+  @bottom-right  { content: "Page " counter(page) " of " counter(pages); }
+}
+*/
+
+:root{
+  --navy:#10233F;
+  --navy-dark:#09192C;
+  --blue:#2864DC;
+  --text:#152235;
+  --secondary:#65758B;
+  --muted:#8A98A9;
+  --border:#DCE3EA;
+  --surface-muted:#F5F7FA;
+  --high:#17875D;
+  --medium:#C9780E;
+  --low:#C64646;
+}
+
+*{box-sizing:border-box}
+
+html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+body{
+  margin:0;
+  background:#E7EBF0;
+  color:var(--text);
+  font-family:Inter,"Helvetica Neue",Arial,Helvetica,sans-serif;
+  font-size:9pt;
+  line-height:1.35;
+  -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;
+}
+
+p{ margin:0 0 1.6mm; orphans:3; widows:3; }
+p:last-child{ margin-bottom:0 }
+a{ color:inherit; text-decoration:none }
+
+/* The A4 sheet. Screen only — in print the @page box provides the margins. */
+.sheet{
+  width:210mm;
+  min-height:297mm;
+  margin:18px auto;
+  padding:12mm 13mm 14mm;
+  background:#fff;
+  box-shadow:0 1px 4px rgba(16,35,63,.14);
+}
+
+.doc{ width:100%; border-collapse:collapse }
+.doc > thead > tr > td,
+.doc > tfoot > tr > td,
+.doc > tbody > tr > td{ padding:0 }
+
+/* ================================================================= toolbar
+   Browser affordances. Never printed.                                     */
+
+.toolbar{ width:210mm; margin:16px auto -4px; display:flex; gap:8px }
+.btn{
+  display:inline-flex; align-items:center; height:32px; padding:0 14px;
+  border:1px solid #C3CDDA; border-radius:6px; background:#fff;
+  font:inherit; font-size:9pt; font-weight:600; color:var(--text); cursor:pointer;
+}
+.btn.primary{ background:var(--blue); border-color:var(--blue); color:#fff }
+
+/* ============================================================== typography */
+
+.label{
+  font-size:7pt; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--muted);
+}
+.sm{ font-size:8pt; color:var(--secondary) }
+.money{ font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap }
+
+/* ============================================================ running head
+   thead/tfoot repeat on every printed page. Deliberately thin — page one
+   carries the full masthead directly beneath it.                           */
+
+.runner{
+  display:flex; justify-content:space-between; align-items:baseline;
+  padding-bottom:1.6mm; margin-bottom:4mm;
+  border-bottom:.4pt solid var(--border);
+  font-size:7.5pt; color:var(--muted);
+}
+.runner strong{ color:var(--navy); font-weight:600; letter-spacing:.02em }
+
+.runner-foot{
+  display:flex; justify-content:space-between; align-items:baseline;
+  padding-top:1.6mm; margin-top:5mm;
+  border-top:.4pt solid var(--border);
+  font-size:7.5pt; color:var(--muted);
+}
+.runner-foot span{ flex:1 }
+.runner-foot .mid{ text-align:center }
+.runner-foot .end{ text-align:right }
+
+@media screen{
+  .runner,.runner-foot{ display:none }
+}
+
+/* ================================================================ masthead */
+
+.masthead{
+  display:flex; justify-content:space-between; align-items:flex-start;
+  margin-bottom:3.5mm;
+}
+.brand{ display:flex; align-items:center; gap:2.4mm }
+.brand svg{ display:block }
+.wordmark{ font-size:13pt; font-weight:700; letter-spacing:-.02em; color:var(--navy); line-height:1.1; white-space:nowrap }
+.descriptor{ font-size:7pt; letter-spacing:.13em; text-transform:uppercase; color:var(--secondary); white-space:nowrap }
+
+.docref{ display:flex; gap:6mm; text-align:right }
+.docref .k{ font-size:6.5pt; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); white-space:nowrap }
+.docref .v{ font-size:9.5pt; font-weight:600; color:var(--navy); white-space:nowrap }
+
+h1{
+  font-size:18pt; font-weight:700; letter-spacing:-.025em; line-height:1.15;
+  margin:0 0 1mm; color:var(--navy);
+}
+.byline{ font-size:8.5pt; color:var(--secondary) }
+.masthead-rule{ height:1.2pt; background:var(--navy); margin:3mm 0 5mm }
+
+/* ========================================================== claim metadata */
+
+.fields{
+  display:grid; grid-template-columns:1fr 1fr; column-gap:10mm;
+  margin-bottom:6mm;
+}
+.field{
+  display:grid; grid-template-columns:30mm 1fr; gap:3mm; align-items:baseline;
+  padding:1.5mm 0; border-bottom:.4pt dotted var(--border);
+}
+.field .k{ font-size:7pt; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--muted) }
+.field .v{ font-size:9pt; font-weight:600; color:var(--text) }
+
+/* ======================================================= settlement summary */
+
+.settlement{
+  border:.6pt solid var(--navy); border-radius:1.6mm; overflow:hidden;
+  margin-bottom:7mm; break-inside:avoid;
+}
+.settlement-head{
+  padding:1.8mm 4mm; background:var(--surface-muted);
+  border-bottom:.4pt solid var(--border);
+  font-size:7pt; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--navy);
+}
+.settlement-body{ padding:2.4mm 4mm 3mm }
+.srow{
+  display:flex; justify-content:space-between; align-items:baseline; gap:8mm;
+  padding:1.2mm 0; font-size:9.5pt;
+}
+.srow + .srow{ border-top:.4pt dotted var(--border) }
+.srow .amt{ font-variant-numeric:tabular-nums; font-weight:600 }
+.srow.subtle{ color:var(--secondary) }
+
+.settlement-total{
+  display:flex; justify-content:space-between; align-items:baseline; gap:8mm;
+  padding:3mm 4mm; background:var(--navy); color:#fff;
+}
+.settlement-total .k{ font-size:8pt; font-weight:600; letter-spacing:.11em; text-transform:uppercase }
+.settlement-total .v{ font-size:17pt; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums }
+
+/* ================================================================ sections */
+
+h2{
+  font-size:12.5pt; font-weight:700; letter-spacing:-.01em; color:var(--navy);
+  margin:0 0 .8mm; break-after:avoid;
+}
+.section-note{ font-size:8pt; color:var(--secondary); margin-bottom:3.5mm }
+.section-rule{ height:.8pt; background:var(--navy); margin-bottom:3.5mm }
+
+/* ============================================================== legend row */
+
+.legend{
+  display:flex; flex-wrap:wrap; gap:4mm; margin-bottom:3.5mm;
+  font-size:7pt; letter-spacing:.05em; text-transform:uppercase; color:var(--secondary);
+}
+.legend i{ display:inline-block; width:2mm; height:2mm; border-radius:50%; margin-right:1.2mm; vertical-align:middle }
+.dot-high{ background:var(--high) } .dot-medium{ background:var(--medium) }
+.dot-low{ background:var(--low) }  .dot-flag{ background:var(--blue) }
+
+/* ============================================================= schedule row */
+
+.item{
+  display:grid;
+  grid-template-columns:33mm 1fr;
+  grid-template-areas:"head head" "evidence body" "note note";
+  column-gap:5mm;
+  padding:3mm 0 3.4mm;
+  border-bottom:.4pt solid var(--border);
+  break-inside:avoid;
+}
+.item.split{ break-inside:auto }
+.item.split .item-head,
+.item.split .evidence{ break-inside:avoid }
+.item:first-of-type{ border-top:.4pt solid var(--border) }
+
+.item-head{
+  grid-area:head;
+  display:grid; grid-template-columns:8mm 1fr auto; column-gap:3mm; align-items:start;
+  margin-bottom:2.4mm; break-after:avoid;
+}
+.n{
+  display:grid; place-items:center; width:7mm; height:7mm; border-radius:1.2mm;
+  background:var(--navy); color:#fff;
+  font-size:8.5pt; font-weight:700; font-variant-numeric:tabular-nums;
+}
+.item-head h3{
+  margin:.4mm 0 .6mm; font-size:11pt; font-weight:600; letter-spacing:-.01em;
+  line-height:1.2; color:var(--navy);
+}
+.item-meta{ font-size:8pt; color:var(--secondary) }
+
+.item-value{ text-align:right; padding-left:4mm }
+.item-value .k{ font-size:6.5pt; font-weight:600; letter-spacing:.09em; text-transform:uppercase; color:var(--muted) }
+.item-value .v{ font-size:12.5pt; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1.2 }
+.item-value .sub{ font-size:7.5pt; color:var(--secondary); font-variant-numeric:tabular-nums }
+.item-value .unvalued{ font-size:9pt; font-weight:600; color:var(--low) }
+
+/* ---------------------------------------------------------------- evidence */
+
+.evidence{ grid-area:evidence }
+.evidence .primary{
+  width:33mm; height:26mm; object-fit:cover; display:block;
+  border:.4pt solid var(--border); border-radius:1.2mm; background:var(--surface-muted);
+}
+.thumbs{ display:flex; flex-wrap:wrap; gap:1mm; margin-top:1.2mm }
+.thumbs img{
+  width:9.6mm; height:7.6mm; object-fit:cover; display:block;
+  border:.4pt solid var(--border); border-radius:1mm; background:var(--surface-muted);
+}
+.thumbs .more{
+  display:grid; place-items:center; width:9.6mm; height:7.6mm; border-radius:1mm;
+  border:.4pt solid var(--border); background:var(--surface-muted);
+  font-size:7pt; font-weight:600; color:var(--secondary);
+}
+.evidence .cap{
+  font-size:6.8pt; line-height:1.25; color:var(--secondary); margin-top:1.2mm;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.evidence .refs{ font-size:6.5pt; line-height:1.25; color:var(--muted); margin-top:.6mm }
+.evidence .noimg{
+  display:grid; place-items:center; width:33mm; height:18mm; border-radius:1.2mm;
+  border:.4pt dashed var(--border); font-size:7pt; color:var(--muted);
+}
+
+/* -------------------------------------------------------------------- body */
+
+.body{
+  grid-area:body;
+  display:grid; grid-template-columns:1.7fr 1fr; column-gap:6mm;
+}
+.body .label{ margin-bottom:.6mm }
+.body .block + .block{ margin-top:2.2mm }
+.body-side .block p{ font-size:8pt; color:var(--secondary) }
+
+.tags{ display:flex; flex-wrap:wrap; gap:1.4mm; margin-top:2.4mm }
+.tag{
+  display:inline-block; padding:.6mm 1.8mm; border-radius:1mm;
+  border:.4pt solid var(--border); background:var(--surface-muted);
+  font-size:7pt; font-weight:600; letter-spacing:.04em; color:var(--secondary);
+  white-space:nowrap;
+}
+.tag.high{ color:var(--high); border-color:#B9DFCC; background:#EEF8F3 }
+.tag.medium{ color:var(--medium); border-color:#EBD3A8; background:#FDF6EA }
+.tag.low{ color:var(--low); border-color:#EFC2C2; background:#FCEFEF }
+.tag.status{ color:var(--navy); border-color:#C7D3E2; background:#EFF3F9 }
+
+.meta-line{ font-size:7.5pt; color:var(--muted); margin-top:2mm }
+.sources{ font-size:7.5pt; color:var(--secondary); margin-top:1.6mm }
+.sources a{ border-bottom:.4pt solid var(--border) }
+
+.note{
+  grid-area:note;
+  margin-top:2.6mm; padding:1.8mm 2.6mm;
+  background:var(--surface-muted); border-left:1pt solid var(--blue); border-radius:0 1mm 1mm 0;
+  font-size:8pt; break-inside:avoid;
+}
+.note .label{ color:var(--blue); margin-bottom:.4mm }
+
+/* ----------------------------------------------------------- compact row */
+
+.item.compact{
+  grid-template-columns:8mm 22mm 1fr;
+  grid-template-areas:"n img body";
+  column-gap:3mm;
+  padding:2.4mm 0 2.6mm;
+  align-items:start;
+}
+.item.compact .n{ grid-area:n }
+.item.compact .c-img{ grid-area:img }
+.item.compact .c-img img{
+  width:22mm; height:18mm; object-fit:cover; display:block;
+  border:.4pt solid var(--border); border-radius:1.2mm; background:var(--surface-muted);
+}
+.item.compact .c-body{ grid-area:body }
+.item.compact .c-top{ display:flex; justify-content:space-between; align-items:baseline; gap:6mm }
+.item.compact h3{ margin:0; font-size:10.5pt; font-weight:600; color:var(--navy); line-height:1.2 }
+.item.compact .c-amt{
+  font-size:11.5pt; font-weight:700; letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.item.compact .c-line{ font-size:8pt; margin-top:1.2mm }
+.item.compact .c-foot{ font-size:7.5pt; color:var(--secondary); margin-top:1.4mm }
+.item.compact .c-foot b{ font-weight:600 }
+.item.compact .c-foot b.high{ color:var(--high) }
+.item.compact .c-foot b.medium{ color:var(--medium) }
+.item.compact .c-foot b.low{ color:var(--low) }
+
+/* =============================================================== closing */
+
+.totals{
+  margin-top:7mm; border:.6pt solid var(--border); border-radius:1.6mm;
+  overflow:hidden; break-inside:avoid;
+}
+.totals-head{
+  padding:1.8mm 4mm; background:var(--surface-muted); border-bottom:.4pt solid var(--border);
+  font-size:7pt; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--navy);
+}
+.totals-grid{ display:grid; grid-template-columns:1fr 1fr; column-gap:10mm; padding:2.4mm 4mm 3mm }
+.trow{
+  display:flex; justify-content:space-between; gap:6mm; padding:1.1mm 0; font-size:8.5pt;
+  border-bottom:.4pt dotted var(--border);
+}
+.trow .v{ font-weight:600; font-variant-numeric:tabular-nums }
+.trow.strong{ font-size:9.5pt; border-bottom:none; border-top:.6pt solid var(--navy); margin-top:1mm; padding-top:1.6mm }
+
+.methodology{ margin-top:6mm; break-inside:avoid }
+.methodology h2{ font-size:10.5pt; margin-bottom:1.6mm }
+.methodology p{ font-size:7.8pt; line-height:1.45; color:var(--secondary); margin-bottom:1.8mm }
+
+/* ================================================================== print */
+
+@media print{
+  body{ background:#fff }
+  .toolbar{ display:none !important }
+  .sheet{
+    width:auto; min-height:0; margin:0; padding:0;
+    box-shadow:none; background:transparent;
   }
-  *{box-sizing:border-box}
-  body{margin:0;background:#F4F7FA;color:var(--ink);
-    font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:13.5px;line-height:1.55;
-    -webkit-font-smoothing:antialiased}
-  .sheet{max-width:960px;margin:0 auto;background:#fff;padding:44px 52px 60px;
-    box-shadow:0 1px 3px rgba(16,35,63,.07)}
-  .bar{max-width:960px;margin:0 auto;padding:14px 52px;display:flex;gap:9px;align-items:center}
-  .btn{display:inline-flex;align-items:center;height:36px;padding:0 15px;border-radius:7px;
-    background:var(--blue);color:#fff;font-size:13.5px;font-weight:600;border:0;cursor:pointer;
-    text-decoration:none;font-family:inherit}
-  .btn.sec{background:#fff;border:1px solid #CBD5E1;color:var(--ink)}
-  h1{font-size:23px;margin:0 0 3px;letter-spacing:-.02em}
-  h2{font-size:15px;margin:34px 0 12px;padding-bottom:7px;border-bottom:1px solid var(--line)}
-  .head{border-bottom:3px solid var(--ink);padding-bottom:14px;margin-bottom:22px;
-    display:flex;align-items:flex-start;gap:16px}
-  .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(150deg,#3478F6,#0F8F8A);
-    display:grid;place-items:center;color:#fff;font-weight:700;font-size:16px;flex:0 0 34px}
-  .meta{display:grid;grid-template-columns:1fr 1fr;gap:0 32px;margin:20px 0 26px}
-  .meta div{display:flex;justify-content:space-between;gap:12px;padding:6px 0;
-    border-bottom:1px dotted var(--line)}
-  .meta .k{color:var(--sec);font-size:12.5px}
-  .meta .v{font-weight:600;text-align:right}
-  .summary{border:2px solid var(--ink);border-radius:9px;padding:18px 20px;margin:26px 0}
-  .summary div{display:flex;justify-content:space-between;padding:6px 0;font-size:14px}
-  .summary .tot{border-top:2px solid var(--ink);margin-top:9px;padding-top:13px;
-    font-size:19px;font-weight:700}
-  .num{font-variant-numeric:tabular-nums}
-  .entry{border:1px solid var(--line);border-radius:9px;padding:15px;margin-bottom:11px;
-    display:grid;grid-template-columns:186px 1fr 158px;gap:17px;page-break-inside:avoid}
-  .entry .ph{display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start}
-  .entry .ph img{width:87px;height:87px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
-  .entry h3{margin:0 0 4px;font-size:14.5px}
-  .small{font-size:12.5px;color:var(--sec)}
-  .tiny{font-size:11.5px;color:var(--muted)}
-  .money{text-align:right}
-  .money .big{font-size:19px;font-weight:700;letter-spacing:-.02em}
-  .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;
-    background:#EEF2F6;color:var(--sec)}
-  .badge.high{background:#E7F6EE;color:var(--green)}
-  .badge.medium{background:#FFF4DF;color:var(--amber)}
-  .badge.low{background:#FDEAEA;color:var(--red)}
-  .disc{font-size:11.5px;color:var(--sec);border-top:1px solid var(--line);
-    margin-top:34px;padding-top:16px;line-height:1.75}
-  @media print{
-    body{background:#fff}
-    .bar{display:none}
-    .sheet{box-shadow:none;max-width:none;padding:0}
-    .entry{border-color:#ccc}
-  }
+}
 </style>
 </head>
 <body>
-<div class="bar">
-  <a class="btn sec" href="/jobs/{{ job.id }}">← Back to claim</a>
-  <button class="btn" onclick="window.print()">Print / Save as PDF</button>
-  <a class="btn sec" href="/jobs/{{ job.id }}/export.csv">Download schedule (CSV)</a>
+
+<div class="toolbar">
+  <a class="btn" href="/jobs/{{ job.id }}">← Back to claim</a>
+  <button class="btn primary" onclick="window.print()">Print / Save as PDF</button>
+  <a class="btn" href="/jobs/{{ job.id }}/export.csv">Download schedule (CSV)</a>
 </div>
+
+{% set claim_ref = job.claim_reference or job.reference or "—" %}
 
 <div class="sheet">
-  <div class="head">
-    <span class="mark">C</span>
-    <div style="flex:1">
-      <h1>Contents Loss Assessment &amp; Settlement Schedule</h1>
-      <div class="small">Prepared by {{ user.organisation.name }} · {{ generated }}</div>
+<table class="doc">
+
+  <thead><tr><td>
+    <div class="runner">
+      <span><strong>ClaimSight</strong> · Contents Loss Assessment</span>
+      <span>Claim {{ claim_ref }}</span>
+    </div>
+  </td></tr></thead>
+
+  <tfoot><tr><td>
+    <div class="runner-foot">
+      <span>ClaimSight · Contents Loss Assessment</span>
+      <span class="mid">Confidential</span>
+      <span class="end">Generated {{ generated }}</span>
+    </div>
+  </td></tr></tfoot>
+
+  <tbody><tr><td>
+
+  <!-- ============================================================ masthead -->
+  <div class="masthead">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 28 28" aria-hidden="true">
+        <path d="M14 1.4 25 7.7v12.6L14 26.6 3 20.3V7.7z" fill="#10233F"/>
+        <path d="M18 10.6a5.6 5.6 0 1 0 0 6.8" fill="none" stroke="#fff"
+              stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <div class="wordmark">ClaimSight</div>
+        <div class="descriptor">Contents Loss Assessment</div>
+      </div>
+    </div>
+    <div class="docref">
+      <div>
+        <div class="k">Claim number</div>
+        <div class="v">{{ claim_ref }}</div>
+      </div>
+      <div>
+        <div class="k">Report date</div>
+        <div class="v">{{ generated }}</div>
+      </div>
     </div>
   </div>
 
-  <div class="meta">
-    <div><span class="k">Claim number</span><span class="v">{{ job.claim_reference or "—" }}</span></div>
-    <div><span class="k">Assessor reference</span><span class="v">{{ job.reference or "—" }}</span></div>
-    <div><span class="k">Claimant</span><span class="v">{{ job.insured_name or "—" }}</span></div>
-    <div><span class="k">Insurer</span><span class="v">{{ job.insurer or "—" }}</span></div>
-    <div><span class="k">Risk address</span><span class="v">{{ job.site_address or "—" }}</span></div>
-    <div><span class="k">Date of loss</span><span class="v">{{ job.date_of_loss or "—" }}</span></div>
-    <div><span class="k">Peril</span><span class="v">{{ job.peril }}</span></div>
-    <div><span class="k">Items assessed</span><span class="v">{{ totals.count }}</span></div>
+  <h1>Contents Loss Assessment &amp; Settlement Schedule</h1>
+  <div class="byline">
+    Prepared by {{ user.name or user.organisation.name }} · {{ user.organisation.name }}
+    {%- if job.reference %} · Assessor reference {{ job.reference }}{% endif %}
+  </div>
+  <div class="masthead-rule"></div>
+
+  <!-- ===================================================== claim metadata -->
+  <div class="fields">
+    <div class="field"><span class="k">Claimant</span><span class="v">{{ job.insured_name or "—" }}</span></div>
+    <div class="field"><span class="k">Insurer</span><span class="v">{{ job.insurer or "—" }}</span></div>
+    <div class="field"><span class="k">Risk address</span><span class="v">{{ job.site_address or "—" }}</span></div>
+    <div class="field"><span class="k">Date of loss</span><span class="v">{{ job.date_of_loss or "—" }}</span></div>
+    <div class="field"><span class="k">Peril</span><span class="v">{{ job.peril or "—" }}</span></div>
+    <div class="field"><span class="k">Items assessed</span><span class="v">{{ totals.count }}</span></div>
+    <div class="field"><span class="k">Assessment basis</span><span class="v">{{ job.basis_label }}</span></div>
+    <div class="field"><span class="k">Policy excess</span><span class="v">A${{ "{:,.2f}".format(job.policy_excess or 0) }}</span></div>
   </div>
 
-  <div class="summary">
-    <div><span>Total replacement value (new for old, incl. GST)</span>
-         <span class="num">A${{ "{:,.2f}".format(totals.replacement) }}</span></div>
-    {% if job.apply_depreciation %}
-    <div><span>Less depreciation ({{ totals.depreciation_pct }}%)</span>
-         <span class="num">−A${{ "{:,.2f}".format(totals.depreciation) }}</span></div>
-    <div><span>Total indemnity value</span>
-         <span class="num">A${{ "{:,.2f}".format(totals.indemnity) }}</span></div>
-    {% endif %}
-    <div><span>Settlement basis</span><span>{{ job.basis_label }}</span></div>
-    <div><span>Less policy excess</span>
-         <span class="num">−A${{ "{:,.2f}".format(job.policy_excess or 0) }}</span></div>
-    <div class="tot"><span>Net settlement recommended</span>
-         <span class="num">A${{ "{:,.2f}".format(totals.settlement) }}</span></div>
-  </div>
-
-  <h2>Schedule of non-restorable items</h2>
-  {% for item in job.items if not item.excluded %}
-  <div class="entry">
-    <div class="ph">
-      {% for key in item.photo_key_list[:4] %}{% if key in photos %}
-        <img src="/photos/{{ photos[key].id }}" alt="Photograph {{ photos[key].number }}">
-      {% endif %}{% endfor %}
-    </div>
-    <div>
-      <h3>{{ loop.index }}. {{ item.description }}{% if (item.quantity or 1) > 1 %} (×{{ item.quantity }}){% endif %}</h3>
-      <div class="small">
-        {% if item.make %}Make: {{ item.make }}. {% endif %}
-        {% if item.model %}Model: {{ item.model }}. {% endif %}
-        {% if item.serial %}Serial: {{ item.serial }}. {% endif %}
-        Cause of damage: {{ item.cause_of_damage }}. Location: {{ item.location }}.
+  <!-- ================================================== settlement summary -->
+  <div class="settlement">
+    <div class="settlement-head">Settlement summary</div>
+    <div class="settlement-body">
+      <div class="srow">
+        <span>Total replacement value — new for old, incl. GST</span>
+        <span class="amt">A${{ "{:,.2f}".format(totals.replacement) }}</span>
       </div>
-      {% if item.identified_as %}<div style="margin-top:6px">{{ item.identified_as }}</div>{% endif %}
-      {% if item.valuation_notes %}<div class="small" style="margin-top:4px">{{ item.valuation_notes }}</div>{% endif %}
-      {% if item.assessor_note %}<div class="small" style="margin-top:4px">Assessor note: {{ item.assessor_note }}</div>{% endif %}
-      <div class="tiny" style="margin-top:7px">
-        Photographs {{ item.photo_refs }} ({{ item.photo_series }} attendance).
-        {% if job.apply_depreciation and item.estimated_age_years is not none %}
-          Estimated age {{ item.estimated_age_years }} years against an effective life of
-          {{ item.effective_life_years }} years; condition {{ (item.condition or 'average') }};
-          depreciation {{ "{:.0f}".format(item.effective_depreciation * 100) }}%.{% endif %}
+      {% if job.apply_depreciation %}
+      <div class="srow subtle">
+        <span>Less depreciation ({{ totals.depreciation_pct }}%)</span>
+        <span class="amt">−A${{ "{:,.2f}".format(totals.depreciation) }}</span>
       </div>
-      <div style="margin-top:7px">
-        {% if item.confidence %}<span class="badge {{ item.confidence }}">{{ item.confidence|title }} confidence</span>{% endif %}
-        <span class="badge">{{ item.review_state|title }}</span>
+      <div class="srow">
+        <span>Total indemnity value</span>
+        <span class="amt">A${{ "{:,.2f}".format(totals.indemnity) }}</span>
       </div>
-      {% if item.source_list %}
-      <div class="tiny" style="margin-top:5px">Pricing sources:
-        {% for s in item.source_list[:3] %}<a href="{{ s }}">{{ s|truncate(48, true) }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</div>
       {% endif %}
+      <div class="srow subtle">
+        <span>Less policy excess</span>
+        <span class="amt">−A${{ "{:,.2f}".format(job.policy_excess or 0) }}</span>
+      </div>
     </div>
-    <div class="money">
-      {% if item.replacement_value is not none %}
-        <div class="tiny">Replacement</div>
-        <div class="num">A${{ "{:,.2f}".format(item.replacement_value * (item.quantity or 1)) }}</div>
-        {% if job.apply_depreciation %}
-          <div class="tiny" style="margin-top:7px">Indemnity</div>
-          <div class="big num">A${{ "{:,.2f}".format((item.indemnity_value or 0) * (item.quantity or 1)) }}</div>
-        {% endif %}
-      {% else %}<div class="tiny">Not valued</div>{% endif %}
+    <div class="settlement-total">
+      <span class="k">Net settlement recommended</span>
+      <span class="v">A${{ "{:,.2f}".format(totals.settlement) }}</span>
     </div>
   </div>
+
+  <!-- ============================================================ schedule -->
+  <h2>Schedule of non-restorable items</h2>
+  <div class="section-note">
+    {{ totals.count }} assessed item{{ "" if totals.count == 1 else "s" }} ·
+    Settlement basis: {{ job.basis_label }}
+    {%- if totals.unvalued %} · {{ totals.unvalued }} awaiting research{% endif %}
+    {%- if totals.flagged %} · {{ totals.flagged }} flagged for review{% endif %}
+  </div>
+  <div class="section-rule"></div>
+
+  <div class="legend">
+    <span><i class="dot-high"></i>High confidence</span>
+    <span><i class="dot-medium"></i>Medium confidence</span>
+    <span><i class="dot-low"></i>Low confidence</span>
+    <span><i class="dot-flag"></i>Assessor reviewed or adjusted</span>
+  </div>
+
+  {% for row in rows %}
+    {% if row.compact %}
+    <!-- ------------------------------------------------------ compact row -->
+    <article class="item compact">
+      <span class="n">{{ "%02d"|format(row.n) }}</span>
+      <div class="c-img">
+        {% for p in row.photos %}<img src="/photos/{{ p.id }}" alt="Photograph {{ p.number }}">{% endfor %}
+      </div>
+      <div class="c-body">
+        <div class="c-top">
+          <h3>{{ row.title }}{% if row.quantity > 1 %} <span class="sm">×{{ row.quantity }}</span>{% endif %}</h3>
+          <span class="c-amt">A${{ "{:,.2f}".format(row.primary_value) }}</span>
+        </div>
+        {% if row.meta %}<div class="item-meta">{{ row.meta }}</div>{% endif %}
+        {% if row.identification or row.assessment %}
+        <div class="c-line">{{ row.identification }}{% if row.assessment %} {{ row.assessment }}{% endif %}</div>
+        {% endif %}
+        <div class="c-foot">
+          <b class="{{ row.confidence }}">{{ row.confidence|title }} confidence</b> · {{ row.status }}
+          {%- if row.sources.shown %} ·
+            {% for label, url in row.sources.shown %}<a href="{{ url }}">{{ label }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+          {%- endif %}
+          {%- if job.apply_depreciation and row.replacement_line is not none %} ·
+            Replacement A${{ "{:,.2f}".format(row.replacement_line) }}
+          {%- elif row.quantity > 1 %} · A${{ "{:,.2f}".format(row.replacement_each) }} each{% endif %}
+        </div>
+      </div>
+    </article>
+
+    {% else %}
+    <!-- ----------------------------------------------------- standard row -->
+    <article class="item{% if row.allow_split %} split{% endif %}">
+
+      <div class="item-head">
+        <span class="n">{{ "%02d"|format(row.n) }}</span>
+        <div>
+          <h3>{{ row.title }}{% if row.quantity > 1 %} <span class="sm">×{{ row.quantity }}</span>{% endif %}</h3>
+          {% if row.meta %}<div class="item-meta">{{ row.meta }}</div>{% endif %}
+        </div>
+        <div class="item-value">
+          {% if row.primary_value is not none %}
+            <div class="k">{{ row.primary_label }}</div>
+            <div class="v">A${{ "{:,.2f}".format(row.primary_value) }}</div>
+            {% if job.apply_depreciation and row.replacement_line is not none %}
+              <div class="sub">Replacement A${{ "{:,.2f}".format(row.replacement_line) }}</div>
+            {% elif row.quantity > 1 %}
+              <div class="sub">A${{ "{:,.2f}".format(row.replacement_each) }} each</div>
+            {% endif %}
+          {% else %}
+            <div class="k">{{ row.primary_label }}</div>
+            <div class="unvalued">Not valued</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="evidence">
+        {% if row.photos %}
+          <img class="primary" src="/photos/{{ row.photos[0].id }}" alt="Photograph {{ row.photos[0].number }}">
+          {% if row.photos|length > 1 or row.photo_extra %}
+          <div class="thumbs">
+            {% for p in row.photos[1:] %}
+              <img src="/photos/{{ p.id }}" alt="Photograph {{ p.number }}">
+            {% endfor %}
+            {% if row.photo_extra %}<span class="more">+{{ row.photo_extra }}</span>{% endif %}
+          </div>
+          {% endif %}
+        {% else %}
+          <div class="noimg">No photograph</div>
+        {% endif %}
+        {% if row.caption %}<div class="cap">{{ row.caption }}</div>{% endif %}
+        {% if row.photo_refs %}<div class="refs">{{ row.photo_refs }}</div>{% endif %}
+      </div>
+
+      <div class="body">
+        <div class="body-main">
+          {% if row.identification %}
+          <div class="block">
+            <div class="label">Assessed item</div>
+            <p>{{ row.identification }}</p>
+          </div>
+          {% endif %}
+          {% if row.assessment %}
+          <div class="block">
+            <div class="label">Assessment</div>
+            <p>{{ row.assessment }}</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="body-side">
+          <div class="block">
+            <div class="label">Valuation basis</div>
+            <p>{{ row.basis }}</p>
+          </div>
+
+          <div class="tags">
+            {% if row.confidence %}
+              <span class="tag {{ row.confidence }}">{{ row.confidence|title }} confidence</span>
+            {% endif %}
+            <span class="tag status">{{ row.status }}</span>
+          </div>
+
+          {% if row.depreciation %}<div class="meta-line">{{ row.depreciation }}</div>{% endif %}
+
+          {% if row.sources.shown %}
+          <div class="sources">
+            <span class="label">Pricing sources</span><br>
+            {% for label, url in row.sources.shown %}<a href="{{ url }}">{{ label }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+            {%- if row.sources.extra %} · +{{ row.sources.extra }} more{% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if row.note %}
+      <div class="note">
+        <div class="label">Assessor note</div>
+        {{ row.note }}
+      </div>
+      {% endif %}
+
+    </article>
+    {% endif %}
   {% endfor %}
 
-  <div class="disc">
-    <strong>Basis of assessment.</strong> Replacement values are the cost of acquiring a new
-    equivalent item from an Australian retailer at the date of this report, inclusive of GST.
-    Where the exact model is discontinued, the closest current-production equivalent has been
-    priced and the substitution noted against the item.
-    {% if job.apply_depreciation %}
-    Indemnity values apply straight-line depreciation over the item's assessed effective life,
-    adjusted for recorded condition and subject to a residual floor of 10% of replacement cost.
-    Ages are estimated from model identification, styling and production dates and should be
-    treated as indicative. This claim settles on the indemnity basis.
-    {% else %}
-    This claim settles on a replacement basis, new for old. No depreciation has been applied to
-    any item and no allowance has been made for the age or condition of the items prior to the loss.
-    {% endif %}
-    <br><br>
-    Pricing research was performed with AI assistance and reviewed by the assessor named above.
-    Source references are provided against each line so that any figure may be independently
-    verified. Items marked low confidence, or flagged as being of uncertain pre-loss working
-    order, are identified in the schedule and may warrant separate consideration.
-    <br><br>
-    This report addresses non-restorable contents only. It does not constitute a determination
-    of policy liability, which remains a matter for the insurer.
+  <!-- ================================================== assessment summary -->
+  <div class="totals">
+    <div class="totals-head">Assessment summary</div>
+    <div class="totals-grid">
+      <div>
+        <div class="trow"><span>Items assessed</span><span class="v">{{ totals.count }}</span></div>
+        <div class="trow"><span>Total replacement value</span><span class="v">A${{ "{:,.2f}".format(totals.replacement) }}</span></div>
+        {% if job.apply_depreciation %}
+        <div class="trow"><span>Total indemnity value</span><span class="v">A${{ "{:,.2f}".format(totals.indemnity) }}</span></div>
+        {% endif %}
+        <div class="trow"><span>Policy excess</span><span class="v">−A${{ "{:,.2f}".format(job.policy_excess or 0) }}</span></div>
+        <div class="trow strong"><span>Net settlement recommended</span><span class="v">A${{ "{:,.2f}".format(totals.settlement) }}</span></div>
+      </div>
+      <div>
+        <div class="trow"><span>High confidence</span><span class="v">{{ mix.high }}</span></div>
+        <div class="trow"><span>Medium confidence</span><span class="v">{{ mix.medium }}</span></div>
+        <div class="trow"><span>Low confidence</span><span class="v">{{ mix.low }}</span></div>
+        <div class="trow"><span>Reviewed by assessor</span><span class="v">{{ mix.reviewed }}</span></div>
+        <div class="trow"><span>Assessor adjusted</span><span class="v">{{ mix.adjusted }}</span></div>
+        <div class="trow"><span>Requires review</span><span class="v">{{ mix.flagged }}</span></div>
+      </div>
+    </div>
   </div>
+
+  <!-- ========================================================= methodology -->
+  <div class="methodology">
+    <h2>Assessment methodology</h2>
+    <p>
+      Replacement values are the cost of acquiring a new equivalent item from an Australian
+      retailer at the date of this report, inclusive of GST. Where the exact model is
+      discontinued, the closest current-production equivalent has been priced and the
+      substitution noted against the item.
+      {% if job.apply_depreciation %}
+      Indemnity values apply straight-line depreciation over the item's assessed effective
+      life, adjusted for recorded condition and subject to a residual floor of 10% of
+      replacement cost. Ages are estimated from model identification, styling and production
+      dates and should be treated as indicative. This claim settles on the indemnity basis.
+      {% else %}
+      This claim settles on a replacement basis, new for old. No depreciation has been applied
+      to any item and no allowance has been made for the age or condition of the items prior
+      to the loss.
+      {% endif %}
+    </p>
+    <p>
+      Pricing research was performed with AI assistance and reviewed by the assessor named
+      above. Source references are given against each line so that any figure may be
+      independently verified. Assessment text in this schedule is a summary; the full research
+      record, source list and audit trail for every line are retained in ClaimSight and are
+      available on request. Items marked low confidence, or flagged as being of uncertain
+      pre-loss working order, are identified in the schedule and may warrant separate
+      consideration.
+    </p>
+    <p>
+      This report addresses non-restorable contents only. It does not constitute a
+      determination of policy liability, which remains a matter for the insurer.
+    </p>
+  </div>
+
+  </td></tr></tbody>
+</table>
 </div>
+
 </body>
 </html>
