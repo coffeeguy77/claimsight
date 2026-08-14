@@ -64,7 +64,7 @@
   tr.detail{display:none;background:#fbfcfd}
   tr.detail.open{display:table-row}
   tr.detail td{padding:12px 14px 14px 40px;border-bottom:1px solid var(--line)}
-  .dgrid{display:grid;grid-template-columns:1fr 300px;gap:20px}
+  .dgrid{display:grid;grid-template-columns:1fr 300px 240px;gap:16px}
   .dgrid h4{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
     color:var(--muted)}
   .dphotos{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
@@ -90,6 +90,9 @@
   .prow{display:flex;align-items:center;gap:10px;margin-bottom:7px;font-size:13px}
   .bar{height:6px;background:#eef1f5;border-radius:4px;overflow:hidden}
   .fill{height:100%;background:var(--accent);border-radius:4px;transition:width .6s ease}
+  .addgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:0 10px}
+  .addgrid label{margin:6px 0 3px;font-size:11px}
+  .addgrid input,.addgrid select{width:100%;padding:5px 8px;font-size:13px}
   .queued{color:var(--muted)}
   .working{color:var(--accent);font-weight:600}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
@@ -163,7 +166,44 @@
   <span class="chip" data-f="flagged"         onclick="setFilter(this)">Assessor flag</span>
   <span class="chip" data-f="excluded"        onclick="setFilter(this)">Excluded</span>
   <span class="chip" style="margin-left:6px" onclick="toggleAll()">Expand all</span>
+  <span class="chip" onclick="document.getElementById('additem').hidden = !document.getElementById('additem').hidden">+ Add item</span>
   <span class="count" id="count"></span>
+</div>
+
+<div class="prog" id="additem" hidden style="border-color:var(--accent)">
+  <form method="post" action="/jobs/{{ job.id }}/items">
+    <div class="prow" style="margin-bottom:9px">
+      <strong>Add an item to this claim</strong>
+      <span class="hint">For anything the assessor's inventory missed.</span>
+    </div>
+    <div class="addgrid">
+      <div style="grid-column:span 2"><label>Description *</label>
+        <input type="text" name="description" required placeholder="e.g. Commercial glass door fridge"></div>
+      <div><label>Make</label><input type="text" name="make"></div>
+      <div><label>Model</label><input type="text" name="model"></div>
+      <div><label>Serial</label><input type="text" name="serial"></div>
+      <div><label>Qty</label><input type="number" name="quantity" value="1" min="1"></div>
+      <div><label>Location</label><input type="text" name="location" placeholder="Storage shed"></div>
+      <div><label>Cause of damage</label><input type="text" name="cause_of_damage" placeholder="{{ job.peril }}"></div>
+      <div><label>Photo series</label>
+        <select name="photo_series">
+          <option value="">none</option>
+          <option value="initial">initial</option>
+          <option value="second">second</option>
+        </select></div>
+      <div><label>Photo numbers</label><input type="text" name="photo_refs" placeholder="e.g. 12, 13"></div>
+      <div style="grid-column:span 2"><label>Assessor note</label>
+        <input type="text" name="assessor_note" placeholder="Condition, context for the AI…"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:11px">
+      <label class="switch" style="font-weight:400">
+        <input type="checkbox" name="value_now" checked {% if not has_api_key %}disabled{% endif %}>
+        Value with AI immediately
+      </label>
+      <button class="btn small" type="submit">Add item</button>
+      <span class="hint">Photo numbers must exist in the uploaded report to display.</span>
+    </div>
+  </form>
 </div>
 
 <div class="tblwrap {% if not job.apply_depreciation %}dep-off{% endif %}">
@@ -259,31 +299,69 @@
       </div>
 
       <div class="dform">
+        <h4 style="margin:0 0 2px">Item details</h4>
+        <p class="tiny muted" style="margin:0 0 4px">
+          What the AI researches. Correct a misspelt make or add a model number,
+          then re-value.
+        </p>
+        <form method="post" action="/items/{{ item.id }}/edit">
+          <label>Description</label>
+          <input type="text" name="description" value="{{ item.description }}" required>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 8px">
+            <div><label>Make</label>
+              <input type="text" name="make" value="{{ item.make }}"></div>
+            <div><label>Model</label>
+              <input type="text" name="model" value="{{ item.model }}"></div>
+            <div><label>Serial</label>
+              <input type="text" name="serial" value="{{ item.serial }}"></div>
+            <div><label>Quantity</label>
+              <input type="number" name="quantity" value="{{ item.quantity or 1 }}" min="1"></div>
+            <div><label>Location</label>
+              <input type="text" name="location" value="{{ item.location }}"></div>
+            <div><label>Cause of damage</label>
+              <input type="text" name="cause_of_damage" value="{{ item.cause_of_damage }}"></div>
+          </div>
+          <label>Photo numbers ({{ item.photo_series or "n/a" }} attendance)</label>
+          <input type="text" name="photo_refs" value="{{ item.photo_refs }}" placeholder="e.g. 21, 22, 23">
+          <label>Assessor note</label>
+          <input type="text" name="assessor_note" value="{{ item.assessor_note }}"
+                 placeholder="Condition, doubts, context for the AI…">
+          <label class="switch" style="margin-top:10px;font-weight:400">
+            <input type="checkbox" name="revalue" checked {% if not has_api_key %}disabled{% endif %}>
+            Re-value with AI after saving
+          </label>
+          <p style="margin:9px 0 0"><button class="btn small" type="submit" style="width:100%">Save &amp; re-value</button></p>
+        </form>
+      </div>
+
+      <div class="dform">
+        <h4 style="margin:0 0 4px">Valuation</h4>
         <form method="post" action="/items/{{ item.id }}">
-          <h4 style="margin:0">Adjust this line</h4>
           <label>Replacement cost, each (AUD)</label>
           <input type="text" name="replacement_value"
                  placeholder="{% if item.replacement_value is not none %}{{ "{:.2f}".format(item.replacement_value) }}{% else %}not valued{% endif %}">
-          <label>Quantity</label>
-          <input type="number" name="quantity" value="{{ item.quantity or 1 }}" min="1">
-          <label>Note</label>
-          <input type="text" name="valuation_notes" placeholder="Reason for override…">
+          <input type="hidden" name="quantity" value="{{ item.quantity or 1 }}">
+          <label>Reason for override</label>
+          <input type="text" name="valuation_notes" placeholder="e.g. per-unit average">
           <label class="switch" style="margin-top:10px;font-weight:400">
             <input type="checkbox" name="excluded" {% if item.excluded %}checked{% endif %}>
             Exclude from claim
           </label>
-          <p style="margin:10px 0 0"><button class="btn small" type="submit" style="width:100%">Save line</button></p>
-        </form>
-        <form method="post" action="/items/{{ item.id }}/value" style="margin-top:6px">
-          <button class="btn ghost small" type="submit" style="width:100%"
-                  {% if not has_api_key %}disabled{% endif %}>Re-value this item</button>
-        </form>
-        <form>
+          <p style="margin:9px 0 0"><button class="btn small" type="submit" style="width:100%">Save value</button></p>
           {% if item.replacement_value is not none %}
-          <p class="tiny muted" style="margin:8px 0 0">
-            Overriding recalculates indemnity at the same
+          <p class="tiny muted" style="margin:7px 0 0">
+            Recalculates indemnity at the same
             {{ "{:.0f}".format((item.depreciation_rate or 0) * 100) }}% depreciation.
           </p>{% endif %}
+        </form>
+        <form method="post" action="/items/{{ item.id }}/value" style="margin-top:8px">
+          <button class="btn ghost small" type="submit" style="width:100%"
+                  {% if not has_api_key %}disabled{% endif %}>Re-value with AI</button>
+        </form>
+        <form method="post" action="/items/{{ item.id }}/delete" style="margin-top:6px"
+              onsubmit="return confirm('Delete this item from the claim?')">
+          <button class="btn ghost small" type="submit"
+                  style="width:100%;color:var(--bad)">Delete item</button>
         </form>
       </div>
     </div>

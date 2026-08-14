@@ -657,6 +657,116 @@ def valuation_progress(
     }
 
 
+@app.post("/jobs/{job_id}/items")
+def add_item(
+    job_id: str,
+    description: str = Form(...),
+    quantity: int = Form(1),
+    make: str = Form(""),
+    model: str = Form(""),
+    serial: str = Form(""),
+    location: str = Form(""),
+    cause_of_damage: str = Form(""),
+    assessor_note: str = Form(""),
+    photo_series: str = Form(""),
+    photo_refs: str = Form(""),
+    value_now: str = Form(""),
+    user: User = Depends(require_user),
+    db: Session = Depends(db_dependency),
+):
+    """Add a line the assessor missed, optionally valuing it immediately."""
+    job = owned_job(db, job_id, user)
+    if not description.strip():
+        raise HTTPException(400, "Description is required.")
+
+    highest = max((i.sort_order or 0) for i in job.items) if job.items else 0
+    item = Item(
+        job_id=job.id,
+        sort_order=highest + 1,
+        description=description.strip(),
+        quantity=max(1, quantity),
+        make=make.strip(),
+        model=model.strip(),
+        serial=serial.strip(),
+        location=location.strip() or "Storage shed",
+        cause_of_damage=cause_of_damage.strip() or job.peril,
+        assessor_note=assessor_note.strip(),
+        photo_series=photo_series.strip(),
+        photo_refs=",".join(re.findall(r"\d+", photo_refs)),
+        valuation_status=ValuationStatus.pending,
+    )
+    db.add(item)
+    db.commit()
+
+    if value_now == "on" and os.environ.get("ANTHROPIC_API_KEY"):
+        with _inflight_lock:
+            _inflight.add(item.id)
+        _executor.submit(_value_one, item.id)
+
+    return RedirectResponse(f"/jobs/{job_id}#item-{item.id}", status_code=303)
+
+
+@app.post("/items/{item_id}/edit")
+def edit_item(
+    item_id: str,
+    description: str = Form(...),
+    quantity: int = Form(1),
+    make: str = Form(""),
+    model: str = Form(""),
+    serial: str = Form(""),
+    location: str = Form(""),
+    cause_of_damage: str = Form(""),
+    assessor_note: str = Form(""),
+    photo_refs: str = Form(""),
+    revalue: str = Form(""),
+    user: User = Depends(require_user),
+    db: Session = Depends(db_dependency),
+):
+    """Correct an item's identifying detail so the AI can research it properly."""
+    item = db.get(Item, item_id)
+    if not item:
+        raise HTTPException(404, "Item not found")
+    job = owned_job(db, item.job_id, user)
+
+    item.description = description.strip() or item.description
+    item.quantity = max(1, quantity)
+    item.make = make.strip()
+    item.model = model.strip()
+    item.serial = serial.strip()
+    item.location = location.strip()
+    item.cause_of_damage = cause_of_damage.strip()
+    item.assessor_note = assessor_note.strip()
+    if photo_refs.strip():
+        item.photo_refs = ",".join(re.findall(r"\d+", photo_refs))
+    db.commit()
+
+    if revalue == "on" and os.environ.get("ANTHROPIC_API_KEY"):
+        with _inflight_lock:
+            if item_id not in _inflight:
+                _inflight.add(item_id)
+                item.valuation_status = ValuationStatus.pending
+                item.manual_override = False
+                db.commit()
+                _executor.submit(_value_one, item_id)
+
+    return RedirectResponse(f"/jobs/{job.id}#item-{item.id}", status_code=303)
+
+
+@app.post("/items/{item_id}/delete")
+def delete_item(
+    item_id: str,
+    user: User = Depends(require_user),
+    db: Session = Depends(db_dependency),
+):
+    item = db.get(Item, item_id)
+    if not item:
+        raise HTTPException(404, "Item not found")
+    job = owned_job(db, item.job_id, user)
+    db.delete(item)
+    db.commit()
+    return RedirectResponse(f"/jobs/{job.id}", status_code=303)
+
+
 @app.post("/items/{item_id}/value")
 def value_single_item(
     item_id: str,
