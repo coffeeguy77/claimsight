@@ -56,7 +56,9 @@
   .ph .more{font-size:10px;color:var(--muted);font-weight:600}
   .pill{font-size:10px;padding:1px 6px}
   .ovr input{width:72px;padding:3px 6px;font-size:12px}
-  .chev{color:var(--muted);font-size:11px;width:12px;display:inline-block}
+  .chev{color:var(--accent);font-size:11px;width:12px;display:inline-block;font-weight:700}
+  tbody tr.row:hover .chev{color:var(--ink)}
+  tbody tr.row:hover .nm{text-decoration:underline;text-decoration-color:var(--line)}
   tr.excluded td:not(.keep){opacity:.4}
   .dep-off .dep-col{opacity:.3}
 
@@ -117,6 +119,8 @@
       {% if totals.priced %}Value remaining{% else %}Run AI valuation{% endif %}
     </button>
   </form>
+  <button class="btn small" type="button" onclick="openAdd()"
+          style="background:#0f7b47">+ Add item</button>
   <a class="btn ghost small" href="/jobs/{{ job.id }}/report" target="_blank">Report</a>
   <a class="btn ghost small" href="/jobs/{{ job.id }}/export.csv">CSV</a>
 </div>
@@ -164,6 +168,7 @@
 </form>
 
 <div class="tools">
+  <span class="hint" style="margin-right:2px">Click any row to expand</span>
   <input type="search" id="q" placeholder="Search items, makes, models…" oninput="applyFilters()">
   <span class="chip active" data-f="all"      onclick="setFilter(this)">All</span>
   <span class="chip" data-f="review"          onclick="setFilter(this)">Needs review</span>
@@ -172,7 +177,6 @@
   <span class="chip" data-f="flagged"         onclick="setFilter(this)">Assessor flag</span>
   <span class="chip" data-f="excluded"        onclick="setFilter(this)">Excluded</span>
   <span class="chip" style="margin-left:6px" onclick="toggleAll()">Expand all</span>
-  <span class="chip" onclick="document.getElementById('additem').hidden = !document.getElementById('additem').hidden">+ Add item</span>
   <span class="count" id="count"></span>
 </div>
 
@@ -223,7 +227,7 @@
     <th class="num dep-col" style="width:72px">Age/life</th>
     <th class="num" style="width:92px">Replacement</th>
     <th class="num dep-col" style="width:92px">Indemnity</th>
-    <th style="width:118px">Override</th>
+    <th style="width:170px">Override / edit</th>
   </tr></thead>
   <tbody>
   {% for item in job.items %}
@@ -266,13 +270,19 @@
     <td class="num dep-col">{% if item.indemnity_value is not none %}
         ${{ "{:,.0f}".format(item.indemnity_value * (item.quantity or 1)) }}{% else %}—{% endif %}</td>
     <td class="ovr keep" onclick="event.stopPropagation()">
-      <form method="post" action="/items/{{ item.id }}" style="display:flex;gap:3px">
-        <input type="text" name="replacement_value" placeholder="$ ea"
-               title="Override unit replacement cost">
-        <input type="hidden" name="quantity" value="{{ item.quantity or 1 }}">
-        {% if item.excluded %}<input type="hidden" name="excluded" value="on">{% endif %}
-        <button class="btn ghost small" type="submit" style="padding:3px 7px">↵</button>
-      </form>
+      <div style="display:flex;gap:3px;align-items:center">
+        <form method="post" action="/items/{{ item.id }}" style="display:flex;gap:3px">
+          <input type="text" name="replacement_value" placeholder="$ ea"
+                 title="Override unit replacement cost, then press Enter">
+          <input type="hidden" name="quantity" value="{{ item.quantity or 1 }}">
+          {% if item.excluded %}<input type="hidden" name="excluded" value="on">{% endif %}
+          <button class="btn ghost small" type="submit" style="padding:3px 7px"
+                  title="Save override">↵</button>
+        </form>
+        <button class="btn ghost small" type="button" style="padding:3px 8px"
+                title="Edit details and re-value with AI"
+                onclick="openEdit('{{ item.id }}')">Edit</button>
+      </div>
     </td>
   </tr>
   <tr class="detail" id="d-{{ item.id }}"><td colspan="9">
@@ -394,6 +404,23 @@ function toggleRow(e, id){
   const chev = document.getElementById('c-' + id.slice(2));
   const open = d.classList.toggle('open');
   if (chev) chev.textContent = open ? '▾' : '▸';
+}
+function openAdd(){
+  const p = document.getElementById('additem');
+  p.hidden = false;
+  p.scrollIntoView({behavior:'smooth', block:'center'});
+  const first = p.querySelector('input[name=description]');
+  if (first) setTimeout(() => first.focus(), 300);
+}
+// Open a row's detail panel and jump straight to its edit form.
+function openEdit(id){
+  const d = document.getElementById('d-' + id);
+  const chev = document.getElementById('c-' + id);
+  d.classList.add('open');
+  if (chev) chev.textContent = '▾';
+  d.scrollIntoView({behavior:'smooth', block:'center'});
+  const first = d.querySelector('input[name=description]');
+  if (first) setTimeout(() => { first.focus(); first.select(); }, 300);
 }
 let allOpen = false;
 function toggleAll(){
