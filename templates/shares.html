@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Shared reports · {{ job.claim_reference or job.reference }}{% endblock %}
+{% block body %}
+
+<div class="crumb"><a href="/jobs/{{ job.id }}">← Back to claim</a></div>
+
+<div class="claimhead">
+  <div>
+    <h1 style="font-size:22px">Shared reports</h1>
+    <p class="dim" style="margin:4px 0 0">
+      {{ job.claim_reference or job.reference }} · each link is a frozen copy of the schedule
+      as it stood when published.
+    </p>
+  </div>
+</div>
+
+<div class="card" style="padding:16px;margin-bottom:20px">
+  <h2 style="font-size:15px;margin-bottom:4px">Publish the current schedule</h2>
+  <p class="dim" style="margin:0 0 14px;font-size:12.5px;line-height:1.6">
+    This freezes the report exactly as it is now. Changing a figure afterwards will not alter
+    what the recipient sees — publish again and they get version {{ (shares|length) + 1 }}.
+    The document carries the claimant's name, address and photographs of their property, so
+    add a passcode for anything sent outside the insurer.
+  </p>
+  <form method="post" action="/jobs/{{ job.id }}/share"
+        style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+    <div style="flex:1;min-width:200px">
+      <label for="sh-r">Sent to <span class="dim">(your reference only)</span></label>
+      <input id="sh-r" name="recipient" type="text" placeholder="Sun Corp claims — J. Patel">
+    </div>
+    <div style="min-width:150px">
+      <label for="sh-p">Passcode <span class="dim">(optional)</span></label>
+      <input id="sh-p" name="passcode" type="text" placeholder="e.g. E010-2161"
+             autocomplete="off">
+    </div>
+    <div style="min-width:130px">
+      <label for="sh-e">Expires</label>
+      <select id="sh-e" name="expires_days"
+              style="width:100%;height:36px;border:1px solid var(--border);border-radius:var(--r-input);font:inherit;padding:0 8px">
+        <option value="30">30 days</option>
+        <option value="90" selected>90 days</option>
+        <option value="365">12 months</option>
+        <option value="0">Never</option>
+      </select>
+    </div>
+    <button class="btn" type="submit">Publish link</button>
+  </form>
+</div>
+
+{% for s in shares %}
+<div class="card" style="padding:0;margin-bottom:14px;
+     {% if published == s.id %}border-color:var(--green-600);box-shadow:0 0 0 1px var(--green-600){% endif %}">
+  <div style="padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;
+              border-bottom:1px solid var(--border)">
+    <div style="flex:1;min-width:220px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <strong style="font-size:15px">Version {{ s.version }}</strong>
+        {% if s.is_live %}
+          <span class="chip" style="color:var(--green-600);background:var(--green-100)">Live</span>
+        {% elif s.revoked_at %}
+          <span class="chip" style="color:var(--red-600);background:var(--red-100)">Revoked</span>
+        {% else %}
+          <span class="chip" style="color:var(--text-muted);background:#EEF1F5">Expired</span>
+        {% endif %}
+        {% if s.requires_passcode %}
+          <span class="chip" style="color:var(--navy-900);background:var(--blue-100)">Passcode</span>
+        {% endif %}
+      </div>
+      <div class="dim" style="font-size:12.5px;margin-top:3px">
+        Published {{ s.created_at.strftime('%d %b %Y, %H:%M') }} ·
+        {{ s.item_count }} items · A${{ "{:,.2f}".format(s.settlement_total or 0) }}
+        {%- if s.recipient_label %} · to {{ s.recipient_label }}{% endif %}
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:19px;font-weight:600">{{ s.opened_count }}</div>
+      <div class="dim" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em">Opens</div>
+    </div>
+  </div>
+
+  <div style="padding:12px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <input readonly value="{{ base_url }}/r/{{ s.slug }}" onclick="this.select()"
+           style="flex:1;min-width:240px;font-size:12px;font-family:ui-monospace,monospace;
+                  padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:#F7F9FC">
+    <button class="btn secondary sm" type="button"
+            onclick="navigator.clipboard.writeText('{{ base_url }}/r/{{ s.slug }}');this.textContent='Copied'">
+      Copy link</button>
+    <a class="btn tertiary sm" href="/r/{{ s.slug }}" target="_blank" rel="noopener">Preview</a>
+    {% if s.is_live %}
+    <form method="post" action="/shares/{{ s.id }}/revoke"
+          onsubmit="return confirm('Revoke this link? Anyone holding it will lose access immediately.')">
+      <button class="btn danger sm" type="submit">Revoke</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if s.views %}
+  <details style="border-top:1px solid var(--border)">
+    <summary style="padding:10px 16px;cursor:pointer;font-size:13px;font-weight:500">
+      Access log — {{ s.views | length }} event{{ "" if s.views|length == 1 else "s" }}</summary>
+    <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+      <tbody>
+      {% for v in s.views[:40] %}
+        <tr style="border-top:1px solid var(--border)">
+          <td style="padding:8px 16px;white-space:nowrap;color:var(--text-secondary)">
+            {{ v.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+          <td style="padding:8px 10px">
+            {% if v.outcome == 'opened' %}
+              <span style="color:var(--green-600);font-weight:500">Opened</span>
+            {% elif v.outcome == 'passcode_failed' %}
+              <span style="color:var(--amber-600);font-weight:500">Wrong passcode</span>
+            {% else %}
+              <span style="color:var(--text-muted)">Blocked — link closed</span>
+            {% endif %}
+          </td>
+          <td style="padding:8px 10px;color:var(--text-secondary)">
+            {{ summarise_agent(v.user_agent) }}</td>
+          <td style="padding:8px 16px;color:var(--text-muted);font-family:ui-monospace,monospace;font-size:11.5px">
+            {{ v.ip }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </details>
+  {% else %}
+  <div class="dim" style="padding:10px 16px;border-top:1px solid var(--border);font-size:12.5px">
+    Not opened yet.
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="empty">
+  <h3>Nothing published yet</h3>
+  <p>Publish the schedule above to get a link you can send to the insurer.</p>
+</div>
+{% endfor %}
+
+{% endblock %}

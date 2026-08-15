@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Join · ClaimSight{% endblock %}
+{% block anon %}
+<div style="min-height:100vh;display:grid;place-items:center;padding:32px;background:var(--app-bg)">
+  <div style="width:100%;max-width:400px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
+      <span class="brand-mark">C</span>
+      <span style="font-size:17px;font-weight:700;letter-spacing:-.02em">ClaimSight</span>
+    </div>
+    <div class="card" style="padding:24px">
+    {% if not invite %}
+      <h1 style="font-size:19px;margin-bottom:6px">Invitation not valid</h1>
+      <p style="font-size:13px;color:var(--text-secondary)">{{ error }}</p>
+      <a class="btn secondary block" href="/login" style="margin-top:16px">Go to sign in</a>
+    {% else %}
+      <h1 style="font-size:19px;margin-bottom:5px">Join {{ invite.organisation.name }}</h1>
+      <p style="font-size:13.5px;color:var(--text-secondary);margin:0 0 18px">
+        You have been invited as {{ invite.role }}. Set a password to activate
+        <strong>{{ invite.email }}</strong>.</p>
+      {% if error %}
+      <div style="background:var(--red-100);border:1px solid #F2CFCF;color:var(--red-600);
+                  padding:10px 13px;border-radius:8px;font-size:13px;margin-bottom:14px">{{ error }}</div>
+      {% endif %}
+      <form method="post">
+        <div class="field"><label for="n">Your name</label>
+          <input id="n" name="name" type="text" placeholder="Cara-Aine Matthews" autofocus></div>
+        <div class="field"><label for="p">Password</label>
+          <input id="p" name="password" type="password" required minlength="8"
+                 autocomplete="new-password" placeholder="At least 8 characters"></div>
+        <button class="btn block" type="submit" style="margin-top:6px">Create account</button>
+      </form>
+    {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

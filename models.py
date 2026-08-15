@@ -74,8 +74,44 @@ class Organisation(Base):
     abn = Column(String(50), default="")
     created_at = Column(DateTime(timezone=True), default=_now)
 
+    # Billing. Volume-tiered like the rest of the market: unlimited seats,
+    # a claim allowance per period. Seats cost nothing to serve; claims cost
+    # real money in research calls, so that is what the tiers meter.
+    plan = Column(String(20), default="trial")          # trial|small|medium|large
+    plan_status = Column(String(20), default="trialing")  # trialing|active|past_due|cancelled
+    period_start = Column(DateTime(timezone=True), default=_now)
+    claims_used = Column(Integer, default=0)
+    stripe_customer_id = Column(String(64), default="")
+    stripe_subscription_id = Column(String(64), default="")
+    trial_ends_at = Column(DateTime(timezone=True))
+    # Assessors send reports under their own letterhead, not ours.
+    report_logo = Column(LargeBinary)
+    report_logo_type = Column(String(80), default="")
+
     users = relationship("User", back_populates="organisation")
     jobs = relationship("Job", back_populates="organisation")
+    invitations = relationship(
+        "Invitation", back_populates="organisation", cascade="all, delete-orphan"
+    )
+
+    @property
+    def owner(self) -> "User | None":
+        return next((u for u in self.users if u.role == "owner" and u.is_active), None)
+
+    @property
+    def claim_allowance(self) -> int:
+        from billing import PLANS
+        return PLANS[self.plan]["claims"] if self.plan in PLANS else 0
+
+    @property
+    def claims_remaining(self) -> int:
+        return max(self.claim_allowance - (self.claims_used or 0), 0)
+
+    @property
+    def can_start_claim(self) -> bool:
+        if self.plan_status in ("active", "trialing"):
+            return self.claims_remaining > 0
+        return False
 
 
 class User(Base):
@@ -90,6 +126,23 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), default=_now)
 
     organisation = relationship("Organisation", back_populates="users")
+
+    # owner   - the account holder: billing, team, deletion
+    # assessor- day to day claim work, no billing or team access
+    # viewer  - read only, for a supervisor or a client-side reviewer
+    @property
+    def is_owner(self) -> bool:
+        return self.role == "owner"
+
+    @property
+    def can_edit(self) -> bool:
+        return self.role in ("owner", "assessor")
+
+    @property
+    def role_label(self) -> str:
+        return {"owner": "Account holder", "assessor": "Assessor", "viewer": "Viewer"}.get(
+            self.role, self.role.title()
+        )
 
 
 class SessionToken(Base):
@@ -238,6 +291,14 @@ class Item(Base):
         cascade="all, delete-orphan",
         order_by="ItemEvent.created_at.desc()",
     )
+    # Evidence the assessor uploaded against this line, as opposed to
+    # photographs paired out of the report PDF by number.
+    uploads = relationship(
+        "Photo",
+        back_populates="item",
+        cascade="all, delete-orphan",
+        order_by="Photo.number",
+    )
 
     @property
     def review_state(self) -> str:
@@ -284,7 +345,20 @@ class Item(Base):
 
     @property
     def photo_key_list(self) -> list[str]:
-        return [f"{self.photo_series}:{n}" for n in (self.photo_refs or "").split(",") if n.strip()]
+        """Every piece of evidence for this line, report photographs first.
+
+        Report photographs are paired by number out of the assessor's PDF;
+        uploads are attached directly. Both resolve through the same
+        'series:number' key so every view and the schedule pick up uploads
+        without knowing they exist.
+        """
+        keys = [
+            f"{self.photo_series}:{n}"
+            for n in (self.photo_refs or "").split(",")
+            if n.strip()
+        ]
+        keys += [p.key for p in self.uploads]
+        return keys
 
 # How condition shifts depreciation relative to straight-line age. An item in
 # poor condition for its age depreciates further; one in excellent condition
@@ -323,6 +397,11 @@ class Photo(Base):
 
     id = Column(String(32), primary_key=True, default=_uuid)
     job_id = Column(String(32), ForeignKey("jobs.id"), nullable=False, index=True)
+    # Set only for evidence uploaded straight onto a line. Report photographs
+    # leave this null and are matched to items by series and number instead.
+    item_id = Column(String(32), ForeignKey("items.id"), index=True)
+    kind = Column(String(20), default="report")  # report | upload
+    filename = Column(String(255), default="")   # original name, uploads only
     series = Column(String(40), default="initial")
     number = Column(Integer, nullable=False)
     page = Column(Integer, default=0)
@@ -333,10 +412,127 @@ class Photo(Base):
     data = Column(LargeBinary, nullable=False)
 
     job = relationship("Job", back_populates="photos")
+    item = relationship("Item", back_populates="uploads")
 
     @property
     def key(self) -> str:
         return f"{self.series}:{self.number}"
+
+
+class Invitation(Base):
+    """A pending seat. Delivered as a link the account holder copies.
+
+    There is no mail service wired into this deployment, so an emailed invite
+    would silently fail. The owner copies the link and sends it however they
+    already talk to their staff.
+    """
+    __tablename__ = "invitations"
+    id = Column(String(32), primary_key=True, default=_uuid)
+    organisation_id = Column(String(32), ForeignKey("organisations.id"), nullable=False, index=True)
+    email = Column(String(320), nullable=False)
+    role = Column(String(20), default="assessor")
+    token = Column(String(64), unique=True, index=True, default=lambda: secrets.token_urlsafe(32))
+    invited_by = Column(String(32), ForeignKey("users.id"))
+    created_at = Column(DateTime(timezone=True), default=_now)
+    expires_at = Column(DateTime(timezone=True))
+    accepted_at = Column(DateTime(timezone=True))
+
+    organisation = relationship("Organisation", back_populates="invitations")
+
+    @property
+    def is_open(self) -> bool:
+        if self.accepted_at:
+            return False
+        expires = self.expires_at
+        if expires is None:
+            return True
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=dt.timezone.utc)
+        return expires > dt.datetime.now(dt.timezone.utc)
+
+
+class PasswordReset(Base):
+    """Single-use reset link, issued by the account holder for their staff."""
+    __tablename__ = "password_resets"
+    token = Column(String(64), primary_key=True, default=lambda: secrets.token_urlsafe(32))
+    user_id = Column(String(32), ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+    expires_at = Column(DateTime(timezone=True))
+    used_at = Column(DateTime(timezone=True))
+
+
+class ReportShare(Base):
+    """A published, frozen copy of a settlement schedule at a point in time.
+
+    The snapshot is the point. If a link served live data, an insurer's copy
+    would change silently whenever an assessor touched a figure, and the
+    document would be worthless in a dispute. Publishing freezes the rendered
+    schedule; changing a value later means publishing version 2, and version 1
+    stays exactly as it was sent.
+    """
+    __tablename__ = "report_shares"
+    id = Column(String(32), primary_key=True, default=_uuid)
+    job_id = Column(String(32), ForeignKey("jobs.id"), nullable=False, index=True)
+    organisation_id = Column(String(32), ForeignKey("organisations.id"), nullable=False, index=True)
+    slug = Column(String(64), unique=True, index=True,
+                  default=lambda: secrets.token_urlsafe(18))
+    version = Column(Integer, default=1)
+    html = Column(Text, nullable=False)              # frozen render
+    settlement_total = Column(Float)                 # for the index, not recomputed
+    item_count = Column(Integer, default=0)
+    passcode_hash = Column(String(255), default="")  # empty means link-only
+    recipient_label = Column(String(200), default="")
+    created_by = Column(String(32), ForeignKey("users.id"))
+    created_at = Column(DateTime(timezone=True), default=_now)
+    expires_at = Column(DateTime(timezone=True))
+    revoked_at = Column(DateTime(timezone=True))
+
+    job = relationship("Job")
+    views = relationship(
+        "ReportShareView",
+        back_populates="share",
+        cascade="all, delete-orphan",
+        order_by="ReportShareView.created_at.desc()",
+    )
+
+    @property
+    def is_live(self) -> bool:
+        if self.revoked_at:
+            return False
+        expires = self.expires_at
+        if expires is None:
+            return True
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=dt.timezone.utc)
+        return expires > dt.datetime.now(dt.timezone.utc)
+
+    @property
+    def requires_passcode(self) -> bool:
+        return bool(self.passcode_hash)
+
+    @property
+    def opened_count(self) -> int:
+        return sum(1 for v in self.views if v.outcome == "opened")
+
+
+class ReportShareView(Base):
+    """Who opened a published report, and when.
+
+    Recorded so the assessor can answer 'did the insurer ever look at this'.
+    Failed passcode attempts are recorded too, because repeated failures on a
+    link sent to one recipient is worth seeing.
+    """
+    __tablename__ = "report_share_views"
+    id = Column(String(32), primary_key=True, default=_uuid)
+    share_id = Column(String(32), ForeignKey("report_shares.id"), nullable=False, index=True)
+    outcome = Column(String(20), default="opened")   # opened | passcode_failed | blocked
+    ip = Column(String(64), default="")
+    user_agent = Column(String(400), default="")
+    referrer = Column(String(400), default="")
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+    share = relationship("ReportShare", back_populates="views")
+
 
 
 # Columns added after the first release. Applied on startup so an existing
@@ -350,6 +546,18 @@ _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("items", "depreciation_override", "DOUBLE PRECISION"),
     ("items", "flagged", "BOOLEAN DEFAULT FALSE"),
     ("items", "reviewed", "BOOLEAN DEFAULT FALSE"),
+    ("photos", "item_id", "VARCHAR(32)"),
+    ("photos", "kind", "VARCHAR(20) DEFAULT 'report'"),
+    ("photos", "filename", "VARCHAR(255) DEFAULT ''"),
+    ("organisations", "plan", "VARCHAR(20) DEFAULT 'trial'"),
+    ("organisations", "plan_status", "VARCHAR(20) DEFAULT 'trialing'"),
+    ("organisations", "period_start", "TIMESTAMPTZ"),
+    ("organisations", "claims_used", "INTEGER DEFAULT 0"),
+    ("organisations", "stripe_customer_id", "VARCHAR(64) DEFAULT ''"),
+    ("organisations", "stripe_subscription_id", "VARCHAR(64) DEFAULT ''"),
+    ("organisations", "trial_ends_at", "TIMESTAMPTZ"),
+    ("organisations", "report_logo", "BYTEA"),
+    ("organisations", "report_logo_type", "VARCHAR(80) DEFAULT ''"),
 ]
 
 

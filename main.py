@@ -12,24 +12,33 @@ import threading
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import quote_plus
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile, File
 from fastapi.responses import (
     HTMLResponse,
     JSONResponse,
+    PlainTextResponse,
     RedirectResponse,
     Response,
     StreamingResponse,
 )
 from fastapi.templating import Jinja2Templates
 from passlib.context import CryptContext
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+import attachments
+import billing
 import ingest
 import report_view
+import sharing
 import valuation
 from models import (
+    Invitation,
+    PasswordReset,
+    ReportShare,
+    ReportShareView,
     CONDITION_ADJUSTMENT,
     Item,
     ItemEvent,
@@ -145,6 +154,26 @@ def require_user(request: Request, db: Session = Depends(db_dependency)) -> User
     return user
 
 
+def require_editor(request: Request, db: Session = Depends(db_dependency)) -> User:
+    """Anyone who may change claim data. Viewers may look and print only."""
+    user = require_user(request, db)
+    if not user.can_edit:
+        raise HTTPException(403, "Your account has read-only access to this claim.")
+    return user
+
+
+def require_owner(request: Request, db: Session = Depends(db_dependency)) -> User:
+    """Billing, team and anything that spends the firm's money."""
+    user = require_user(request, db)
+    if not user.is_owner:
+        raise HTTPException(403, "Only the account holder can do that.")
+    return user
+
+
+def _base_url(request: Request) -> str:
+    return str(request.base_url).rstrip("/")
+
+
 @app.exception_handler(HTTPException)
 async def redirect_handler(request: Request, exc: HTTPException):
     if exc.status_code == 303 and "Location" in (exc.headers or {}):
@@ -205,6 +234,84 @@ def _back(job_id: str, return_to: str = "", item_id: str = "") -> str:
     return f"/jobs/{job_id}?{query}" if query else f"/jobs/{job_id}"
 
 
+# Evidence uploaded straight onto a line lives in its own photo series so it
+# can never collide with a number paired out of the assessor's report PDF.
+UPLOAD_SERIES = "upload"
+
+
+def _with_notice(url: str, message: str) -> str:
+    """Carry a one-off message back to the page after a redirect."""
+    if not message:
+        return url
+    joiner = "&" if "?" in url else "?"
+    return f"{url}{joiner}notice={quote_plus(message[:400])}"
+
+
+def _next_upload_number(db: Session, job_id: str) -> int:
+    top = db.scalar(
+        select(func.max(Photo.number)).where(
+            Photo.job_id == job_id, Photo.series == UPLOAD_SERIES
+        )
+    )
+    return (top or 0) + 1
+
+
+def _store_uploads(
+    db: Session, job: Job, item: Item, files: list[UploadFile], user: User
+) -> tuple[int, list[str]]:
+    """Attach uploaded files to a line as evidence pages.
+
+    Returns how many pages were stored and any per-file problems, so one bad
+    file does not silently discard the rest of the batch.
+    """
+    stored, errors = 0, []
+    number = _next_upload_number(db, job.id)
+
+    for upload in files or []:
+        if not upload or not (upload.filename or "").strip():
+            continue
+        try:
+            blob = upload.file.read()
+        finally:
+            upload.file.close()
+        try:
+            pages = attachments.render(upload.filename, blob)
+        except attachments.UnsupportedUpload as exc:
+            errors.append(str(exc))
+            continue
+
+        for page in pages:
+            db.add(
+                Photo(
+                    job_id=job.id,
+                    item_id=item.id,
+                    kind="upload",
+                    filename=(upload.filename or "")[:255],
+                    series=UPLOAD_SERIES,
+                    number=number,
+                    caption=page.label[:500],
+                    content_type=page.content_type,
+                    width=page.width,
+                    height=page.height,
+                    data=page.data,
+                )
+            )
+            number += 1
+            stored += 1
+
+    if stored:
+        names = ", ".join(
+            sorted({(f.filename or "").strip() for f in files if f and f.filename})
+        )
+        record_event(
+            db, item, "evidence",
+            f"Uploaded {stored} evidence page{'' if stored == 1 else 's'}: {names}"[:2000],
+            new_value=f"{stored} page{'' if stored == 1 else 's'}",
+            user=user,
+        )
+    return stored, errors
+
+
 def owned_job(db: Session, job_id: str, user: User) -> Job:
     job = db.get(Job, job_id)
     if not job or job.organisation_id != user.organisation_id:
@@ -223,7 +330,8 @@ def index(request: Request, db: Session = Depends(db_dependency)):
     return templates.TemplateResponse(
         request,
         "landing.html",
-        {})
+        {"plans": billing.PLANS, "paid_plans": billing.PAID_PLANS,
+         "overage": billing.OVERAGE_PRICE})
 
 
 @app.get("/login", response_class=HTMLResponse)
@@ -311,6 +419,7 @@ def signup(
         role="owner",
     )
     db.add(user)
+    billing.start_trial(org)
     db.commit()
     return login(request, email=email, password=password, db=db)
 
@@ -372,9 +481,18 @@ async def create_job(
     inventory: UploadFile = File(...),
     photos_initial: UploadFile | None = File(None),
     photos_second: UploadFile | None = File(None),
-    user: User = Depends(require_user),
+    user: User = Depends(require_editor),
     db: Session = Depends(db_dependency),
 ):
+    org = db.get(Organisation, user.organisation_id)
+    billing.roll_period_if_due(org)
+    blocked = billing.gate(org)
+    if blocked:
+        db.commit()
+        return RedirectResponse(
+            f"/settings/billing?notice={quote_plus(blocked)}", status_code=303
+        )
+
     job = Job(
         organisation_id=user.organisation_id,
         created_by_id=user.id,
@@ -390,6 +508,7 @@ async def create_job(
         status=JobStatus.ingesting,
     )
     db.add(job)
+    billing.count_claim(org)
     db.commit()
 
     tmpdir = tempfile.mkdtemp(prefix="claimsight_")
@@ -487,11 +606,18 @@ def _photo_index(db: Session, job_id: str) -> dict:
     request); only the id is needed to build an <img> URL.
     """
     rows = db.execute(
-        select(Photo.id, Photo.series, Photo.number, Photo.caption).where(Photo.job_id == job_id)
+        select(Photo.id, Photo.series, Photo.number, Photo.caption, Photo.kind, Photo.filename)
+        .where(Photo.job_id == job_id)
     ).all()
     return {
-        f"{series}:{number}": {"id": pid, "caption": caption, "number": number}
-        for pid, series, number, caption in rows
+        f"{series}:{number}": {
+            "id": pid,
+            "caption": caption,
+            "number": number,
+            "kind": kind or "report",
+            "filename": filename or "",
+        }
+        for pid, series, number, caption, kind, filename in rows
     }
 
 
@@ -870,6 +996,7 @@ def add_item(
     photo_series: str = Form(""),
     photo_refs: str = Form(""),
     value_now: str = Form(""),
+    files: list[UploadFile] = File(default=[]),
     user: User = Depends(require_user),
     db: Session = Depends(db_dependency),
 ):
@@ -895,6 +1022,9 @@ def add_item(
         valuation_status=ValuationStatus.pending,
     )
     db.add(item)
+    db.flush()
+
+    stored, errors = _store_uploads(db, job, item, files, user)
     db.commit()
 
     if value_now == "on" and os.environ.get("ANTHROPIC_API_KEY"):
@@ -902,7 +1032,14 @@ def add_item(
             _inflight.add(item.id)
         _executor.submit(_value_one, item.id)
 
-    return RedirectResponse(_back(job_id, return_to, item.id), status_code=303)
+    target = _back(job_id, return_to, item.id)
+    if errors:
+        target = _with_notice(target, " ".join(errors))
+    elif stored:
+        target = _with_notice(
+            target, f"Item added with {stored} evidence page{'' if stored == 1 else 's'}."
+        )
+    return RedirectResponse(target, status_code=303)
 
 
 @app.post("/items/{item_id}/edit")
@@ -1116,6 +1253,489 @@ def set_item_state(
         )
     db.commit()
     return RedirectResponse(_back(job.id, return_to, item.id), status_code=303)
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+def robots(request: Request):
+    """Index the marketing page. Never index a published claim document."""
+    root = _base_url(request)
+    return (
+        "User-agent: *\n"
+        "Allow: /$\n"
+        "Disallow: /r/\n"
+        "Disallow: /jobs\n"
+        "Disallow: /settings\n"
+        "Disallow: /invite/\n"
+        "Disallow: /reset/\n"
+        f"Sitemap: {root}/sitemap.xml\n"
+    )
+
+
+@app.get("/sitemap.xml")
+def sitemap(request: Request):
+    root = _base_url(request)
+    body = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        f"<url><loc>{root}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>"
+        "</urlset>"
+    )
+    return Response(body, media_type="application/xml")
+
+
+# ------------------------------------------------------------------ team seats
+
+
+@app.get("/settings/team", response_class=HTMLResponse)
+def team(request: Request, user: User = Depends(require_owner),
+         db: Session = Depends(db_dependency)):
+    org = db.get(Organisation, user.organisation_id)
+    members = sorted(org.users, key=lambda u: (u.role != "owner", u.name or u.email))
+    invites = [i for i in org.invitations if i.is_open]
+    return templates.TemplateResponse(request, "team.html", {
+        "user": user, "org": org, "members": members, "invites": invites,
+        "base_url": _base_url(request), "active_section": "settings",
+        "notice": request.query_params.get("notice", ""),
+    })
+
+
+@app.post("/team/invite")
+def invite_member(request: Request, email: str = Form(...), role: str = Form("assessor"),
+                  user: User = Depends(require_owner),
+                  db: Session = Depends(db_dependency)):
+    """Issue a seat as a copyable link.
+
+    No mail service is configured on this deployment, so emailing the invite
+    would fail silently. The account holder copies the link and sends it the
+    way they already talk to their staff.
+    """
+    email = email.strip().lower()
+    if role not in ("assessor", "viewer", "owner"):
+        role = "assessor"
+    if db.scalar(select(User).where(User.email == email)):
+        return RedirectResponse(
+            f"/settings/team?notice={quote_plus('That email already has an account.')}",
+            status_code=303)
+
+    invite = Invitation(
+        organisation_id=user.organisation_id, email=email, role=role,
+        invited_by=user.id,
+        expires_at=dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=14),
+    )
+    db.add(invite)
+    db.commit()
+    return RedirectResponse(
+        f"/settings/team?notice={quote_plus('Invitation ready — copy the link and send it to ' + email)}",
+        status_code=303)
+
+
+@app.post("/team/invite/{invite_id}/revoke")
+def revoke_invite(invite_id: str, user: User = Depends(require_owner),
+                  db: Session = Depends(db_dependency)):
+    invite = db.get(Invitation, invite_id)
+    if not invite or invite.organisation_id != user.organisation_id:
+        raise HTTPException(404, "Invitation not found")
+    db.delete(invite)
+    db.commit()
+    return RedirectResponse("/settings/team?notice=Invitation+revoked.", status_code=303)
+
+
+@app.get("/invite/{token}", response_class=HTMLResponse)
+def invite_form(request: Request, token: str, db: Session = Depends(db_dependency)):
+    invite = db.scalar(select(Invitation).where(Invitation.token == token))
+    if not invite or not invite.is_open:
+        return templates.TemplateResponse(
+            request, "accept_invite.html",
+            {"invite": None, "error": "This invitation has expired or has already been used."},
+            status_code=404)
+    return templates.TemplateResponse(request, "accept_invite.html",
+                                      {"invite": invite, "error": None})
+
+
+@app.post("/invite/{token}")
+def accept_invite(request: Request, token: str, name: str = Form(""),
+                  password: str = Form(...), db: Session = Depends(db_dependency)):
+    invite = db.scalar(select(Invitation).where(Invitation.token == token))
+    if not invite or not invite.is_open:
+        raise HTTPException(404, "This invitation has expired or has already been used.")
+    if len(password) < 8:
+        return templates.TemplateResponse(
+            request, "accept_invite.html",
+            {"invite": invite, "error": "Password must be at least 8 characters."},
+            status_code=400)
+    if db.scalar(select(User).where(User.email == invite.email)):
+        raise HTTPException(400, "That email already has an account.")
+
+    member = User(organisation_id=invite.organisation_id, email=invite.email,
+                  name=name.strip(), password_hash=pwd_context.hash(password),
+                  role=invite.role)
+    db.add(member)
+    invite.accepted_at = dt.datetime.now(dt.timezone.utc)
+    db.commit()
+    return login(request, email=invite.email, password=password, db=db)
+
+
+@app.post("/team/{member_id}/role")
+def change_role(member_id: str, role: str = Form(...),
+                user: User = Depends(require_owner),
+                db: Session = Depends(db_dependency)):
+    member = db.get(User, member_id)
+    if not member or member.organisation_id != user.organisation_id:
+        raise HTTPException(404, "Member not found")
+    if role not in ("owner", "assessor", "viewer"):
+        raise HTTPException(400, "Unknown role")
+
+    org = db.get(Organisation, user.organisation_id)
+    owners = [u for u in org.users if u.role == "owner" and u.is_active]
+    if member.role == "owner" and role != "owner" and len(owners) <= 1:
+        return RedirectResponse(
+            "/settings/team?notice=" + quote_plus(
+                "An organisation must keep at least one account holder."),
+            status_code=303)
+    member.role = role
+    db.commit()
+    return RedirectResponse("/settings/team?notice=Role+updated.", status_code=303)
+
+
+@app.post("/team/{member_id}/active")
+def set_member_active(member_id: str, active: str = Form(""),
+                      user: User = Depends(require_owner),
+                      db: Session = Depends(db_dependency)):
+    member = db.get(User, member_id)
+    if not member or member.organisation_id != user.organisation_id:
+        raise HTTPException(404, "Member not found")
+    if member.id == user.id:
+        return RedirectResponse(
+            "/settings/team?notice=" + quote_plus("You cannot deactivate yourself."),
+            status_code=303)
+    member.is_active = active == "on"
+    if not member.is_active:
+        for row in db.scalars(select(SessionToken).where(SessionToken.user_id == member.id)):
+            db.delete(row)
+    db.commit()
+    return RedirectResponse("/settings/team?notice=Access+updated.", status_code=303)
+
+
+@app.post("/team/{member_id}/reset-link")
+def issue_reset(request: Request, member_id: str, user: User = Depends(require_owner),
+                db: Session = Depends(db_dependency)):
+    """Owner-issued password reset.
+
+    A self-service 'forgot password' flow needs email delivery, which this
+    deployment does not have. Until it does, the account holder issues a
+    single-use link and passes it on.
+    """
+    member = db.get(User, member_id)
+    if not member or member.organisation_id != user.organisation_id:
+        raise HTTPException(404, "Member not found")
+    reset = PasswordReset(
+        user_id=member.id,
+        expires_at=dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=24),
+    )
+    db.add(reset)
+    db.commit()
+    link = f"{_base_url(request)}/reset/{reset.token}"
+    return RedirectResponse(
+        "/settings/team?notice=" + quote_plus(
+            f"Single-use reset link for {member.email}, valid 24 hours: {link}"),
+        status_code=303)
+
+
+@app.get("/reset/{token}", response_class=HTMLResponse)
+def reset_form(request: Request, token: str, db: Session = Depends(db_dependency)):
+    reset = db.get(PasswordReset, token)
+    valid = bool(reset and not reset.used_at and _as_utc(reset.expires_at)
+                 and _as_utc(reset.expires_at) > dt.datetime.now(dt.timezone.utc))
+    return templates.TemplateResponse(request, "reset.html", {
+        "token": token, "valid": valid, "error": None,
+    }, status_code=200 if valid else 404)
+
+
+@app.post("/reset/{token}")
+def do_reset(request: Request, token: str, password: str = Form(...),
+             db: Session = Depends(db_dependency)):
+    reset = db.get(PasswordReset, token)
+    if not reset or reset.used_at or not _as_utc(reset.expires_at) or \
+            _as_utc(reset.expires_at) < dt.datetime.now(dt.timezone.utc):
+        raise HTTPException(404, "This reset link has expired.")
+    if len(password) < 8:
+        return templates.TemplateResponse(request, "reset.html", {
+            "token": token, "valid": True,
+            "error": "Password must be at least 8 characters."}, status_code=400)
+
+    member = db.get(User, reset.user_id)
+    member.password_hash = pwd_context.hash(password)
+    reset.used_at = dt.datetime.now(dt.timezone.utc)
+    # Any session opened with the old password is no longer trusted.
+    for row in db.scalars(select(SessionToken).where(SessionToken.user_id == member.id)):
+        db.delete(row)
+    db.commit()
+    return login(request, email=member.email, password=password, db=db)
+
+
+# --------------------------------------------------------------------- billing
+
+
+@app.get("/settings/billing", response_class=HTMLResponse)
+def billing_page(request: Request, user: User = Depends(require_owner),
+                 db: Session = Depends(db_dependency)):
+    org = db.get(Organisation, user.organisation_id)
+    if billing.roll_period_if_due(org):
+        db.commit()
+    return templates.TemplateResponse(request, "billing.html", {
+        "user": user, "org": org, "plans": billing.PLANS,
+        "paid_plans": billing.PAID_PLANS, "overage": billing.OVERAGE_PRICE,
+        "stripe_live": billing.configured(),
+        "local_mode": billing.local_mode_allowed(),
+        "gate": billing.gate(org),
+        "notice": request.query_params.get("notice", ""),
+        "checkout": request.query_params.get("checkout", ""),
+        "active_section": "settings",
+    })
+
+
+@app.post("/billing/subscribe")
+def subscribe(request: Request, plan: str = Form(...),
+              user: User = Depends(require_owner),
+              db: Session = Depends(db_dependency)):
+    if plan not in billing.PAID_PLANS:
+        raise HTTPException(400, "Unknown plan")
+    org = db.get(Organisation, user.organisation_id)
+
+    if not billing.configured():
+        if not billing.local_mode_allowed():
+            return RedirectResponse(
+                "/settings/billing?notice=" + quote_plus(
+                    "Payments are not configured yet, so plans cannot be changed. "
+                    "Set the Stripe keys to start taking subscriptions."),
+                status_code=303)
+        # Local mode, explicitly enabled: apply the plan without taking money.
+        org.plan, org.plan_status = plan, "active"
+        org.period_start = dt.datetime.now(dt.timezone.utc)
+        org.claims_used = 0
+        db.commit()
+        return RedirectResponse(
+            "/settings/billing?notice=" + quote_plus(
+                "Plan applied locally. Stripe is not configured, so no payment was taken."),
+            status_code=303)
+
+    try:
+        url = billing.checkout_url(org, plan, user.email, _base_url(request))
+    except RuntimeError as exc:
+        return RedirectResponse(
+            f"/settings/billing?notice={quote_plus(str(exc))}", status_code=303)
+    db.commit()
+    return RedirectResponse(url, status_code=303)
+
+
+@app.post("/billing/portal")
+def billing_portal(request: Request, user: User = Depends(require_owner),
+                   db: Session = Depends(db_dependency)):
+    org = db.get(Organisation, user.organisation_id)
+    url = billing.portal_url(org, _base_url(request))
+    if not url:
+        return RedirectResponse(
+            "/settings/billing?notice=" + quote_plus(
+                "No Stripe customer yet. Choose a plan first."), status_code=303)
+    return RedirectResponse(url, status_code=303)
+
+
+@app.post("/stripe/webhook")
+async def stripe_webhook(request: Request, db: Session = Depends(db_dependency)):
+    """Stripe is the authority on subscription state, not our own timers."""
+    payload = await request.body()
+    signature = request.headers.get("stripe-signature", "")
+    try:
+        event = billing.verify_webhook(payload, signature)
+    except Exception as exc:  # noqa: BLE001 - a bad signature is not our error
+        raise HTTPException(400, f"Webhook rejected: {exc}") from exc
+
+    result = billing.apply_event(
+        event,
+        org_by_id=lambda oid: db.get(Organisation, oid),
+        org_by_customer=lambda cid: db.scalar(
+            select(Organisation).where(Organisation.stripe_customer_id == cid)),
+    )
+    db.commit()
+    return {"ok": True, "result": result}
+
+
+# --------------------------------------------------------------- shared reports
+
+
+@app.post("/jobs/{job_id}/share")
+def publish_share(request: Request, job_id: str,
+                  recipient: str = Form(""), passcode: str = Form(""),
+                  expires_days: str = Form("90"),
+                  user: User = Depends(require_editor),
+                  db: Session = Depends(db_dependency)):
+    """Freeze the current schedule and publish it to a link."""
+    job = owned_job(db, job_id, user)
+
+    rendered = report(job_id=job_id, request=request, user=user, db=db)  # the assessor's own view
+    html = rendered.body.decode("utf-8") if hasattr(rendered, "body") else ""
+    if not html:
+        raise HTTPException(500, "The report could not be rendered for publishing.")
+
+    existing = list(db.scalars(select(ReportShare).where(ReportShare.job_id == job.id)))
+    try:
+        days = int(expires_days)
+    except ValueError:
+        days = 90
+
+    share = ReportShare(
+        job_id=job.id,
+        organisation_id=user.organisation_id,
+        version=sharing.next_version(existing),
+        html=sharing.strip_app_chrome(html),
+        settlement_total=job.totals["settlement"],
+        item_count=job.totals["count"],
+        passcode_hash=sharing.hash_passcode(pwd_context, passcode),
+        recipient_label=recipient.strip()[:200],
+        created_by=user.id,
+        expires_at=sharing.expiry_from_days(days),
+    )
+    db.add(share)
+    db.commit()
+    return RedirectResponse(f"/jobs/{job_id}/shares?published={share.id}", status_code=303)
+
+
+@app.get("/jobs/{job_id}/shares", response_class=HTMLResponse)
+def job_shares(request: Request, job_id: str, user: User = Depends(require_user),
+               db: Session = Depends(db_dependency)):
+    job = owned_job(db, job_id, user)
+    shares = list(db.scalars(
+        select(ReportShare).where(ReportShare.job_id == job.id)
+        .order_by(ReportShare.version.desc())))
+    return templates.TemplateResponse(request, "shares.html", {
+        "user": user, "job": job, "shares": shares,
+        "base_url": _base_url(request),
+        "published": request.query_params.get("published", ""),
+        "summarise_agent": sharing.summarise_agent,
+        "active_section": "reports",
+    })
+
+
+@app.post("/shares/{share_id}/revoke")
+def revoke_share(share_id: str, user: User = Depends(require_editor),
+                 db: Session = Depends(db_dependency)):
+    share = db.get(ReportShare, share_id)
+    if not share or share.organisation_id != user.organisation_id:
+        raise HTTPException(404, "Shared report not found")
+    share.revoked_at = dt.datetime.now(dt.timezone.utc)
+    db.commit()
+    return RedirectResponse(f"/jobs/{share.job_id}/shares", status_code=303)
+
+
+def _log_view(db: Session, share: ReportShare, request: Request, outcome: str) -> None:
+    db.add(ReportShareView(share_id=share.id, outcome=outcome,
+                           **sharing.describe_viewer(request)))
+    db.commit()
+
+
+@app.get("/r/{slug}", response_class=HTMLResponse)
+def public_report(request: Request, slug: str, db: Session = Depends(db_dependency)):
+    """The recipient's view. No account, no session, no application chrome."""
+    share = db.scalar(select(ReportShare).where(ReportShare.slug == slug))
+    if not share:
+        raise HTTPException(404, "This report link is not valid.")
+    if not share.is_live:
+        _log_view(db, share, request, "blocked")
+        return templates.TemplateResponse(request, "share_gate.html", {
+            "share": share, "state": "closed", "error": None}, status_code=410)
+    if share.requires_passcode:
+        return templates.TemplateResponse(request, "share_gate.html", {
+            "share": share, "state": "locked", "error": None})
+    _log_view(db, share, request, "opened")
+    return HTMLResponse(share.html)
+
+
+@app.post("/r/{slug}", response_class=HTMLResponse)
+def public_report_unlock(request: Request, slug: str, passcode: str = Form(""),
+                         db: Session = Depends(db_dependency)):
+    share = db.scalar(select(ReportShare).where(ReportShare.slug == slug))
+    if not share or not share.is_live:
+        raise HTTPException(404, "This report link is not valid.")
+    if not sharing.check_passcode(pwd_context, share, passcode):
+        _log_view(db, share, request, "passcode_failed")
+        return templates.TemplateResponse(request, "share_gate.html", {
+            "share": share, "state": "locked",
+            "error": "That passcode is not correct."}, status_code=401)
+    _log_view(db, share, request, "opened")
+    return HTMLResponse(share.html)
+
+
+# --------------------------------------------------------------------- evidence
+
+
+@app.post("/items/{item_id}/evidence")
+def upload_evidence(
+    item_id: str,
+    return_to: str = Form(""),
+    files: list[UploadFile] = File(default=[]),
+    user: User = Depends(require_user),
+    db: Session = Depends(db_dependency),
+):
+    """Attach photographs or documents to a line.
+
+    Anything the report PDF did not carry: a receipt, a quote, a spec sheet, a
+    photograph taken on the day. PDFs are rendered page by page so they appear
+    as evidence in the schedule rather than as an attachment nobody opens.
+    """
+    item = db.get(Item, item_id)
+    if not item:
+        raise HTTPException(404, "Item not found")
+    job = owned_job(db, item.job_id, user)
+
+    stored, errors = _store_uploads(db, job, item, files, user)
+    db.commit()
+
+    target = _back(job.id, return_to, item.id)
+    if errors and stored:
+        target = _with_notice(
+            target, f"Stored {stored} page(s). " + " ".join(errors)
+        )
+    elif errors:
+        target = _with_notice(target, " ".join(errors))
+    elif stored:
+        target = _with_notice(
+            target, f"Added {stored} evidence page{'' if stored == 1 else 's'}."
+        )
+    else:
+        target = _with_notice(target, "No file was selected.")
+    return RedirectResponse(target, status_code=303)
+
+
+@app.post("/photos/{photo_id}/delete")
+def delete_evidence(
+    photo_id: str,
+    return_to: str = Form(""),
+    user: User = Depends(require_user),
+    db: Session = Depends(db_dependency),
+):
+    """Remove an uploaded evidence page.
+
+    Only uploads. Photographs paired out of the assessor's report are part of
+    the ingested record and are not deletable from here.
+    """
+    photo = db.get(Photo, photo_id)
+    if not photo:
+        raise HTTPException(404, "Photo not found")
+    job = owned_job(db, photo.job_id, user)
+    if photo.kind != "upload":
+        raise HTTPException(400, "Report photographs cannot be deleted here.")
+
+    item = db.get(Item, photo.item_id) if photo.item_id else None
+    label = photo.caption or photo.filename or "evidence page"
+    db.delete(photo)
+    if item is not None:
+        record_event(db, item, "evidence", f"Removed uploaded evidence: {label}"[:2000], user=user)
+    db.commit()
+
+    return RedirectResponse(
+        _with_notice(_back(job.id, return_to, item.id if item else ""), "Evidence removed."),
+        status_code=303,
+    )
 
 
 # ---------------------------------------------------------------------- reports

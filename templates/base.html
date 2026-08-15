@@ -198,6 +198,12 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue-600);cursor:
         <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-6 6c0-2.5 2.7-4 6-4s6 1.5 6 4v1H2v-1Z"/></svg><span>Clients</span></a>
       <a href="/audit" class="{% if section=='audit' %}active{% endif %}">
         <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm.75 3v4.2l3 1.8-.75 1.25-3.75-2.25V4h1.5Z"/></svg><span>Audit Log</span></a>
+      {% if user.is_owner %}
+      <a href="/settings/team" class="{% if section=='team' %}active{% endif %}">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm5.5.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM1 14c0-2.2 2-3.5 4.5-3.5S10 11.8 10 14v1H1v-1Zm10.2-3.4c1.9.2 3.3 1.4 3.3 3.4v1h-3.6v-1c0-1-.3-1.8-.8-2.5.3-.5.7-.8 1.1-.9Z"/></svg><span>Team</span></a>
+      <a href="/settings/billing" class="{% if section=='billing' %}active{% endif %}">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.5 3h13v3h-13V3Zm0 4.5h13V13h-13V7.5ZM3 10h4v1.5H3V10Z"/></svg><span>Billing</span></a>
+      {% endif %}
       <a href="/settings" class="{% if section=='settings' %}active{% endif %}">
         <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 5.5A2.5 2.5 0 1 0 8 10.5a2.5 2.5 0 0 0 0-5Zm6 2.5-1.6 1 .3 1.9-1.7.9-1.5-1.2L8 11l-1.5-.4L5 11.8l-1.7-.9.3-1.9L2 8l1.6-1-.3-1.9 1.7-.9L6.5 5 8 4.6 9.5 5l1.5-1.2 1.7.9-.3 1.9L14 8Z"/></svg><span>Settings</span></a>
     </nav>
@@ -208,7 +214,7 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue-600);cursor:
         </span>
         <span class="who">
           <span class="nm">{{ user.name or user.email.split('@')[0] }}</span>
-          <span class="rl">{{ user.role or 'Assessor' }}</span>
+          <span class="rl">{{ user.role_label }}</span>
         </span>
         <svg viewBox="0 0 16 16" width="13" height="13" fill="var(--sidebar-muted)" aria-hidden="true"><path d="M4 6l4 4 4-4z"/></svg>
       </a>

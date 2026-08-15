@@ -1,40 +1,455 @@
-{% extends "base.html" %}
-{% block title %}ClaimSight — contents claim assessment{% endblock %}
-{% block anon %}
-<div style="min-height:100vh;background:var(--navy-950);color:#fff">
-  <div style="max-width:1080px;margin:0 auto;padding:26px 28px">
-    <div style="display:flex;align-items:center;gap:10px">
-      <span class="brand-mark">C</span>
-      <span style="font-size:17px;font-weight:700;letter-spacing:-.02em">ClaimSight</span>
-      <span style="flex:1"></span>
-      <a class="btn secondary sm" href="/login">Sign in</a>
-      <a class="btn sm" href="/signup">Create account</a>
-    </div>
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <div style="padding:76px 0 60px;max-width:660px">
-      <h1 style="font-size:42px;line-height:1.15;letter-spacing:-.03em;margin-bottom:18px">
-        Contents claims, valued and evidenced.</h1>
-      <p style="font-size:16px;line-height:1.7;color:var(--sidebar-muted);margin:0 0 28px">
-        Upload the assessor's inventory and photo report. ClaimSight pairs every photograph to
-        its inventory line, researches current Australian replacement costs, applies defensible
-        depreciation, and produces a settlement schedule an insurer can audit line by line.</p>
-      <a class="btn" href="/signup" style="height:44px;padding:0 22px;font-size:14.5px">Get started</a>
-    </div>
+<!-- Primary target: "contents claim assessment software Australia". The head
+     terms in this category (claims management software) belong to Guidewire,
+     Verisk and Riskonnect and are not winnable; everything here aims at the
+     long tail, where the intent is specific and the results page is thin. -->
+<title>Contents Claim Assessment Software for Australian Loss Assessors | ClaimSight</title>
+<meta name="description" content="ClaimSight researches current Australian replacement costs for every non-restorable item, applies defensible depreciation, and produces an insurer-ready settlement schedule with sources against every line. Built for loss assessors and adjusters.">
+<link rel="canonical" href="https://claimsight.com.au/">
+<meta name="robots" content="index, follow">
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;
-                padding-bottom:70px">
-      {% for title, body in [
-        ('Evidence pairing','Photo reports are parsed and each image matched to its inventory line by the numbered label the assessor already uses.'),
-        ('Researched pricing','Every item is priced against current Australian retail sources, with the URLs recorded so any figure can be verified.'),
-        ('Defensible depreciation','Straight-line depreciation over assessed effective life, adjusted for condition, with a residual floor.'),
-        ('Full audit trail','Every override, condition change and approval is recorded against the line with user and timestamp.')] %}
-      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);
-                  border-radius:10px;padding:18px">
-        <h3 style="font-size:14.5px;margin-bottom:7px">{{ title }}</h3>
-        <p style="font-size:13px;line-height:1.65;color:var(--sidebar-muted);margin:0">{{ body }}</p>
-      </div>
-      {% endfor %}
+<meta property="og:type" content="website">
+<meta property="og:title" content="Contents Claim Assessment Software for Australian Loss Assessors">
+<meta property="og:description" content="Price every non-restorable item to the Australian market, with sources an insurer can check. Settlement schedules in minutes, not evenings.">
+<meta property="og:locale" content="en_AU">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "ClaimSight",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "description": "Contents claim assessment and valuation software for Australian loss assessors and adjusters.",
+  "areaServed": "AU",
+  "offers": {
+    "@type": "AggregateOffer",
+    "priceCurrency": "AUD",
+    "lowPrice": "270",
+    "highPrice": "650",
+    "offerCount": "3"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type":"Question","name":"How is contents depreciation calculated on an insurance claim?",
+     "acceptedAnswer":{"@type":"Answer","text":"Depreciation is applied over an item's assessed effective life, adjusted for its condition before the loss, and floored at a residual value. ClaimSight applies straight-line depreciation with a 10% residual floor and shows the age, effective life and rate used against every line so the figure can be checked."}},
+    {"@type":"Question","name":"What is the difference between replacement new for old and indemnity value?",
+     "acceptedAnswer":{"@type":"Answer","text":"Replacement new for old settles at the cost of a new equivalent item. Indemnity value settles at that cost less depreciation for the item's age and condition. ClaimSight calculates both on every claim so the schedule can be produced on whichever basis the policy responds on."}},
+    {"@type":"Question","name":"Does ClaimSight replace a field capture app?",
+     "acceptedAnswer":{"@type":"Answer","text":"No. Capture apps are built for the field. ClaimSight reads the inventory and photo reports they produce and does the valuation work afterwards: identifying items, researching current Australian replacement costs, and building the settlement schedule."}}
+  ]
+}
+</script>
+
+<style>
+:root{
+  --navy-950:#09192C; --navy-900:#10233F;
+  --blue:#2864DC; --blue-500:#3478F6; --blue-100:#EDF4FF;
+  --teal:#0F8F8A; --text:#152235; --secondary:#65758B; --muted:#8A98A9;
+  --border:#DFE5EC; --surface:#FFFFFF; --bg:#F7F9FC;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--surface);color:var(--text);
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.025em;line-height:1.15}
+p{margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;height:46px;padding:0 22px;
+  border-radius:9px;background:var(--blue);color:#fff;font-weight:600;font-size:15px;
+  border:1px solid var(--blue);cursor:pointer;
+}
+.btn:hover{background:#1F55C0;text-decoration:none;color:#fff}
+.btn.ghost{background:transparent;color:var(--navy-900);border-color:var(--border)}
+.btn.ghost:hover{background:var(--bg);color:var(--navy-900)}
+.btn.light{background:#fff;color:var(--navy-900);border-color:#fff}
+.btn.light:hover{background:#EAF0F8;color:var(--navy-900)}
+.btn.sm{height:38px;padding:0 15px;font-size:14px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--blue)}
+
+header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);
+       backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+.nav{display:flex;align-items:center;gap:22px;height:64px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:17px;
+       letter-spacing:-.03em;color:var(--navy-900)}
+.brand:hover{text-decoration:none}
+.mark{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:#fff;
+      font-size:14px;font-weight:800;background:linear-gradient(150deg,var(--blue-500),var(--teal))}
+.navlinks{display:flex;gap:20px;margin-left:14px;font-size:14.5px}
+.navlinks a{color:var(--secondary);font-weight:500}
+.navcta{margin-left:auto;display:flex;gap:10px;align-items:center}
+@media (max-width:760px){ .navlinks{display:none} }
+
+.hero{padding:76px 0 64px;
+      background:radial-gradient(1100px 380px at 15% -8%, #EAF1FE 0%, transparent 62%), var(--surface)}
+.hero h1{font-size:clamp(34px,5.2vw,54px);max-width:15ch}
+.hero .sub{font-size:clamp(16px,2vw,19px);color:var(--secondary);max-width:56ch;margin-top:20px}
+.hero .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
+.reassure{margin-top:14px;font-size:13.5px;color:var(--muted)}
+
+.proof{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;
+       background:var(--border);border:1px solid var(--border);border-radius:12px;
+       overflow:hidden;margin-top:52px}
+.proof div{background:#fff;padding:20px 22px}
+.proof .n{font-size:26px;font-weight:800;letter-spacing:-.03em;color:var(--navy-900)}
+.proof .l{font-size:13.5px;color:var(--secondary);margin-top:2px}
+
+section{padding:74px 0;border-top:1px solid var(--border)}
+.section-head{max-width:62ch;margin-bottom:40px}
+.section-head h2{font-size:clamp(26px,3.4vw,36px);margin:10px 0 12px}
+.section-head p{font-size:16.5px;color:var(--secondary)}
+
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.feature{border:1px solid var(--border);border-radius:12px;padding:24px;background:#fff}
+.feature h3{font-size:17px;margin-bottom:8px}
+.feature p{font-size:14.5px;color:var(--secondary)}
+.ficon{width:36px;height:36px;border-radius:9px;background:var(--blue-100);color:var(--blue);
+       display:grid;place-items:center;margin-bottom:14px}
+.ficon svg{width:19px;height:19px}
+
+.split{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:800px){ .split{grid-template-columns:1fr} }
+.panel{border:1px solid var(--border);border-radius:12px;padding:26px}
+.panel.dim{background:var(--bg)}
+.panel.mine{border-color:var(--navy-900);box-shadow:0 0 0 1px var(--navy-900)}
+.panel h3{font-size:16px;margin-bottom:14px}
+.panel ul{margin:0;padding-left:19px;font-size:14.5px;color:var(--secondary);line-height:1.85}
+.panel li strong{color:var(--text)}
+
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+.plan{border:1px solid var(--border);border-radius:12px;padding:26px;background:#fff;
+      display:flex;flex-direction:column}
+.plan.featured{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue);position:relative}
+.plan .tag{position:absolute;top:-11px;left:26px;background:var(--blue);color:#fff;
+           font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+           padding:3px 9px;border-radius:20px}
+.plan .pname{font-size:16px;font-weight:700}
+.plan .price{font-size:38px;font-weight:800;letter-spacing:-.035em;margin:10px 0 0}
+.plan .per{font-size:14px;color:var(--secondary);font-weight:500}
+.plan ul{margin:16px 0 22px;padding-left:19px;font-size:14.5px;color:var(--secondary);line-height:1.85}
+.plan .btn{margin-top:auto}
+
+.faq details{border-bottom:1px solid var(--border);padding:18px 0}
+.faq summary{font-size:16.5px;font-weight:600;cursor:pointer;list-style:none;
+             display:flex;justify-content:space-between;gap:16px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";color:var(--muted);font-weight:400;font-size:22px;line-height:1}
+.faq details[open] summary::after{content:"−"}
+.faq p{margin-top:11px;font-size:15px;color:var(--secondary);max-width:78ch}
+
+.closer{background:var(--navy-950);color:#fff;border:0}
+.closer h2{font-size:clamp(26px,3.6vw,38px);max-width:20ch}
+.closer p{color:#9FB0C4;font-size:17px;max-width:56ch;margin-top:16px}
+.closer .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+
+footer{background:var(--navy-950);color:#8FA1B6;padding:34px 0 44px;font-size:13.5px}
+footer a{color:#C6D3E3}
+.fgrid{display:flex;flex-wrap:wrap;gap:26px;align-items:center;
+       border-top:1px solid rgba(255,255,255,.1);padding-top:22px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="/"><span class="mark">C</span> ClaimSight</a>
+    <nav class="navlinks">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#compare">Where it fits</a>
+      <a href="#pricing">Pricing</a>
+    </nav>
+    <div class="navcta">
+      <a class="btn ghost sm" href="/login">Sign in</a>
+      <a class="btn sm" href="/signup">Start free trial</a>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Contents claim assessment software · Australia</div>
+    <h1 style="margin-top:14px">Every contents figure, priced to the Australian market and sourced.</h1>
+    <p class="sub">
+      ClaimSight takes your inventory and photo report, identifies each non-restorable item,
+      researches what it costs to replace here today, and produces a settlement schedule an
+      insurer can audit line by line — with the sources printed against every figure.
+    </p>
+    <div class="cta">
+      <a class="btn" href="/signup">Start free trial</a>
+      <a class="btn ghost" href="#how">See how it works</a>
+    </div>
+    <p class="reassure">14 days · three full claims · no card required · unlimited users on every plan</p>
+
+    <div class="proof">
+      <div><div class="n">99 items</div><div class="l">assessed and priced in a single pass</div></div>
+      <div><div class="n">Sourced</div><div class="l">every figure cites where the price came from</div></div>
+      <div><div class="n">AUD</div><div class="l">Australian retail pricing, GST inclusive</div></div>
+      <div><div class="n">Audited</div><div class="l">every change logged against the assessor</div></div>
     </div>
   </div>
 </div>
-{% endblock %}
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">How it works</div>
+      <h2>From photo report to settlement schedule</h2>
+      <p>
+        The capture work you already do stays exactly as it is. ClaimSight starts where the
+        evening of Googling used to begin.
+      </p>
+    </div>
+    <div class="grid3">
+      <div class="feature">
+        <div class="ficon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 2h8l4 4v12H4V2Zm8 1.5V6h2.5L12 3.5ZM6 9h8v1.5H6V9Zm0 3h8v1.5H6V12Z"/></svg></div>
+        <h3>1 · Upload what you have</h3>
+        <p>
+          Drop in the inventory spreadsheet and the photo report PDF. Photographs pair to
+          inventory lines automatically by their reference numbers — no manual matching.
+        </p>
+      </div>
+      <div class="feature">
+        <div class="ficon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm.9 3.5v5l3.6 2.1-.9 1.5L9.1 11.4V5.5h1.8Z"/></svg></div>
+        <h3>2 · Research runs itself</h3>
+        <p>
+          Each item is identified from its description and photographs, the current Australian
+          equivalent is found and priced, and discontinued models are substituted with the
+          nearest current product — with the substitution noted.
+        </p>
+      </div>
+      <div class="feature">
+        <div class="ficon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 16V8h2.5v8H3Zm5.2 0V4h2.5v12H8.2Zm5.3 0v-5H16v5h-2.5Z"/></svg></div>
+        <h3>3 · Review, then publish</h3>
+        <p>
+          Every line arrives with a confidence rating so you know where to spend your attention.
+          Adjust what needs adjusting, then publish the schedule to a link or print it to A4.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features" style="background:var(--bg)">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Features</div>
+      <h2>Built for the part of the job that takes the longest</h2>
+      <p>
+        Capture takes an afternoon. Defending 99 replacement figures takes a week. This is
+        aimed squarely at the second one.
+      </p>
+    </div>
+    <div class="grid3">
+      <div class="feature">
+        <h3>Sourced replacement pricing</h3>
+        <p>Australian retailers, current pricing, GST inclusive. Every figure prints with the
+           sources behind it, so an insurer can verify it without ringing you.</p>
+      </div>
+      <div class="feature">
+        <h3>Defensible depreciation</h3>
+        <p>Straight-line over assessed effective life, adjusted for pre-loss condition, floored
+           at a residual value. Age, life and rate are shown against each line.</p>
+      </div>
+      <div class="feature">
+        <h3>Evidence against every line</h3>
+        <p>Photographs pair automatically from the report. Attach anything else — receipts,
+           quotes, spec sheets, PDFs — straight onto an item.</p>
+      </div>
+      <div class="feature">
+        <h3>Insurer-grade A4 schedule</h3>
+        <p>A settlement schedule designed for a claim file, not a printed web page. Item numbers,
+           evidence, confidence, status and sources, ready to send.</p>
+      </div>
+      <div class="feature">
+        <h3>Shareable, passcode-protected links</h3>
+        <p>Publish a frozen copy to a link. Add a passcode, set an expiry, and see exactly when
+           the insurer opened it. Change a figure later and version one stays as sent.</p>
+      </div>
+      <div class="feature">
+        <h3>Full audit trail</h3>
+        <p>Every value, override, condition change and review is recorded against the assessor
+           who made it. Built for the claim that ends up in dispute.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="compare">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Where it fits</div>
+      <h2>It does not replace your capture tool. It finishes the job.</h2>
+      <p>
+        Field documentation apps are good at getting the loss recorded. None of them tells you
+        what a twenty-year-old bath heater costs to replace in Australia today, or defends that
+        number to a claims officer.
+      </p>
+    </div>
+    <div class="split">
+      <div class="panel dim">
+        <h3 style="color:var(--secondary)">Field capture tools</h3>
+        <ul>
+          <li>Inventory an entire property quickly on site</li>
+          <li>Photograph, tag and track a packout</li>
+          <li>Produce an inventory list and a photo report</li>
+          <li><strong>Pricing is a link to a retailer</strong> that a person still has to open, read and justify</li>
+          <li>Priced and built for restoration contractors</li>
+        </ul>
+      </div>
+      <div class="panel mine">
+        <h3>ClaimSight</h3>
+        <ul>
+          <li><strong>Reads what those tools export</strong> — inventory spreadsheet and photo report PDF</li>
+          <li>Identifies the item, including from the photographs</li>
+          <li><strong>Researches and cites the Australian replacement cost</strong></li>
+          <li>Applies depreciation you can defend line by line</li>
+          <li>Built for the assessor who has to sign the report</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing" style="background:var(--bg)">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Pricing</div>
+      <h2>Unlimited users. You pay for claims.</h2>
+      <p>
+        Adding your team costs nothing, because seats are not what costs us to run. All prices
+        are AUD and exclude GST.
+      </p>
+    </div>
+    <div class="plans">
+      {% for key in paid_plans %}
+      {% set p = plans[key] %}
+      <div class="plan {% if key == 'medium' %}featured{% endif %}">
+        {% if key == 'medium' %}<span class="tag">Most practices</span>{% endif %}
+        <div class="pname">{{ p.name }}</div>
+        <div class="price">${{ p.price }}<span class="per"> /month</span></div>
+        <ul>
+          <li><strong style="color:var(--text)">{{ p.claims }} claims</strong> a month</li>
+          <li>Unlimited users</li>
+          <li>Every feature, no gates</li>
+          <li>${{ overage }} per additional claim</li>
+        </ul>
+        <a class="btn {% if key != 'medium' %}ghost{% endif %}" href="/signup">Start free trial</a>
+      </div>
+      {% endfor %}
+    </div>
+    <p style="margin-top:20px;font-size:14px;color:var(--muted)">
+      Every plan starts with a 14-day trial covering three full claims. No card required.
+    </p>
+  </div>
+</section>
+
+<section class="faq">
+  <div class="wrap" style="max-width:860px">
+    <div class="section-head">
+      <div class="eyebrow">Questions</div>
+      <h2>Contents assessment, answered</h2>
+    </div>
+
+    <details open>
+      <summary>How is contents depreciation calculated on an insurance claim?</summary>
+      <p>
+        Depreciation runs over the item's assessed effective life, adjusted for its condition
+        before the loss, and stops at a residual floor rather than reaching zero. ClaimSight
+        applies straight-line depreciation with a 10% residual floor and prints the estimated
+        age, effective life and rate applied against every line, so a claims officer can check
+        the working rather than take the number on trust.
+      </p>
+    </details>
+
+    <details>
+      <summary>What is the difference between replacement new for old and indemnity value?</summary>
+      <p>
+        Replacement new for old settles at what a new equivalent item costs today. Indemnity
+        settles at that figure less depreciation for age and condition. ClaimSight calculates
+        both on every claim, so the schedule can be produced on whichever basis the policy
+        responds on without redoing the assessment.
+      </p>
+    </details>
+
+    <details>
+      <summary>Does this replace my field capture app?</summary>
+      <p>
+        No, and it is not trying to. Capture tools are built for the field and they are good at
+        it. ClaimSight reads the inventory and photo reports they produce and does the valuation
+        work afterwards. If you already use one, keep using it.
+      </p>
+    </details>
+
+    <details>
+      <summary>Can I send a report to an insurer without them creating an account?</summary>
+      <p>
+        Yes. Publishing a schedule produces a link that opens in any browser, optionally behind
+        a passcode and an expiry date. The link serves a frozen copy, so adjusting a figure
+        afterwards never changes the document already sitting on someone's claim file. You can
+        see when it was opened.
+      </p>
+    </details>
+
+    <details>
+      <summary>Is the AI making up the prices?</summary>
+      <p>
+        No figure is presented without the sources it came from, and every line carries a
+        confidence rating so you know where to look first. The assessor reviews and signs off;
+        the software does the searching. Where an item cannot be identified confidently, the
+        report says so rather than guessing.
+      </p>
+    </details>
+  </div>
+</section>
+
+<section class="closer">
+  <div class="wrap">
+    <h2>Stop pricing contents at nine o'clock at night.</h2>
+    <p>
+      Run your next claim through it. Three full claims free, your own data, no card, and if it
+      does not save you an evening you have lost nothing.
+    </p>
+    <div class="cta">
+      <a class="btn light" href="/signup">Start free trial</a>
+      <a class="btn" style="background:transparent;border-color:rgba(255,255,255,.28);color:#fff"
+         href="/login">Sign in</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <a class="brand" href="/" style="color:#fff"><span class="mark">C</span> ClaimSight</a>
+      <span>Contents loss assessment for Australian loss assessors and adjusters.</span>
+      <span style="margin-left:auto">
+        <a href="/login">Sign in</a> · <a href="/signup">Start free trial</a>
+      </span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

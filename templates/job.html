@@ -227,6 +227,15 @@
   <a href="/jobs">← Back to claims</a>
 </div>
 
+{% set notice = request.query_params.get('notice') %}
+{% if notice %}
+<div role="status" style="display:flex;align-items:flex-start;gap:10px;margin:0 0 14px;
+     padding:11px 14px;border-radius:9px;font-size:13px;
+     border:1px solid #C7D3E2;background:#EFF3F9;color:var(--text-primary)">
+  <span aria-hidden="true">📎</span><span>{{ notice }}</span>
+</div>
+{% endif %}
+
 <div class="claimhead">
   <div>
     <div class="title-row">
@@ -249,6 +258,7 @@
     </form>
     <a class="btn secondary sm" href="/jobs/{{ job.id }}/export.csv">Export</a>
     <a class="btn sm" href="/jobs/{{ job.id }}/report" target="_blank">Generate Report</a>
+      <a class="btn secondary sm" href="/jobs/{{ job.id }}/shares">Share with insurer</a>
   </div>
 </div>
 
@@ -358,7 +368,7 @@
 
       <!-- add item -->
       <div id="additem" hidden style="padding:16px;border-bottom:1px solid var(--border);background:#FBFDFF">
-        <form method="post" action="/jobs/{{ job.id }}/items">
+        <form method="post" action="/jobs/{{ job.id }}/items" enctype="multipart/form-data">
           <input type="hidden" name="return_to" value="{{ rt }}">
           <h3 style="font-size:14px;margin-bottom:3px">Add an item to this claim</h3>
           <p class="dim" style="font-size:12.5px;margin:0 0 12px">For anything the assessor's inventory missed.</p>
@@ -377,6 +387,12 @@
             <div><label for="ni-p">Photo numbers</label><input id="ni-p" type="text" name="photo_refs" placeholder="e.g. 12, 13"></div>
             <div style="grid-column:span 3"><label for="ni-n">Assessor note</label>
               <input id="ni-n" type="text" name="assessor_note" placeholder="Condition, context for the AI…"></div>
+            <div style="grid-column:span 4"><label for="ni-f">Evidence files</label>
+              <input id="ni-f" type="file" name="files" multiple
+                     accept="image/*,application/pdf"
+                     style="width:100%;padding:7px 9px;border:1px dashed var(--border);border-radius:7px;
+                            background:#fff;font:inherit;font-size:12.5px">
+              <span class="dim" style="font-size:11.5px">Photographs, receipts, quotes or spec sheets. JPEG, PNG or PDF, up to 25 MB each. PDF pages are stored as evidence images.</span></div>
           </div>
           <div style="display:flex;align-items:center;gap:14px;margin-top:14px">
             <label style="display:flex;align-items:center;gap:7px;margin:0;font-weight:500;color:var(--text-primary)">
@@ -628,25 +644,57 @@
         </div>
 
       {% elif tab == 'evidence' %}
+        <form method="post" action="/items/{{ selected.id }}/evidence"
+              enctype="multipart/form-data"
+              style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px;
+                     padding:12px 14px;border:1px dashed var(--border);border-radius:9px;background:#FBFDFF">
+          <input type="hidden" name="return_to" value="{{ rt }}">
+          <div style="flex:1;min-width:240px">
+            <label for="ev-f" style="margin-bottom:4px">Attach evidence</label>
+            <input id="ev-f" type="file" name="files" multiple required
+                   accept="image/*,application/pdf"
+                   style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:7px;
+                          background:#fff;font:inherit;font-size:12.5px">
+          </div>
+          <button class="btn sm" type="submit">Upload</button>
+          <div class="dim" style="flex-basis:100%;font-size:11.5px">
+            Photographs, receipts, quotes or spec sheets. JPEG, PNG or PDF, up to 25 MB each.
+            Each PDF page is stored as its own evidence image and appears in the settlement schedule.
+          </div>
+        </form>
+
         {% if skeys %}
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px">
             {% for k in skeys %}{% if k in photos %}
+              {% set ph = photos[k] %}
               <figure style="margin:0">
-                <img src="/photos/{{ photos[k].id }}" loading="lazy" alt="Evidence {{ photos[k].number }}"
+                <img src="/photos/{{ ph.id }}" loading="lazy" alt="Evidence {{ ph.number }}"
                      style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;
                             border:1px solid var(--border);cursor:zoom-in"
-                     onclick="zoom(this.src,'{{ photos[k].caption or selected.description }}')">
+                     onclick="zoom(this.src,'{{ ph.caption or selected.description }}')">
                 <figcaption class="dim" style="font-size:11.5px;margin-top:5px">
-                  Photo {{ photos[k].number }} · {{ selected.photo_series }} attendance
-                  {%- if photos[k].caption %}<br>{{ photos[k].caption | truncate(70, true) }}{% endif %}
+                  {% if ph.kind == 'upload' %}
+                    Uploaded by assessor
+                    {%- if ph.caption %}<br>{{ ph.caption | truncate(70, true) }}{% endif %}
+                    <form method="post" action="/photos/{{ ph.id }}/delete" style="margin-top:4px"
+                          onsubmit="return confirm('Remove this uploaded evidence page?')">
+                      <input type="hidden" name="return_to" value="{{ rt }}">
+                      <button class="btn tertiary sm" type="submit"
+                              style="padding:2px 8px;font-size:11px">Remove</button>
+                    </form>
+                  {% else %}
+                    Photo {{ ph.number }} · {{ selected.photo_series }} attendance
+                    {%- if ph.caption %}<br>{{ ph.caption | truncate(70, true) }}{% endif %}
+                  {% endif %}
                 </figcaption>
               </figure>
             {% endif %}{% endfor %}
           </div>
         {% else %}
-          <div class="empty"><h3>No evidence images matched</h3>
-            <p>Review image pairing for this inventory item. Photo references:
-              {{ selected.photo_refs or 'none recorded' }}.</p></div>
+          <div class="empty"><h3>No evidence yet</h3>
+            <p>Nothing was paired out of the report for this line
+              {%- if selected.photo_refs %} (references: {{ selected.photo_refs }}){% endif %}.
+              Attach photographs or a document above.</p></div>
         {% endif %}
 
       {% elif tab == 'research' %}

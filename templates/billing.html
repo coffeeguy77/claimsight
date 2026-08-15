@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Billing · ClaimSight{% endblock %}
+{% block body %}
+
+<div class="claimhead">
+  <div>
+    <h1 style="font-size:22px">Billing</h1>
+    <p class="dim" style="margin:4px 0 0">
+      Unlimited seats on every plan. Tiers meter claims, because that is what costs us to run.
+    </p>
+  </div>
+</div>
+
+{% if not stripe_live %}
+<div class="card" style="padding:12px 14px;margin-bottom:16px;border-color:#EBD3A8;background:var(--amber-100)">
+  <strong style="font-size:13px">Payments are not configured.</strong>
+  <div style="font-size:12.5px;margin-top:2px">
+    {% if local_mode %}
+      <code>ALLOW_LOCAL_BILLING</code> is on, so plan changes apply immediately and
+      <strong>no payment is taken</strong>. Turn this off once Stripe is live.
+    {% else %}
+      Plans cannot be changed until <code>STRIPE_SECRET_KEY</code>,
+      <code>STRIPE_WEBHOOK_SECRET</code> and the three price IDs are set.
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if notice %}
+<div class="card" style="padding:12px 14px;margin-bottom:16px;border-color:#C7D3E2;background:var(--blue-100)">
+  <div style="font-size:13px">{{ notice }}</div>
+</div>
+{% endif %}
+{% if checkout == 'success' %}
+<div class="card" style="padding:12px 14px;margin-bottom:16px;border-color:#B9DFCC;background:var(--green-100)">
+  <div style="font-size:13px">Payment received. Your plan is active.</div>
+</div>
+{% endif %}
+{% if gate %}
+<div class="card" style="padding:12px 14px;margin-bottom:16px;border-color:#EFC2C2;background:var(--red-100)">
+  <div style="font-size:13px">{{ gate }}</div>
+</div>
+{% endif %}
+
+<div class="card" style="padding:16px;margin-bottom:20px">
+  <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
+    <div>
+      <div class="dim" style="font-size:11.5px;text-transform:uppercase;letter-spacing:.07em">Current plan</div>
+      <div style="font-size:19px;font-weight:600;margin-top:2px">{{ plans[org.plan].name }}</div>
+      <div class="dim" style="font-size:12.5px">Status: {{ org.plan_status }}</div>
+    </div>
+    <div>
+      <div class="dim" style="font-size:11.5px;text-transform:uppercase;letter-spacing:.07em">Claims this period</div>
+      <div style="font-size:19px;font-weight:600;margin-top:2px">
+        {{ org.claims_used or 0 }} <span class="dim" style="font-size:14px">of {{ org.claim_allowance }}</span>
+      </div>
+      <div style="width:180px;height:6px;border-radius:3px;background:#E6EBF2;margin-top:6px;overflow:hidden">
+        {% set pct = ((org.claims_used or 0) / org.claim_allowance * 100) if org.claim_allowance else 0 %}
+        <div style="height:100%;width:{{ [pct, 100] | min }}%;
+                    background:{{ 'var(--red-600)' if pct >= 100 else ('var(--amber-600)' if pct > 80 else 'var(--blue-600)') }}"></div>
+      </div>
+    </div>
+    {% if org.trial_ends_at and org.plan == 'trial' %}
+    <div>
+      <div class="dim" style="font-size:11.5px;text-transform:uppercase;letter-spacing:.07em">Trial ends</div>
+      <div style="font-size:19px;font-weight:600;margin-top:2px">
+        {{ org.trial_ends_at.strftime('%d %b %Y') }}</div>
+    </div>
+    {% endif %}
+    <div style="margin-left:auto;align-self:center">
+      {% if org.stripe_customer_id %}
+      <form method="post" action="/billing/portal">
+        <button class="btn secondary" type="submit">Invoices &amp; payment method</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:20px">
+  {% for key in paid_plans %}
+  {% set p = plans[key] %}
+  <div class="card" style="padding:16px;{% if org.plan == key %}border-color:var(--blue-600);box-shadow:0 0 0 1px var(--blue-600){% endif %}">
+    <div style="font-size:15px;font-weight:600">{{ p.name }}</div>
+    <div style="margin:8px 0 2px">
+      <span style="font-size:26px;font-weight:700;letter-spacing:-.02em">${{ p.price }}</span>
+      <span class="dim" style="font-size:13px">/month ex GST</span>
+    </div>
+    <div class="dim" style="font-size:12.5px;margin-bottom:10px">{{ p.blurb }}</div>
+    <ul style="margin:0 0 14px;padding-left:17px;font-size:12.5px;color:var(--text-secondary);line-height:1.65">
+      <li><strong style="color:var(--text-primary)">{{ p.claims }} claims</strong> a month</li>
+      <li>Unlimited users</li>
+      <li>Every feature, no gates</li>
+      <li>${{ overage }} per claim beyond the allowance</li>
+    </ul>
+    {% if org.plan == key and org.plan_status == 'active' %}
+      <button class="btn block secondary" disabled>Current plan</button>
+    {% else %}
+      <form method="post" action="/billing/subscribe">
+        <input type="hidden" name="plan" value="{{ key }}">
+        <button class="btn block" type="submit">Choose {{ p.name }}</button>
+      </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card" style="padding:14px 16px">
+  <h2 style="font-size:14px;margin-bottom:6px">How the allowance works</h2>
+  <p class="dim" style="margin:0;font-size:12.5px;line-height:1.6">
+    A claim counts once, when it is created. Re-valuing items on an existing claim does not
+    count again. The counter resets when each invoice is paid. All prices are AUD and exclude
+    GST, which is added at checkout with a tax invoice issued by Stripe.
+  </p>
+</div>
+
+{% endblock %}
