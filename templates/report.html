@@ -128,7 +128,8 @@ a{ color:inherit; text-decoration:none }
   display:flex; justify-content:space-between; align-items:flex-start;
   margin-bottom:3.5mm;
 }
-.brand{ display:flex; align-items:center; gap:2.4mm }
+.brand{ display:flex; align-items:center }
+.brand .logo{ height:9mm; width:auto; display:block; margin-bottom:.8mm }
 .brand svg{ display:block }
 .wordmark{ font-size:13pt; font-weight:700; letter-spacing:-.02em; color:var(--navy); line-height:1.1; white-space:nowrap }
 .descriptor{ font-size:7pt; letter-spacing:.13em; text-transform:uppercase; color:var(--secondary); white-space:nowrap }
@@ -380,7 +381,7 @@ h2{
 
   <thead><tr><td>
     <div class="runner">
-      <span><strong>ClaimSight</strong> · Contents Loss Assessment</span>
+      <span><img src="/static/logo-light.svg" alt="ClaimSight" style="height:4.4mm;width:auto;display:inline-block;vertical-align:-1.1mm"> · Contents Loss Assessment</span>
       <span>Claim {{ claim_ref }}</span>
     </div>
   </td></tr></thead>
@@ -398,13 +399,8 @@ h2{
   <!-- ============================================================ masthead -->
   <div class="masthead">
     <div class="brand">
-      <svg width="26" height="26" viewBox="0 0 28 28" aria-hidden="true">
-        <path d="M14 1.4 25 7.7v12.6L14 26.6 3 20.3V7.7z" fill="#10233F"/>
-        <path d="M18 10.6a5.6 5.6 0 1 0 0 6.8" fill="none" stroke="#fff"
-              stroke-width="2.4" stroke-linecap="round"/>
-      </svg>
       <div>
-        <div class="wordmark">ClaimSight</div>
+        <img class="logo" src="/static/logo-light.svg" alt="ClaimSight">
         <div class="descriptor">Contents Loss Assessment</div>
       </div>
     </div>

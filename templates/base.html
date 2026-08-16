@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}ClaimSight{% endblock %}</title>
+<link rel="icon" type="image/svg+xml" href="/static/logo-mark.svg">
+<link rel="apple-touch-icon" href="/static/logo-mark.svg">
+<meta name="theme-color" content="#0a1839">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -47,15 +51,13 @@ h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.011em}
   display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:40;
 }
 .sidebar .brand{
-  display:flex;align-items:center;gap:10px;padding:20px 18px 18px;
-  color:#fff;font-size:16px;font-weight:700;letter-spacing:-.02em;text-decoration:none;
+  display:flex;align-items:center;padding:20px 18px 20px;text-decoration:none;
 }
 .sidebar .brand:hover{text-decoration:none}
-.brand-mark{
-  width:26px;height:26px;border-radius:7px;flex:0 0 26px;
-  background:linear-gradient(150deg,var(--blue-500),var(--ai-600));
-  display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700;
-}
+.sidebar .brand .full{height:32px;width:auto;display:block}
+.sidebar .brand .mark-only{display:none;height:30px;width:auto}
+/* the login/signup pages reuse this mark on a light background */
+.brand-mark{ height:34px;width:auto;display:block }
 .nav{padding:6px 10px;display:flex;flex-direction:column;gap:1px;flex:1;overflow-y:auto}
 .nav-label{
   font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--sidebar-muted);
@@ -173,6 +175,8 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue-600);cursor:
   :root{--sidebar-w:64px}
   .sidebar .brand span,.nav a span,.userbox .who,.nav-label,.ver{display:none}
   .sidebar .brand,.nav a,.userbox{justify-content:center}
+  .sidebar .brand .full{display:none}
+  .sidebar .brand .mark-only{display:block}
   .page{padding:16px}
 }
 </style>
@@ -289,8 +293,9 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue-600);cursor:
 {% if user is defined and user %}
 <div class="shell">
   <aside class="sidebar">
-    <a class="brand" href="/jobs">
-      <span class="brand-mark" aria-hidden="true">C</span><span>ClaimSight</span>
+    <a class="brand" href="/jobs" aria-label="ClaimSight">
+      <img class="full" src="/static/logo-dark.svg" alt="ClaimSight" width="119" height="32">
+      <img class="mark-only" src="/static/logo-mark.svg" alt="ClaimSight" width="27" height="30">
     </a>
     <nav class="nav" aria-label="Primary">
       {% set section = active_section | default('claims') %}

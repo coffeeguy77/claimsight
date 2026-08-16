@@ -23,6 +23,7 @@ from fastapi.responses import (
     Response,
     StreamingResponse,
 )
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from passlib.context import CryptContext
 from sqlalchemy import func, select
@@ -57,6 +58,9 @@ from models import (
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = FastAPI(title="Claimsight")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+# Brand assets. Served with a long cache; the filenames are stable.
+app.mount("/static", StaticFiles(directory="static"), name="static")
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 SESSION_COOKIE = "claimsight_session"

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170.98 191.25">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #0cc0c0;
+      }
+
+      .cls-2 {
+        fill: #076ff4;
+      }
+
+      .cls-3 {
+        fill: #045efa;
+      }
+
+      .cls-4 {
+        fill: #1cd1a5;
+      }
+
+      .cls-5 {
+        fill: #0982f8;
+      }
+
+      .cls-6 {
+        fill: #0864fa;
+      }
+
+      .cls-7 {
+        fill: #09b1dd;
+      }
+
+      .cls-8 {
+        fill: #0360fa;
+      }
+
+      .cls-9 {
+        fill: #1dbfa1;
+      }
+
+      .cls-10 {
+        fill: #146cf2;
+      }
+
+      .cls-11 {
+        fill: #146ff7;
+      }
+
+      .cls-12 {
+        fill: #16c3a0;
+      }
+
+      .cls-13 {
+        fill: #0d9cf5;
+      }
+
+      .cls-14 {
+        fill: #20c9a5;
+      }
+
+      .cls-15 {
+        fill: #14cba0;
+      }
+
+      .cls-16 {
+        fill: #0576f9;
+      }
+
+      .cls-17 {
+        fill: #0b6cf9;
+      }
+
+      .cls-18 {
+        fill: #1c76f2;
+      }
+
+      .cls-19 {
+        fill: #0a65f3;
+      }
+
+      .cls-20 {
+        fill: #11c99e;
+      }
+
+      .cls-21 {
+        fill: #0390f2;
+      }
+
+      .cls-22 {
+        fill: #08aac9;
+      }
+
+      .cls-23 {
+        fill: #045df9;
+      }
+
+      .cls-24 {
+        fill: #07aaea;
+      }
+
+      .cls-25 {
+        fill: #12c1a7;
+      }
+
+      .cls-26 {
+        fill: #0aa6e3;
+      }
+
+      .cls-27 {
+        fill: #14c1c1;
+      }
+    </style>
+  </defs>
+  <g id="App">
+    <circle class="cls-8" cx="39.33" cy="47.1" r="11.04"/>
+    <circle class="cls-3" cx="64.69" cy="28.8" r="10.8"/>
+    <circle class="cls-16" cx="24.54" cy="73.44" r="10.68"/>
+    <circle class="cls-21" cx="21.29" cy="102.22" r="10.16"/>
+    <circle class="cls-3" cx="93.82" cy="22.4" r="10.05"/>
+    <circle class="cls-24" cx="28.67" cy="129.7" r="9.67"/>
+    <circle class="cls-7" cx="45.21" cy="151.68" r="9.55"/>
+    <circle class="cls-1" cx="68.52" cy="166.29" r="9.01"/>
+    <circle class="cls-20" cx="94.81" cy="171.18" r="8.81"/>
+    <circle class="cls-23" cx="121.09" cy="26.59" r="8.59"/>
+    <circle class="cls-15" cx="120.53" cy="166.85" r="7.45"/>
+    <circle class="cls-2" cx="59.34" cy="62.1" r="7.11"/>
+    <circle class="cls-6" cx="142.61" cy="39.62" r="7"/>
+    <circle class="cls-5" cx="48.18" cy="81.26" r="6.93"/>
+    <circle class="cls-17" cx="78.5" cy="48.76" r="6.88"/>
+    <circle class="cls-13" cx="46.01" cy="101.55" r="6.53"/>
+    <circle class="cls-26" cx="51.21" cy="120.44" r="6.49"/>
+    <circle class="cls-27" cx="81.68" cy="146.19" r="6.3"/>
+    <circle class="cls-19" cx="100.41" cy="45.15" r="6.28"/>
+    <circle class="cls-4" cx="141.77" cy="154.37" r="6.18"/>
+    <circle class="cls-22" cx="64.31" cy="135.7" r="6.07"/>
+    <circle class="cls-11" cx="120.51" cy="51.13" r="5.95"/>
+    <circle class="cls-25" cx="102.5" cy="148.88" r="6.01"/>
+    <circle class="cls-12" cx="122.52" cy="141.44" r="5.11"/>
+    <circle class="cls-10" cx="156.85" cy="59.57" r="4.74"/>
+    <circle class="cls-18" cx="137.1" cy="66.06" r="4.53"/>
+    <circle class="cls-14" cx="156.12" cy="134.97" r="4.36"/>
+    <circle class="cls-9" cx="137.33" cy="127.17" r="4.22"/>
+  </g>
+</svg>

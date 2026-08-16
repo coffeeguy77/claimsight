@@ -15,6 +15,9 @@
 <meta property="og:locale" content="en_AU">
 <meta name="twitter:card" content="summary_large_image">
 
+<link rel="icon" type="image/svg+xml" href="/static/logo-mark.svg">
+<link rel="apple-touch-icon" href="/static/logo-mark.svg">
+<meta name="theme-color" content="#0a1839">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -92,11 +95,10 @@ img,svg{display:block}
 header{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.86);
   backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--border)}
 .nav{display:flex;align-items:center;gap:34px;height:74px}
-.brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:21px;
-  letter-spacing:-.035em;color:var(--navy-900)}
+.brand{display:flex;align-items:center}
 .brand:hover{text-decoration:none}
-.mark{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff;
-  font-size:16px;font-weight:800;background:linear-gradient(150deg,var(--blue-500),var(--ai-600))}
+.brand img{height:38px;width:auto;display:block}
+footer .brand img{height:36px}
 .navlinks{display:flex;gap:30px;font-size:15px}
 .navlinks a{color:var(--text-secondary);font-weight:500}
 .navlinks a:hover{color:var(--text-primary);text-decoration:none}
@@ -429,7 +431,7 @@ footer a:hover{color:#fff;text-decoration:none}
 
 <header>
   <div class="wrap nav">
-    <a class="brand" href="/"><span class="mark" aria-hidden="true">C</span> ClaimSight</a>
+    <a class="brand" href="/"><img src="/static/logo-light.svg" alt="ClaimSight" width="152" height="38"></a>
     <nav class="navlinks" aria-label="Primary">
       <a href="#platform">Platform</a>
       <a href="#how">How it works</a>
@@ -818,8 +820,7 @@ footer a:hover{color:#fff;text-decoration:none}
       <div class="hd">
         <div>
           <div style="display:flex;align-items:center;gap:7px">
-            <span class="mark" style="width:28px;height:28px;font-size:13px;border-radius:7px">C</span>
-            <b style="font-size:17px;letter-spacing:-.025em">ClaimSight</b>
+            <img src="/static/logo-light.svg" alt="" width="112" height="28" style="height:28px;width:auto">
           </div>
           <div style="font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--text-secondary);margin-top:3px">
             Contents loss assessment</div>
@@ -1044,7 +1045,7 @@ footer a:hover{color:#fff;text-decoration:none}
   <div class="wrap">
     <div class="fgrid">
       <div>
-        <a class="brand" href="/" style="color:#fff"><span class="mark" aria-hidden="true">C</span> ClaimSight</a>
+        <a class="brand" href="/"><img src="/static/logo-dark.svg" alt="ClaimSight" width="134" height="36"></a>
         <p style="margin-top:12px;max-width:34ch;color:#8FA1B6">
           Contents loss assessment software for Australian loss assessors and insurers.</p>
       </div>

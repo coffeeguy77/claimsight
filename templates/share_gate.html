@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Contents Loss Assessment · ClaimSight</title>
+<link rel="icon" type="image/svg+xml" href="/static/logo-mark.svg">
+<link rel="apple-touch-icon" href="/static/logo-mark.svg">
+<meta name="theme-color" content="#0a1839">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,7 +20,8 @@
        font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px}
   .card{width:100%;max-width:410px;background:#fff;border:1px solid var(--border);
         border-radius:12px;padding:28px;box-shadow:0 1px 3px rgba(16,35,63,.07)}
-  .brand{display:flex;align-items:center;gap:9px;margin-bottom:22px}
+  .brand{margin-bottom:24px}
+  .brand img{height:37px;width:auto;display:block}
   .mark{width:27px;height:27px;border-radius:7px;background:var(--navy);color:#fff;
         display:grid;place-items:center;font-weight:700;font-size:13px}
   .wordmark{font-size:16px;font-weight:700;letter-spacing:-.02em;color:var(--navy)}
@@ -39,8 +43,7 @@
 <body>
 <div class="card">
   <div class="brand">
-    <span class="mark">C</span>
-    <span class="wordmark">ClaimSight</span>
+    <img src="/static/logo-light.svg" alt="ClaimSight" width="148" height="37">
   </div>
 
   {% if state == 'closed' %}
