@@ -162,14 +162,37 @@
     }
 
     document.documentElement.setAttribute('data-theme', theme.id);
-    try { localStorage.setItem(STORAGE_THEME, JSON.stringify(theme)); } catch (e) {}
+    /* Store the id, never the object. An earlier version saved the whole theme,
+       which meant a browser held a frozen copy of the palette as it existed the
+       day it was picked — so later changes to how a theme renders were ignored
+       on every reload. The id is resolved against the current preset list. */
+    try { localStorage.setItem(STORAGE_THEME, theme.id); } catch (e) {}
+  }
+
+  function byId(id) {
+    if (!id || id === DEFAULT.id) return null;
+    for (var i = 0; i < PRESETS.length; i++) if (PRESETS[i].id === id) return PRESETS[i];
+    return null;
   }
 
   function restore() {
-    try {
-      var saved = JSON.parse(localStorage.getItem(STORAGE_THEME) || 'null');
-      if (saved && saved.primary) { apply(saved); return saved.id; }
-    } catch (e) {}
+    var raw;
+    try { raw = localStorage.getItem(STORAGE_THEME); } catch (e) { return DEFAULT.id; }
+    if (!raw) return DEFAULT.id;
+
+    // Migrate anything written by the old object-storing version.
+    if (raw.charAt(0) === '{') {
+      var id = null;
+      try { id = (JSON.parse(raw) || {}).id; } catch (e) {}
+      raw = id || '';
+      try {
+        if (raw) localStorage.setItem(STORAGE_THEME, raw);
+        else localStorage.removeItem(STORAGE_THEME);
+      } catch (e) {}
+    }
+
+    var theme = byId(raw);
+    if (theme) { apply(theme); return theme.id; }
     return DEFAULT.id;
   }
 
