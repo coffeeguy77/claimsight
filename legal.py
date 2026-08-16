@@ -16,15 +16,19 @@ retention guarantees beyond what the product enforces. Everything stated here
 maps to something built and tested.
 
 THIS IS A STARTING DRAFT, NOT LEGAL ADVICE. Neither document has been reviewed
-by an Australian lawyer, and the placeholders below must be completed before
-either page is relied on commercially.
+by an Australian lawyer. The entity details are correct; the drafting has not
+been professionally checked.
 """
 
-# Fill these in before the pages mean anything legally.
-ENTITY = "Web Culture AI"
-ABN = "[ABN]"
-CONTACT_EMAIL = "[privacy@claimsight.com.au]"
-POSTAL = "[postal address]"
+# Registered entity behind ClaimSight. ClaimSight is a Web Culture product;
+# "Web Culture AI" is a division, not the contracting entity, so the legal
+# documents name the company that actually carries the obligations.
+ENTITY = "Bean Culture Pty Ltd"
+TRADING = "Web Culture"
+ABN = "33 600 754 676"
+ACN = "600 754 676"
+CONTACT_EMAIL = "privacy@claimsight.com.au"
+POSTAL = "U5, 47-49 Vicars Street, Mitchell ACT 2911, Australia"
 UPDATED = "16 August 2026"
 
 PRIVACY = f"""
@@ -55,9 +59,10 @@ PRIVACY = f"""
 </div>
 
 <h2 id="who">1. Who we are</h2>
-<p>ClaimSight is operated by {ENTITY} (ABN {ABN}). In this policy, "we" and "us" means
-{ENTITY}, and "you" means the assessing firm and its users.</p>
-<p>Contact us about privacy at <strong>{CONTACT_EMAIL}</strong> or {POSTAL}.</p>
+<p>ClaimSight is operated by {ENTITY} (ABN {ABN}, ACN {ACN}), trading as {TRADING}. In this
+policy, "we" and "us" means {ENTITY}, and "you" means the assessing firm and its users.</p>
+<p>Contact us about privacy at <strong>{CONTACT_EMAIL}</strong>, or write to {ENTITY},
+{POSTAL}.</p>
 
 <h2 id="roles">2. Our role, and your firm's role</h2>
 <p>There are two different kinds of personal information in ClaimSight and they are worth
@@ -177,7 +182,8 @@ TERMS = f"""
 </div>
 
 <h2>1. Agreement</h2>
-<p>These terms are between {ENTITY} (ABN {ABN}) and the organisation subscribing to ClaimSight.
+<p>These terms are between {ENTITY} (ABN {ABN}, ACN {ACN}) trading as {TRADING}, and the
+organisation subscribing to ClaimSight.
 By creating an account you accept them on behalf of your firm and confirm you are authorised
 to do so.</p>
 
@@ -252,7 +258,10 @@ the change.</p>
 that jurisdiction have non-exclusive jurisdiction.</p>
 
 <h2>14. Contact</h2>
-<p>{CONTACT_EMAIL} · {POSTAL}</p>
+<p><strong>{ENTITY}</strong> t/a {TRADING}<br>
+ABN {ABN} · ACN {ACN}<br>
+{POSTAL}<br>
+{CONTACT_EMAIL}</p>
 """
 
 PAGES = {
