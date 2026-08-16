@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Contents Loss Assessment Software for Australian Assessors | ClaimSight</title>
+<meta name="description" content="ClaimSight pairs every inventory line with photographic evidence, researches current Australian replacement costs, and produces settlement schedules insurers can audit line by line — with the assessor in control at every step.">
+<link rel="canonical" href="https://claimsight.com.au/">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://claimsight.com.au/">
+<meta property="og:title" content="Turn evidence into a defensible settlement | ClaimSight">
+<meta property="og:description" content="Contents loss assessment software for Australian loss assessors. Evidence pairing, Australian replacement research, assessor review, insurer-ready reports.">
+<meta property="og:locale" content="en_AU">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"ClaimSight",
+ "applicationCategory":"BusinessApplication","operatingSystem":"Web","areaServed":"AU",
+ "description":"Contents claim assessment and valuation software for Australian loss assessors and adjusters.",
+ "offers":{"@type":"AggregateOffer","priceCurrency":"AUD","lowPrice":"270","highPrice":"650","offerCount":"3"}}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+ {"@type":"Question","name":"How is replacement cost researched?",
+  "acceptedAnswer":{"@type":"Answer","text":"ClaimSight identifies the item from its inventory description and photographs, then searches current Australian retailers for the same product or its nearest current equivalent. Every figure is presented with the sources it came from and a confidence rating, so the assessor can verify it before accepting."}},
+ {"@type":"Question","name":"Is depreciation applied automatically?",
+  "acceptedAnswer":{"@type":"Answer","text":"Depreciation is calculated on a straight-line basis over the item's assessed effective life, adjusted for its recorded pre-loss condition and floored at a residual value. The age, effective life and rate applied are printed against every line, and the assessor can override any of them."}},
+ {"@type":"Question","name":"Can values be overridden?",
+  "acceptedAnswer":{"@type":"Answer","text":"Yes. Every AI-suggested value can be accepted, adjusted or flagged for review. Overridden lines are marked as assessor-adjusted on the report and the change is recorded in the audit trail with the previous and new value."}},
+ {"@type":"Question","name":"Can reports be sent to an insurer?",
+  "acceptedAnswer":{"@type":"Answer","text":"Yes. A settlement schedule can be printed as an A4 PDF or published to a link the insurer opens in any browser, optionally behind a passcode and an expiry date. Published links serve a frozen copy, so changing a figure afterwards never alters the document already on someone's claim file."}}]}
+</script>
+
+<style>
+:root{
+  /* 1440px is the design grid. Full-width bands extend past it; content never does. */
+  --site-max-width:1440px;
+  --app-bg:#F3F6F9; --surface:#FFFFFF; --surface-soft:#F8FAFC;
+  --navy-950:#071B30; --navy-900:#10233F; --navy-800:#173654;
+  --blue-600:#2563EB; --blue-500:#3478F6; --blue-100:#EDF4FF;
+  --ai-600:#0D9488; --ai-100:#E9F8F5;
+  --green-600:#17875D; --green-100:#E8F6EF;
+  --amber-600:#C9780E; --amber-100:#FFF4DF;
+  --red-600:#C64646; --red-100:#FDEAEA;
+  --text-primary:#142236; --text-secondary:#66788D; --text-muted:#8A98A9;
+  --border:#D9E2EA; --border-strong:#C8D3DE;
+  --r:10px; --r-lg:14px;
+  --shadow-sm:0 1px 2px rgba(16,35,63,.05);
+  --shadow:0 1px 3px rgba(16,35,63,.06), 0 8px 24px rgba(16,35,63,.05);
+  --shadow-lg:0 24px 70px rgba(7,27,48,.10), 0 6px 20px rgba(7,27,48,.06);
+  --hover:0 12px 32px rgba(7,27,48,.06);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--surface);color:var(--text-primary);
+  font-family:Inter,Geist,"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+a{color:var(--blue-600);text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-.028em;line-height:1.14}
+p{margin:0}
+img,svg{display:block}
+/* One container. Bands set their own background and nest this inside. */
+.wrap{width:min(var(--site-max-width), calc(100% - 64px));margin-inline:auto}
+.band{width:100%}
+@media (max-width:1100px){ .wrap{width:min(100% - 40px, var(--site-max-width))} }
+@media (max-width:640px){ .wrap{width:calc(100% - 32px)} }
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;
+  padding:0 26px;border-radius:9px;background:var(--blue-600);color:#fff;border:1px solid var(--blue-600);
+  font-weight:600;font-size:15.5px;cursor:pointer;white-space:nowrap;transition:background .18s ease}
+.btn:hover{background:#1D53C9;color:#fff;text-decoration:none}
+.btn.ghost{background:transparent;color:var(--text-primary);border-color:var(--border-strong)}
+.btn.ghost:hover{background:var(--surface-soft);color:var(--text-primary)}
+.btn.light{background:#fff;color:var(--navy-900);border-color:#fff}
+.btn.light:hover{background:#E9EFF7;color:var(--navy-900)}
+.btn.onnavy{background:transparent;color:#fff;border-color:rgba(255,255,255,.3)}
+.btn.onnavy:hover{background:rgba(255,255,255,.09);color:#fff}
+.btn.sm{height:41px;padding:0 18px;font-size:14.5px}
+.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--blue-600)}
+.lede{font-size:18.5px;color:var(--text-secondary);line-height:1.55;max-width:600px}
+
+/* ============================================================= public header */
+header{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.86);
+  backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--border)}
+.nav{display:flex;align-items:center;gap:34px;height:74px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:21px;
+  letter-spacing:-.035em;color:var(--navy-900)}
+.brand:hover{text-decoration:none}
+.mark{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff;
+  font-size:16px;font-weight:800;background:linear-gradient(150deg,var(--blue-500),var(--ai-600))}
+.navlinks{display:flex;gap:30px;font-size:15px}
+.navlinks a{color:var(--text-secondary);font-weight:500}
+.navlinks a:hover{color:var(--text-primary);text-decoration:none}
+.navcta{margin-left:auto;display:flex;gap:12px;align-items:center}
+.navtoggle{display:none;margin-left:auto;background:none;border:1px solid var(--border);
+  border-radius:8px;width:40px;height:36px;cursor:pointer}
+@media (max-width:940px){
+  .navlinks{display:none} .navcta{margin-left:auto}
+  .navcta .btn.ghost{display:none}
+}
+
+/* ======================================================================= hero */
+.hero{padding:84px 0 76px;position:relative;
+  background:radial-gradient(1100px 520px at 10% -14%, #E8F0FE 0%, transparent 58%),
+             radial-gradient(900px 460px at 78% 28%, rgba(37,99,235,.075) 0%, transparent 40%),
+             var(--surface)}
+.hero-grid{display:grid;grid-template-columns:minmax(0,43fr) minmax(0,57fr);gap:56px;
+  align-items:center;min-height:640px}
+.hero h1{font-size:clamp(46px,4.2vw,68px);line-height:1.02;letter-spacing:-.037em;
+  margin:20px 0 22px;max-width:640px}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;margin:34px 0 28px}
+.trustrow{display:flex;gap:30px;flex-wrap:wrap;align-items:center}
+.trust{display:flex;gap:9px;align-items:center;font-size:14px;color:var(--text-secondary)}
+.trust svg{width:19px;height:19px;color:var(--blue-600);flex:none}
+.trust b{color:var(--text-primary);font-weight:600}
+@media (max-width:1050px){ .hero-grid{grid-template-columns:1fr;gap:44px;min-height:0} }
+
+/* ------------------------------------------------- hero product composition */
+.app{background:#fff;border:1px solid rgba(16,35,63,.10);border-radius:13px;
+  box-shadow:var(--shadow-lg);overflow:hidden;font-size:14px}
+.app-top{padding:17px 22px;border-bottom:1px solid var(--border)}
+.app-back{font-size:13px;color:var(--blue-600);font-weight:500}
+.app-title{display:flex;align-items:center;gap:9px;margin-top:5px}
+.app-title h3{font-size:23px;letter-spacing:-.02em}
+.pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase}
+.pill.green{background:var(--green-100);color:var(--green-600)}
+.pill.red{background:var(--red-100);color:var(--red-600)}
+.pill.amber{background:var(--amber-100);color:var(--amber-600)}
+.pill.ai{background:var(--ai-100);color:var(--ai-600)}
+.app-meta{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;padding:15px 22px;
+  border-bottom:1px solid var(--border);background:var(--surface-soft)}
+.app-meta .k{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted)}
+.app-meta .v{font-size:13.5px;font-weight:600;margin-top:2px;line-height:1.3}
+.app-tabs{display:flex;gap:24px;padding:0 22px;border-bottom:1px solid var(--border);font-size:13.5px}
+.app-tabs span{padding:13px 0;color:var(--text-secondary)}
+.app-tabs .on{color:var(--blue-600);font-weight:600;box-shadow:inset 0 -2px 0 var(--blue-600)}
+.app-body{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0}
+.app-col{padding:18px;border-right:1px solid var(--border)}
+.app-col:last-child{border-right:0;background:var(--surface-soft)}
+.collabel{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--text-muted);margin-bottom:8px}
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.shot{aspect-ratio:4/3;border-radius:6px;border:1px solid var(--border);
+  background:linear-gradient(145deg,#C6CBC8,#8E9691 60%,#6E7671);position:relative;overflow:hidden}
+.shot:nth-child(2){background:linear-gradient(140deg,#D6D2C8,#A79E8E 55%,#7C7466)}
+.shot:nth-child(3){background:linear-gradient(150deg,#B9C2C7,#87949C 60%,#5F6C74)}
+.shot:nth-child(4){background:linear-gradient(135deg,#CCC6BC,#9A8F7F 55%,#6F675B)}
+.shot::after{content:"";position:absolute;inset:22% 18%;border-radius:4px;background:rgba(255,255,255,.16)}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;
+  border-bottom:1px dotted var(--border);font-size:13px}
+.kv:last-child{border-bottom:0}
+.kv .k{color:var(--text-secondary)}
+.kv .v{font-weight:600;text-align:right}
+.idcard{border:1px solid var(--border);border-radius:9px;padding:14px;background:#fff;margin-bottom:12px}
+.idcard h4{font-size:16px;letter-spacing:-.01em;line-height:1.3}
+.idcard .sub{font-size:12.5px;color:var(--text-secondary);margin-top:3px}
+.src{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;color:var(--text-secondary)}
+.src b{color:var(--text-primary);font-weight:600;font-variant-numeric:tabular-nums}
+.rec{border:1px solid var(--border);border-radius:9px;padding:14px;background:#fff}
+.rec .amt{font-size:26px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.field{margin-bottom:11px}
+.field .k{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);
+  display:block;margin-bottom:3px}
+.inp{height:34px;border:1px solid var(--border);border-radius:7px;background:#fff;
+  display:flex;align-items:center;padding:0 11px;font-size:13px;font-weight:500;
+  justify-content:space-between}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.btnrow{display:grid;gap:6px;margin-top:10px}
+.mini{height:34px;border-radius:7px;display:grid;place-items:center;font-size:13px;font-weight:600}
+.mini.p{background:var(--blue-600);color:#fff}
+.mini.s{background:#fff;border:1px solid var(--border);color:var(--text-primary)}
+@media (max-width:640px){
+  .app-meta{grid-template-columns:repeat(2,1fr)}
+  .app-body{grid-template-columns:1fr}
+  .app-col{border-right:0;border-bottom:1px solid var(--border)}
+}
+
+/* =============================================================== metric strip */
+.metrics{border:1px solid var(--border);border-radius:var(--r-lg);background:#fff;
+  display:grid;grid-template-columns:repeat(4,1fr);box-shadow:var(--shadow-sm);overflow:hidden;
+  min-height:122px}
+.metric{display:flex;gap:17px;align-items:center;padding:26px 30px;border-right:1px solid var(--border)}
+.metric:last-child{border-right:0}
+.micon{width:44px;height:44px;border-radius:11px;display:grid;place-items:center;flex:none;
+  background:var(--blue-100);color:var(--blue-600)}
+.micon svg{width:22px;height:22px}
+.metric .n{font-size:30px;font-weight:700;letter-spacing:-.032em;line-height:1.05}
+.metric .l{font-size:14.5px;font-weight:600;margin-top:4px}
+.metric .s{font-size:13px;color:var(--text-muted);margin-top:1px}
+@media (max-width:900px){ .metrics{grid-template-columns:1fr 1fr}
+  .metric:nth-child(2){border-right:0} .metric:nth-child(-n+2){border-bottom:1px solid var(--border)} }
+@media (max-width:520px){ .metrics{grid-template-columns:1fr}
+  .metric{border-right:0;border-bottom:1px solid var(--border)} }
+
+/* ==================================================================== sections */
+section{padding:112px 0}
+section.compact{padding:84px 0}
+.sechead{max-width:720px;margin-bottom:52px}
+.sechead h2{font-size:clamp(34px,3vw,46px);line-height:1.08;letter-spacing:-.028em;margin:14px 0 16px}
+.sechead p{font-size:17.5px;color:var(--text-secondary);max-width:660px}
+
+/* how it works */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:20px;align-items:stretch;position:relative}
+.step{border:1px solid var(--border);border-radius:var(--r);padding:26px 24px;background:#fff;
+  box-shadow:var(--shadow-sm);position:relative;min-height:196px;
+  transition:transform .18s ease, box-shadow .18s ease}
+.step:hover{transform:translateY(-2px);box-shadow:var(--hover)}
+/* connector between steps, drawn in the gap */
+.step:not(:last-child)::after{content:"";position:absolute;top:44px;right:-20px;width:20px;height:1px;
+  background:var(--border-strong)}
+.step:not(:last-child)::before{content:"";position:absolute;top:41px;right:-9px;width:6px;height:6px;
+  border-top:1.5px solid var(--border-strong);border-right:1.5px solid var(--border-strong);
+  transform:rotate(45deg)}
+.step-n{display:flex;align-items:center;gap:11px;margin-bottom:18px}
+.step-n .ico{width:40px;height:40px;border-radius:11px;background:var(--blue-100);color:var(--blue-600);
+  display:grid;place-items:center}
+.step-n .ico svg{width:21px;height:21px}
+.step-n .num{margin-left:auto;font-size:15px;font-weight:700;color:var(--border-strong);
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.step h3{font-size:18px;margin-bottom:8px;letter-spacing:-.02em}
+.step p{font-size:14.5px;color:var(--text-secondary);line-height:1.5}
+@media (max-width:1000px){ .step::after,.step::before{display:none} }
+@media (max-width:1000px){ .steps{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:560px){ .steps{grid-template-columns:1fr} }
+
+/* evidence (dark) */
+.dark{background:var(--navy-950);color:#fff;padding:136px 0;overflow:hidden}
+.dark h2{font-size:clamp(34px,3vw,46px);line-height:1.08;letter-spacing:-.028em;color:#fff}
+.dark p{color:#9BB0C6;font-size:17px;max-width:420px}
+.dark .eyebrow{color:#6FA6FF}
+.flowgrid{display:grid;grid-template-columns:minmax(0,32fr) minmax(0,68fr);gap:64px;align-items:center}
+.flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:16px;align-items:stretch}
+.flowlabel{font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+  color:#7C93AC;margin-bottom:13px}
+.arrow{color:#41608A;font-size:24px;align-self:center;padding-top:22px}
+.panel{background:#fff;border-radius:11px;padding:14px;color:var(--text-primary);
+  box-shadow:0 18px 40px rgba(0,0,0,.22)}
+.panel.tint{background:#0F2A47;border:1px solid #23456B;color:#fff}
+.panel.tint .amt{color:#fff}
+.evgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.evgrid .shot{aspect-ratio:1;border-radius:5px}
+@media (max-width:1050px){
+  .flowgrid{grid-template-columns:1fr;gap:26px}
+  .flow{grid-template-columns:1fr;gap:8px}
+  .arrow{transform:rotate(90deg);padding:0;justify-self:center}
+}
+
+/* ai + human */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.duocard{border:1px solid var(--border);border-radius:var(--r-lg);padding:36px;background:#fff;
+  box-shadow:var(--shadow-sm);display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:start;
+  min-height:460px}
+.duocard.ai{background:linear-gradient(180deg,var(--ai-100) 0%, #fff 42%)}
+.duocard.human{background:linear-gradient(180deg,var(--green-100) 0%, #fff 42%)}
+.duocard h3{font-size:25px;margin-bottom:12px;letter-spacing:-.025em}
+.duocard>div>p{font-size:15.5px;color:var(--text-secondary)}
+.ticks{list-style:none;margin:14px 0 0;padding:0}
+.ticks li{display:flex;gap:10px;font-size:15px;padding:7px 0;color:var(--text-secondary)}
+.ticks svg{width:18px;height:18px;flex:none;margin-top:3px;color:var(--green-600)}
+.claimline{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;margin-bottom:8px;
+  font-size:14px;font-weight:500}
+.statement{margin-top:34px;min-height:78px;display:flex;align-items:center;justify-content:center;
+  gap:14px;padding:0 28px;border-radius:var(--r-lg);
+  background:var(--navy-900);color:#fff;text-align:center;font-size:20px;font-weight:600;
+  letter-spacing:-.018em}
+.statement svg{width:22px;height:22px;color:#8FD8CE;flex:none}
+.statement b{color:#8FD8CE}
+@media (max-width:1000px){ .duo{grid-template-columns:1fr} }
+@media (max-width:620px){ .duocard{grid-template-columns:1fr} }
+
+/* audit */
+.audit{border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;background:#fff;
+  box-shadow:var(--shadow-sm)}
+table{width:100%;border-collapse:collapse}
+th{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);
+  text-align:left;padding:15px 20px;background:var(--surface-soft);border-bottom:1px solid var(--border);
+  font-weight:600;white-space:nowrap}
+td{padding:17px 20px;border-bottom:1px solid var(--border);font-size:14.5px}
+tbody tr:hover{background:#F7FAFD}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;font-weight:600}
+.tag{display:inline-block;padding:4px 11px;border-radius:6px;font-size:12.5px;font-weight:600}
+.tag.a{background:var(--ai-100);color:var(--ai-600)}
+.delta{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.delta .to{color:var(--green-600)}
+.delta .arw{color:var(--text-muted);padding:0 5px}
+.tag.o{background:var(--amber-100);color:var(--amber-600)}
+.tag.s{background:var(--blue-100);color:var(--blue-600)}
+.tag.x{background:var(--red-100);color:var(--red-600)}
+.tbl-scroll{overflow-x:auto}
+.tbl-scroll table{min-width:1020px}
+
+/* report */
+.reportgrid{display:grid;grid-template-columns:minmax(0,40fr) minmax(0,60fr);gap:60px;align-items:center}
+/* three stacked pages, the front one carrying the detail */
+.sheetstack{position:relative;padding:0 34px 34px 0}
+.sheetstack::before,.sheetstack::after{content:"";position:absolute;background:#fff;
+  border:1px solid var(--border);border-radius:10px;box-shadow:0 14px 40px rgba(7,27,48,.08)}
+.sheetstack::before{inset:30px -0px -30px 30px;z-index:0}
+.sheetstack::after{inset:16px 16px -16px 16px;z-index:1}
+.sheet{position:relative;z-index:2;background:#fff;border:1px solid var(--border);border-radius:10px;
+  box-shadow:var(--shadow-lg);padding:32px;font-size:13px;min-height:520px}
+.sheet .hd{display:flex;justify-content:space-between;align-items:flex-start;
+  border-bottom:2px solid var(--navy-900);padding-bottom:15px;margin-bottom:20px}
+.sheet h4{font-size:21px;letter-spacing:-.025em}
+@media (max-width:940px){ .reportgrid{grid-template-columns:1fr;gap:26px} }
+
+/* personas + security */
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.pcard{border:1px solid var(--border);border-radius:var(--r-lg);padding:34px;background:#fff;
+  box-shadow:var(--shadow-sm);min-height:280px;transition:transform .18s ease,box-shadow .18s ease}
+.pcard:hover{transform:translateY(-2px);box-shadow:var(--hover)}
+.pcard h3{font-size:21px;margin-bottom:11px;letter-spacing:-.024em}
+.pcard p{font-size:15.5px;color:var(--text-secondary)}
+.picon{width:52px;height:52px;border-radius:13px;background:var(--blue-100);color:var(--blue-600);
+  display:grid;place-items:center;margin-bottom:20px}
+.picon svg{width:26px;height:26px}
+@media (max-width:900px){ .trio{grid-template-columns:1fr} }
+
+.secgrid{display:grid;grid-template-columns:minmax(0,35fr) minmax(0,65fr);gap:60px;align-items:start}
+.seclist{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.secitem{display:block;padding:26px;border:1px solid var(--border);border-radius:var(--r);
+  background:#fff;min-height:212px}
+.secitem svg{width:26px;height:26px;color:var(--blue-600);margin-bottom:16px}
+.secitem b{display:block;font-size:16.5px;margin-bottom:7px;letter-spacing:-.02em}
+.secitem span{font-size:14.5px;color:var(--text-secondary);line-height:1.55}
+@media (max-width:1050px){ .secgrid{grid-template-columns:1fr;gap:36px} }
+@media (max-width:820px){ .seclist{grid-template-columns:1fr} }
+
+/* pricing */
+.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;align-items:stretch;
+  max-width:1240px;margin-inline:auto}
+.plan{border:1px solid var(--border);border-radius:var(--r-lg);padding:36px;background:#fff;
+  display:flex;flex-direction:column;box-shadow:var(--shadow-sm);position:relative;min-height:440px}
+.plan.hot{border-color:var(--blue-600);box-shadow:0 0 0 1px var(--blue-600),var(--shadow)}
+.plan .tagpop{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--blue-600);
+  color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:3px 11px;border-radius:20px;white-space:nowrap}
+.plan .nm{font-size:19px;font-weight:700;letter-spacing:-.02em}
+.plan .pr{font-size:46px;font-weight:800;letter-spacing:-.038em;margin:14px 0 0;line-height:1}
+.plan .pr small{font-size:16px;font-weight:500;color:var(--text-secondary);letter-spacing:0}
+.plan ul{list-style:none;margin:22px 0 30px;padding:0}
+.plan li{display:flex;gap:10px;font-size:15px;padding:7px 0;color:var(--text-secondary)}
+.plan li svg{width:17px;height:17px;flex:none;margin-top:3px;color:var(--green-600)}
+.plan .btn{margin-top:auto}
+.assure{display:flex;gap:36px;justify-content:center;flex-wrap:wrap;margin-top:36px;
+  font-size:14.5px;color:var(--text-secondary)}
+.assure span{display:flex;gap:7px;align-items:center}
+.assure svg{width:17px;height:17px;color:var(--text-muted)}
+@media (max-width:900px){ .plans{grid-template-columns:1fr} }
+
+/* faq */
+details{border-bottom:1px solid var(--border)}
+summary{min-height:68px;padding:20px 0;font-size:17px;font-weight:600;cursor:pointer;list-style:none;
+  display:flex;justify-content:space-between;gap:24px;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--text-muted);font-weight:400;font-size:27px;line-height:1;flex:none}
+details[open] summary::after{content:"−"}
+details p{margin:-4px 0 22px;font-size:16px;color:var(--text-secondary);max-width:78ch;line-height:1.62}
+
+/* closer + footer */
+.closer{background:var(--navy-950);color:#fff;padding:120px 0 112px}
+.closer-in{display:grid;grid-template-columns:minmax(0,65fr) minmax(0,35fr);gap:48px;align-items:center}
+.closer h2{font-size:clamp(34px,3.6vw,52px);line-height:1.06;letter-spacing:-.032em;color:#fff;max-width:720px}
+.closer p{color:#9BB0C6;margin-top:18px;max-width:620px;font-size:17.5px}
+.closer .acts{display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:900px){ .closer-in{grid-template-columns:1fr} .closer .acts{justify-content:flex-start} }
+footer{background:var(--navy-950);color:#8FA1B6;padding:0 0 52px;font-size:14px}
+.fgrid{display:grid;grid-template-columns:minmax(0,2.2fr) repeat(3,minmax(0,1fr));gap:48px;
+  padding:56px 0 44px;border-top:1px solid rgba(255,255,255,.09)}
+footer h4{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:#C6D3E3;margin-bottom:13px}
+footer a{color:#8FA1B6;display:block;padding:6px 0}
+footer a:hover{color:#fff;text-decoration:none}
+.fbot{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  padding-top:22px;border-top:1px solid rgba(255,255,255,.09);font-size:12.5px}
+@media (max-width:800px){ .fgrid{grid-template-columns:1fr 1fr} }
+
+@media (prefers-reduced-motion:no-preference){
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+  .reveal.in{opacity:1;transform:none}
+}
+:focus-visible{outline:2px solid var(--blue-600);outline-offset:2px;border-radius:4px}
+
+/* ------------------------------------------------------------------ tablet */
+@media (max-width:1100px){
+  section{padding:88px 0}
+  .dark{padding:96px 0}
+  .hero{padding:64px 0 56px}
+}
+/* ------------------------------------------------------------------ mobile */
+@media (max-width:640px){
+  body{font-size:15px}
+  section{padding:64px 0}
+  .dark{padding:72px 0}
+  .hero{padding:44px 0 40px}
+  .hero h1{font-size:clamp(36px,9vw,44px)}
+  .lede,.hero .lede{font-size:16.5px}
+  .sechead h2,.dark h2{font-size:30px}
+  .sechead{margin-bottom:34px}
+  .metrics{min-height:0}
+  .metric{padding:20px}
+  .plan{padding:26px;min-height:0}
+  .duocard{padding:24px;min-height:0}
+  .pcard,.secitem{padding:24px;min-height:0}
+  .sheet{padding:20px;min-height:0;font-size:11.5px}
+  .sheetstack{padding:0 18px 18px 0}
+  .closer{padding:72px 0}
+  .closer .acts .btn{width:100%}
+  .trustrow{gap:14px;flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+
+<a href="#main" class="btn sm" style="position:absolute;left:-9999px"
+   onfocus="this.style.left='12px';this.style.top='12px';this.style.position='fixed';this.style.zIndex=99"
+   onblur="this.style.left='-9999px'">Skip to content</a>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="/"><span class="mark" aria-hidden="true">C</span> ClaimSight</a>
+    <nav class="navlinks" aria-label="Primary">
+      <a href="#platform">Platform</a>
+      <a href="#how">How it works</a>
+      <a href="#assessors">For assessors</a>
+      <a href="#security">Security</a>
+      <a href="#pricing">Pricing</a>
+    </nav>
+    <div class="navcta">
+      <a class="btn ghost sm" href="/login">Sign in</a>
+      <a class="btn sm" href="/signup">Start free trial</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ==================================================================== hero -->
+<div class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Contents loss assessment software · Australia</div>
+      <h1>Turn evidence into a defensible settlement.</h1>
+      <p class="lede">
+        ClaimSight pairs every inventory line with photographic evidence, researches current
+        Australian replacement costs, and produces settlement schedules insurers can audit line
+        by line — with the assessor in control at every step.
+      </p>
+      <div class="hero-cta">
+        <a class="btn" href="/signup">Start free trial</a>
+        <a class="btn ghost" href="#how">See how it works</a>
+      </div>
+      <div class="trustrow">
+        <div class="trust">
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 1.7 3 4.8v5.4c0 4 2.9 7.2 7 8.1 4.1-.9 7-4.1 7-8.1V4.8l-7-3.1Zm0 3.6 4.4 2v3.9c0 2.7-1.8 5-4.4 5.7-2.6-.7-4.4-3-4.4-5.7V7.3l4.4-2Z"/></svg>
+          <span><b>Australian pricing</b>researched with sources</span>
+        </div>
+        <div class="trust">
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 9.5c3.6 0 6.5 2 6.5 4.5v1.5h-13V16c0-2.5 2.9-4.5 6.5-4.5Z"/></svg>
+          <span><b>AI research</b>with human review</span>
+        </div>
+        <div class="trust">
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M4 2h8l4 4v12H4V2Zm7 1.5V7h3.5L11 3.5ZM6.5 10h7v1.5h-7V10Zm0 3h7v1.5h-7V13Z"/></svg>
+          <span><b>Defensible by design</b>full audit trail</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- product composition. Representative sample data, not customer figures. -->
+    <div class="app" role="img"
+         aria-label="ClaimSight assessment screen: a water-damaged storage tank identified as a Rheem 135L electric unit, priced against three Australian retailers, with an assessor valuation panel.">
+      <div class="app-top">
+        <div class="app-back">← Back to claims</div>
+        <div class="app-title">
+          <h3>Claim E010021610</h3>
+          <span class="pill green">Assessment complete</span>
+        </div>
+      </div>
+      <div class="app-meta">
+        <div><div class="k">Claimant</div><div class="v">C. Matthews</div></div>
+        <div><div class="k">Claim type</div><div class="v">Water damage</div></div>
+        <div><div class="k">Location</div><div class="v">Kenny ACT</div></div>
+        <div><div class="k">Insurer</div><div class="v">Sample Ins.</div></div>
+        <div><div class="k">Excess</div><div class="v">A$1,000</div></div>
+        <div><div class="k">Loss date</div><div class="v">June 2026</div></div>
+      </div>
+      <div class="app-tabs">
+        <span>Overview</span><span class="on">Evidence (18)</span><span>AI research</span>
+        <span>Pricing</span><span>Audit (15)</span>
+      </div>
+      <div class="app-body">
+        <div class="app-col">
+          <div class="collabel">Evidence</div>
+          <div class="shots"><div class="shot"></div><div class="shot"></div>
+            <div class="shot"></div><div class="shot"></div></div>
+          <div style="margin-top:9px">
+            <div class="kv"><span class="k">Category</span><span class="v">Whitegoods</span></div>
+            <div class="kv"><span class="k">Location</span><span class="v">Storage shed</span></div>
+            <div class="kv"><span class="k">Cause</span><span class="v">Water</span></div>
+            <div class="kv"><span class="k">Confidence</span><span class="v"><span class="pill amber">Medium</span></span></div>
+          </div>
+        </div>
+
+        <div class="app-col">
+          <div class="collabel">AI identified product</div>
+          <div class="idcard">
+            <h4>Rheem 135L Electric Storage Tank</h4>
+            <div class="sub">Manufacturer unconfirmed · closest current equivalent</div>
+          </div>
+          <div class="collabel">Researched pricing</div>
+          <div class="idcard" style="padding:8px 10px">
+            <div class="src"><span>mitre10.com.au</span><b>A$520.00</b></div>
+            <div class="src"><span>rheem.com.au</span><b>A$505.00</b></div>
+            <div class="src"><span>bunnings.com.au</span><b>A$538.00</b></div>
+            <div class="src" style="color:var(--blue-600)"><span>+ 2 more sources</span><b></b></div>
+          </div>
+          <div class="rec">
+            <div class="collabel" style="margin-bottom:3px">Recommended</div>
+            <div class="amt">A$520.00</div>
+          </div>
+        </div>
+
+        <div class="app-col">
+          <div class="collabel">Valuation &amp; adjustment</div>
+          <div class="field">
+            <span class="k">Replacement cost (AUD)</span>
+            <div class="inp"><span>A$520.00</span></div>
+          </div>
+          <div class="two">
+            <div class="field"><span class="k">Quantity</span><div class="inp"><span>1</span></div></div>
+            <div class="field"><span class="k">Condition</span><div class="inp"><span>Average</span><span>▾</span></div></div>
+          </div>
+          <div class="two">
+            <div class="field"><span class="k">Depreciation</span><div class="inp"><span>50%</span></div></div>
+            <div class="field"><span class="k">Eff. life</span><div class="inp"><span>12 yrs</span></div></div>
+          </div>
+          <div class="field">
+            <span class="k">Current value</span>
+            <div class="inp" style="background:var(--green-100);border-color:#BFE3D0">
+              <span style="font-weight:700;color:var(--green-600)">A$260.00</span></div>
+          </div>
+          <div class="btnrow">
+            <div class="mini p">Save adjustment</div>
+            <div class="mini s">Accept AI valuation</div>
+            <div class="mini s">Flag for review</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ metric strip -->
+<div class="wrap" style="margin-top:-18px">
+  <div class="metrics reveal">
+    <div class="metric">
+      <span class="micon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 3h14v3H3V3Zm0 5h14v9H3V8Zm2 2v5h4v-5H5Z"/></svg></span>
+      <div><div class="n">99</div><div class="l">Items assessed</div>
+        <div class="s">In this sample claim</div></div>
+    </div>
+    <div class="metric">
+      <span class="micon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.7 3 4.8v5.4c0 4 2.9 7.2 7 8.1 4.1-.9 7-4.1 7-8.1V4.8l-7-3.1Zm-1 11.6L5.6 10l1.3-1.3L9 10.8l4.1-4.1 1.3 1.3L9 13.3Z"/></svg></span>
+      <div><div class="n">100%</div><div class="l">Evidence linked</div>
+        <div class="s">Every line paired to a photograph</div></div>
+    </div>
+    <div class="metric">
+      <span class="micon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm.9 3.6v4.9l3.5 2.1-.9 1.5-4.4-2.7V5.6h1.8Z"/></svg></span>
+      <div><div class="n">Australian</div><div class="l">replacement research</div>
+        <div class="s">Local retailers, GST inclusive</div></div>
+    </div>
+    <div class="metric">
+      <span class="micon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 2h8l4 4v12H4V2Zm7 1.5V7h3.5L11 3.5ZM6.5 10h7v1.5h-7V10Zm0 3h7v1.5h-7V13Z"/></svg></span>
+      <div><div class="n">Auditable</div><div class="l">every adjustment</div>
+        <div class="s">Recorded against the assessor</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================== how it works -->
+<section id="how">
+  <div class="wrap">
+    <div class="sechead reveal">
+      <div class="eyebrow">How it works</div>
+      <h2>From photo report to settlement schedule.</h2>
+      <p>The capture work you already do stays exactly as it is. ClaimSight starts where the
+         evening of searching retail websites used to begin.</p>
+    </div>
+    <div class="steps reveal">
+      <div class="step">
+        <div class="step-n"><span class="ico"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2 5.5 6.5 7 8l2-2v7h2V6l2 2 1.5-1.5L10 2ZM4 15v2h12v-2H4Z"/></svg></span><span class="num">01</span></div>
+        <h3>Import</h3>
+        <p>Inventory spreadsheet and the assessor's photo report, in minutes.</p>
+      </div>
+      <div class="step">
+        <div class="step-n"><span class="ico"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4h14v12H3V4Zm2 2v6.5l3-3 2.5 2.5L14 8l1 1V6H5Z"/></svg></span><span class="num">02</span></div>
+        <h3>Match</h3>
+        <p>Photographs pair to inventory lines automatically by reference number.</p>
+      </div>
+      <div class="step">
+        <div class="step-n"><span class="ico"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a7 7 0 1 0 4.2 12.6l3.1 3.1 1.4-1.4-3.1-3.1A7 7 0 0 0 9 2Zm0 2a5 5 0 1 1 0 10A5 5 0 0 1 9 4Z"/></svg></span><span class="num">03</span></div>
+        <h3>Research</h3>
+        <p>The item is identified and priced against current Australian retailers.</p>
+      </div>
+      <div class="step">
+        <div class="step-n"><span class="ico"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 9.5c3.6 0 6.5 2 6.5 4.5v1.5h-13V16c0-2.5 2.9-4.5 6.5-4.5Z"/></svg></span><span class="num">04</span></div>
+        <h3>Review</h3>
+        <p>The assessor accepts, adjusts, depreciates or flags every value.</p>
+      </div>
+      <div class="step">
+        <div class="step-n"><span class="ico"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.7 3 4.8v5.4c0 4 2.9 7.2 7 8.1 4.1-.9 7-4.1 7-8.1V4.8l-7-3.1Zm-1 11.6L5.6 10l1.3-1.3L9 10.8l4.1-4.1 1.3 1.3L9 13.3Z"/></svg></span><span class="num">05</span></div>
+        <h3>Publish</h3>
+        <p>Insurer-ready A4 PDF, or a passcode-protected link you can send.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ evidence flow -->
+<section id="platform" class="band dark" style="padding-top:136px">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="flowgrid">
+        <div>
+          <div class="eyebrow">The ClaimSight difference</div>
+          <h2 style="margin-top:14px">Every value starts with the evidence.</h2>
+          <p style="margin-top:14px">
+            Photographic evidence stays attached to the inventory line for the whole assessment —
+            through identification, pricing, adjustment and the final schedule. Nothing is valued
+            from a description alone.
+          </p>
+          <p style="margin-top:16px"><a href="#how" style="color:#7FB4FF">See the full workflow →</a></p>
+        </div>
+        <div class="flow">
+          <div>
+            <div class="flowlabel">Evidence</div>
+            <div class="panel"><div class="evgrid">
+              <div class="shot"></div><div class="shot"></div><div class="shot"></div>
+              <div class="shot"></div><div class="shot"></div><div class="shot"></div>
+            </div></div>
+          </div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div>
+            <div class="flowlabel">AI identification</div>
+            <div class="panel">
+              <div style="font-size:15px;font-weight:700;line-height:1.3">Rheem 135L Electric Storage Tank</div>
+              <div style="margin-top:6px"><span class="pill amber">Medium confidence</span></div>
+              <div style="margin-top:11px;font-size:12.5px;color:var(--text-secondary)">
+                Model unconfirmed — nearest current equivalent priced.</div>
+            </div>
+          </div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div>
+            <div class="flowlabel">Australian pricing</div>
+            <div class="panel">
+              <div class="src"><span>mitre10.com.au</span><b>A$520</b></div>
+              <div class="src"><span>rheem.com.au</span><b>A$505</b></div>
+              <div class="src"><span>bunnings.com.au</span><b>A$538</b></div>
+              <div class="src" style="color:var(--blue-600)"><span>+2 sources</span><b></b></div>
+            </div>
+          </div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div>
+            <div class="flowlabel">Recommended value</div>
+            <div class="panel tint">
+              <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8FA9C4">Replacement</div>
+              <div class="amt" style="font-size:31px;font-weight:700;letter-spacing:-.033em">A$520.00</div>
+              <div style="margin-top:14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8FA9C4">
+                After depreciation</div>
+              <div style="font-size:23px;font-weight:700;color:#7FD8C4">A$260.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================== ai + human -->
+<section id="assessors" style="padding-top:0">
+  <div class="wrap">
+    <div class="duo reveal">
+      <div class="duocard ai">
+        <div>
+          <h3>AI research for speed.</h3>
+          <p>Identification from description and photographs, then a search of current Australian
+             retailers for the same product or its nearest equivalent.</p>
+          <ul class="ticks">
+            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Current Australian retail pricing</li>
+            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Discontinued model substitution</li>
+            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Confidence rating on every line</li>
+            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Sources printed for verification</li>
+          </ul>
+        </div>
+        <div>
+          <div class="collabel">AI match confidence</div>
+          <div class="claimline"><span>Rheem 135L Storage Tank</span><span class="pill amber">Med</span></div>
+          <div class="claimline"><span>Dulux Solarguard 15L</span><span class="pill green">High</span></div>
+          <div class="claimline"><span>Sony Walkman WM-EX122</span><span class="pill red">Low</span></div>
+          <div class="claimline"><span>Makita DHP482 Drill Kit</span><span class="pill green">High</span></div>
+        </div>
+      </div>
+
+      <div class="duocard human">
+        <div>
+          <h3>Human judgement makes it defensible.</h3>
+          <p>Nothing settles on an AI figure alone. The assessor reviews each line and the schedule
+             records who decided what.</p>
+          <ul class="ticks">
+            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Accept, override or adjust quantity</li>
+            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Set condition and effective life</li>
+            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Apply or waive depreciation</li>
+            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Flag uncertain lines for review</li>
+          </ul>
+        </div>
+        <div>
+          <div class="collabel">Replacement cost (AUD)</div>
+          <div class="inp" style="height:30px;margin-bottom:8px"><span>A$520.00</span></div>
+          <div class="two">
+            <div class="field"><span class="k">Quantity</span><div class="inp"><span>1</span></div></div>
+            <div class="field"><span class="k">Condition</span><div class="inp"><span>Average</span><span>▾</span></div></div>
+          </div>
+          <div class="field"><span class="k">Depreciation</span><div class="inp"><span>50%</span></div></div>
+          <div class="field"><span class="k">Current value</span>
+            <div class="inp" style="background:#fff;border-color:#BFE3D0">
+              <span style="font-weight:700;color:var(--green-600)">A$260.00</span></div></div>
+          <div class="mini p" style="height:30px">Save adjustment</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="statement reveal">
+      <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 1.6 2.5 5v10L10 18.4 17.5 15V5L10 1.6Zm0 2.2 5.2 2.3L10 8.4 4.8 6.1 10 3.8Z"/></svg>
+      <span>AI does the searching. <b>The assessor makes the decision.</b></span>
+      <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== audit -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="sechead reveal" style="margin-bottom:22px">
+      <div class="eyebrow">Auditability</div>
+      <h2>Defensible by design. Every change is recorded.</h2>
+      <p>When a settlement is questioned months later, the answer to "who changed this, and why"
+         is already written down.</p>
+    </div>
+    <div class="audit reveal tbl-scroll">
+      <table>
+        <caption class="sr-only" style="position:absolute;left:-9999px">Sample audit trail entries</caption>
+        <thead><tr>
+          <th scope="col">Date &amp; time</th><th scope="col">User</th><th scope="col">Action</th>
+          <th scope="col">Field changed</th><th scope="col">Previous</th><th scope="col">New</th>
+          <th scope="col">Reason</th><th scope="col">Source</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>14 Aug 2026 13:55</td><td>S. Matthews</td><td><span class="tag o">Override</span></td>
+            <td>Replacement value</td><td class="num">A$480.00</td>
+            <td class="delta"><span class="to">A$520.00</span></td>
+            <td>Matched correct model</td><td>Assessor</td></tr>
+          <tr><td>14 Aug 2026 13:52</td><td>S. Matthews</td><td><span class="tag s">Settlement</span></td>
+            <td>Depreciation</td><td class="num">—</td>
+            <td class="delta"><span class="to">50%</span></td>
+            <td>Effective life 12 years</td><td>Assessor</td></tr>
+          <tr><td>14 Aug 2026 13:41</td><td>S. Matthews</td><td><span class="tag s">Settlement</span></td>
+            <td>Settlement value</td><td class="num">A$86.00</td>
+            <td class="delta"><span class="to">A$48.00</span></td>
+            <td>Depreciation applied</td><td>Assessor</td></tr>
+          <tr><td>14 Aug 2026 13:38</td><td>ClaimSight AI</td><td><span class="tag a">AI valuation</span></td>
+            <td>Replacement value</td><td class="num">—</td>
+            <td class="delta"><span class="to">A$520.00</span></td>
+            <td>3 Australian sources</td><td>System</td></tr>
+          <tr><td>14 Aug 2026 13:35</td><td>S. Matthews</td><td><span class="tag x">Excluded</span></td>
+            <td>Item status</td><td class="num">—</td><td class="num">—</td>
+            <td>Does not form part of loss</td><td>Assessor</td></tr>
+          <tr><td>14 Aug 2026 09:12</td><td>S. Matthews</td><td><span class="tag">Import</span></td>
+            <td>Inventory</td><td class="num">—</td><td class="num">99 items</td>
+            <td>Spreadsheet imported</td><td>Assessor</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:14px;font-size:12.5px;color:var(--text-muted)">Sample entries shown for illustration.</p>
+  </div>
+</section>
+
+<!-- ============================================================== report -->
+<section style="padding-top:0">
+  <div class="wrap reportgrid reveal">
+    <div>
+      <div class="eyebrow">Output</div>
+      <h2 style="font-size:clamp(24px,2.9vw,32px);margin:11px 0 14px">Insurer-ready reports in one click.</h2>
+      <p class="lede" style="font-size:15.5px">
+        A settlement schedule designed for a claim file, not a printed web page — evidence, item
+        identification, replacement reasoning, confidence, sources and the settlement calculation,
+        all on the page.
+      </p>
+      <ul class="ticks" style="margin-top:18px">
+        <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>A4 PDF with photographs and values</li>
+        <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Confidence and review status per line</li>
+        <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Pricing sources against every figure</li>
+        <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Passcode-protected share links with access log</li>
+        <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>CSV schedule export</li>
+      </ul>
+    </div>
+    <div class="sheetstack" aria-hidden="true">
+    <div class="sheet">
+      <div class="hd">
+        <div>
+          <div style="display:flex;align-items:center;gap:7px">
+            <span class="mark" style="width:28px;height:28px;font-size:13px;border-radius:7px">C</span>
+            <b style="font-size:17px;letter-spacing:-.025em">ClaimSight</b>
+          </div>
+          <div style="font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--text-secondary);margin-top:3px">
+            Contents loss assessment</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)">Claim number</div>
+          <div style="font-size:15px;font-weight:600">E010021610</div>
+        </div>
+      </div>
+      <h4>Settlement schedule</h4>
+      <table style="margin-top:10px">
+        <thead><tr>
+          <th style="padding:9px 6px;font-size:11px">Item</th>
+          <th style="padding:9px 6px;font-size:11px">Category</th>
+          <th style="padding:9px 6px;font-size:11px;text-align:right">Replacement</th>
+          <th style="padding:9px 6px;font-size:11px;text-align:right">Dep.</th>
+          <th style="padding:9px 6px;font-size:11px;text-align:right">Current</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:13px 6px;font-size:13px">Rheem 135L Storage Tank</td>
+            <td style="padding:13px 6px;font-size:13px">Whitegoods</td>
+            <td style="padding:13px 6px;font-size:13px;text-align:right">A$520.00</td>
+            <td style="padding:13px 6px;font-size:13px;text-align:right">50%</td>
+            <td style="padding:13px 6px;font-size:13px;text-align:right;font-weight:600">A$260.00</td></tr>
+          <tr><td style="padding:13px 6px;font-size:13px">Sony Walkman WM-EX122</td>
+            <td style="padding:13px 6px;font-size:13px">Audio</td>
+            <td style="padding:13px 6px;font-size:13px;text-align:right">A$86.00</td>
+            <td style="padding:13px 6px;font-size:13px;text-align:right">50%</td>
+            <td style="padding:13px 6px;font-size:13px;text-align:right;font-weight:600">A$48.00</td></tr>
+          <tr><td style="padding:13px 6px;font-size:13px">Makita DHP482 Drill Kit</td>
+            <td style="padding:13px 6px;font-size:13px">Power tools</td>
+            <td style="padding:13px 6px;font-size:13px;text-align:right">A$250.00</td>
+            <td style="padding:13px 6px;font-size:13px;text-align:right">30%</td>
+            <td style="padding:13px 6px;font-size:13px;text-align:right;font-weight:600">A$175.00</td></tr>
+        </tbody>
+      </table>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;
+                  padding-top:10px;border-top:1.5px solid var(--navy-900)">
+        <b style="font-size:12.5px;letter-spacing:.07em;text-transform:uppercase">Net settlement</b>
+        <b style="font-size:29px;letter-spacing:-.033em">A$124,149.00</b>
+      </div>
+      <div style="margin-top:14px;font-size:11px;color:var(--text-muted)">Sample figures for illustration.</div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ============================================================= personas -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="sechead reveal">
+      <div class="eyebrow">Built for</div>
+      <h2>Built for the people who have to defend the number.</h2>
+    </div>
+    <div class="trio reveal">
+      <div class="pcard">
+        <span class="picon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a7 7 0 1 0 4.2 12.6l3.1 3.1 1.4-1.4-3.1-3.1A7 7 0 0 0 9 2Zm0 2a5 5 0 1 1 0 10A5 5 0 0 1 9 4Z"/></svg></span>
+        <h3>Loss assessors</h3>
+        <p>Cut the repetitive product research without giving up professional judgement. Every
+           figure still passes through you before it reaches an insurer.</p>
+      </div>
+      <div class="pcard">
+        <span class="picon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4h14v12H3V4Zm2 2v6.5l3-3 2.5 2.5L14 8l1 1V6H5Z"/></svg></span>
+        <h3>Contents &amp; restoration specialists</h3>
+        <p>Turn the field evidence you already capture into a structured valuation schedule,
+           without re-keying an inventory into a spreadsheet.</p>
+      </div>
+      <div class="pcard">
+        <span class="picon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 2h8l4 4v12H4V2Zm7 1.5V7h3.5L11 3.5ZM6.5 10h7v1.5h-7V10Zm0 3h7v1.5h-7V13Z"/></svg></span>
+        <h3>Insurers &amp; claims teams</h3>
+        <p>Receive assessments where the reasoning is visible: what the item was, what replaced it,
+           where the price came from and who signed it off.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================= security -->
+<section id="security" class="band" style="background:#F7F9FC;border-top:1px solid var(--border);
+         border-bottom:1px solid var(--border)">
+  <div class="wrap secgrid reveal">
+    <div>
+      <div class="eyebrow">Security</div>
+      <h2 style="font-size:clamp(34px,3vw,46px);line-height:1.08;letter-spacing:-.028em;margin:14px 0 16px">
+        Claim data deserves serious controls.</h2>
+      <p style="font-size:17.5px;color:var(--text-secondary)">Contents claims hold a claimant's name,
+        address and photographs of their home. These are the controls in the product today —
+        no certifications we do not hold.</p>
+    </div>
+    <div class="seclist">
+      <div class="secitem">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.7 3 4.8v5.4c0 4 2.9 7.2 7 8.1 4.1-.9 7-4.1 7-8.1V4.8l-7-3.1Z"/></svg>
+        <div><b>Organisation-separated data</b><span>Every claim, item and photograph belongs to one firm and is unreachable from another.</span></div>
+      </div>
+      <div class="secitem">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 9.5c3.6 0 6.5 2 6.5 4.5v1.5h-13V16c0-2.5 2.9-4.5 6.5-4.5Z"/></svg>
+        <div><b>Role-based access</b><span>Account holder, assessor and read-only viewer, enforced on every request, not just hidden in the interface.</span></div>
+      </div>
+      <div class="secitem">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 2h8l4 4v12H4V2Zm7 1.5V7h3.5L11 3.5Z"/></svg>
+        <div><b>Full change history</b><span>Every valuation, override, condition change and review recorded against the person who made it.</span></div>
+      </div>
+      <div class="secitem">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 8V6a4 4 0 1 1 8 0v2h1.5v9h-11V8H6Zm2 0h4V6a2 2 0 1 0-4 0v2Z"/></svg>
+        <div><b>Controlled report sharing</b><span>Published links can carry a passcode and an expiry, and can be revoked at any time.</span></div>
+      </div>
+      <div class="secitem">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm1 12H9v-2h2v2Zm0-3H9V5h2v6Z"/></svg>
+        <div><b>Access logging on shared reports</b><span>See when a published schedule was opened, and when a passcode attempt failed.</span></div>
+      </div>
+      <div class="secitem">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4h14v12H3V4Zm2 2v8h10V6H5Z"/></svg>
+        <div><b>Frozen published documents</b><span>A shared schedule is a snapshot. Later edits create a new version rather than altering what was sent.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== pricing -->
+<section id="pricing" class="band" style="background:var(--app-bg);padding:124px 0;
+         border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+  <div class="wrap">
+    <div class="sechead reveal" style="max-width:760px;margin-inline:auto;text-align:center">
+      <div class="eyebrow">Pricing</div>
+      <h2>Simple pricing. Unlimited users on every plan.</h2>
+      <p>Plans are based on claim volume rather than seats, because adding your team costs us
+         nothing to serve. All prices are AUD and exclude GST.</p>
+    </div>
+    <div class="plans reveal">
+      {% for key in paid_plans %}
+      {% set p = plans[key] %}
+      <div class="plan {% if key == 'medium' %}hot{% endif %}">
+        {% if key == 'medium' %}<span class="tagpop">Most popular</span>{% endif %}
+        <div class="nm">{{ p.name }}</div>
+        <div class="pr">${{ p.price }}<small> /month + GST</small></div>
+        <ul>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>
+            <span><strong style="color:var(--text-primary)">{{ p.claims }} claims</strong> a month</span></li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Unlimited users</li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Every feature, no gates</li>
+          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>${{ overage }} per claim beyond the allowance</li>
+        </ul>
+        <a class="btn {% if key != 'medium' %}ghost{% endif %}" href="/signup">Start free trial</a>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="assure">
+      <span><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>14-day trial, three full claims, no card</span>
+      <span><svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 8V6a4 4 0 1 1 8 0v2h1.5v9h-11V8H6Zm2 0h4V6a2 2 0 1 0-4 0v2Z"/></svg>Payments processed by Stripe</span>
+      <span><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm.9 3.6v4.9l3.5 2.1-.9 1.5-4.4-2.7V5.6h1.8Z"/></svg>Cancel any time</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================== faq -->
+<section>
+  <div class="wrap" style="max-width:1060px">
+    <div class="sechead reveal">
+      <div class="eyebrow">Questions</div>
+      <h2>Contents assessment, answered.</h2>
+    </div>
+    <div class="reveal">
+      <details open>
+        <summary>How is replacement cost researched?</summary>
+        <p>The item is identified from its inventory description and photographs, then priced
+           against current Australian retailers — the same product where it still exists, or its
+           nearest current equivalent where it doesn't. Every figure is presented with the sources
+           it came from and a confidence rating, so you can verify it before accepting.</p>
+      </details>
+      <details>
+        <summary>Is depreciation applied automatically?</summary>
+        <p>It's calculated for you, not imposed on you. Straight-line over the item's assessed
+           effective life, adjusted for its recorded pre-loss condition and floored at a residual
+           value rather than reaching zero. The age, effective life and rate applied print against
+           every line, and you can change any of them.</p>
+      </details>
+      <details>
+        <summary>Can I override a value?</summary>
+        <p>Any line. Overridden values are marked as assessor-adjusted on the schedule, and the
+           change is recorded in the audit trail with the previous figure, the new figure and who
+           made it. That distinction matters when a settlement is later questioned.</p>
+      </details>
+      <details>
+        <summary>Can I send a report to an insurer?</summary>
+        <p>Print it as an A4 PDF, or publish it to a link that opens in any browser — optionally
+           behind a passcode and an expiry date. Published links serve a frozen copy, so adjusting
+           a figure next week never changes the document already on someone's claim file. You can
+           see when it was opened.</p>
+      </details>
+      <details>
+        <summary>What happens when the AI isn't confident?</summary>
+        <p>It says so rather than guessing. Every line carries a high, medium or low confidence
+           rating, and lines that couldn't be identified are marked unvalued rather than given a
+           number. The schedule shows you where to spend your attention.</p>
+      </details>
+      <details>
+        <summary>Does this replace my field capture app?</summary>
+        <p>No, and it isn't trying to. Capture tools are built for the field and they're good at
+           it. ClaimSight reads the inventory and photo reports they produce and does the valuation
+           work afterwards.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="closer">
+  <div class="wrap closer-in">
+    <div>
+      <h2>Stop spending assessor hours searching retail websites.</h2>
+      <p>ClaimSight turns the evidence you already collect into researched, reviewable and
+         report-ready replacement values. Three full claims free, your own data, no card.</p>
+    </div>
+    <div class="acts">
+      <a class="btn light" href="/signup">Start free trial</a>
+      <a class="btn onnavy" href="/login">Sign in</a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div>
+        <a class="brand" href="/" style="color:#fff"><span class="mark" aria-hidden="true">C</span> ClaimSight</a>
+        <p style="margin-top:12px;max-width:34ch;color:#8FA1B6">
+          Contents loss assessment software for Australian loss assessors and insurers.</p>
+      </div>
+      <div>
+        <h4>Platform</h4>
+        <a href="#how">How it works</a>
+        <a href="#platform">Features</a>
+        <a href="#security">Security</a>
+        <a href="#pricing">Pricing</a>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <a href="/login">Sign in</a>
+        <a href="/signup">Start free trial</a>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <a href="/privacy">Privacy policy</a>
+        <a href="/terms">Terms of service</a>
+      </div>
+    </div>
+    <div class="fbot">
+      <span>© {{ now_year }} ClaimSight. Made in Australia.</span>
+      <span>ABN and contact details available on request.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var els = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window) ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    els.forEach(function(e){ e.classList.add('in'); });
+    return;
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+    });
+  }, {rootMargin: '0px 0px -8% 0px'});
+  els.forEach(function(e){ io.observe(e); });
+})();
+</script>
+
+</body>
+</html>
