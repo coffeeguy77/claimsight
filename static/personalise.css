@@ -9,6 +9,9 @@
   transition:transform .16s ease, box-shadow .16s ease;
 }
 .cs-p-fab:hover{transform:translateY(-2px);box-shadow:0 16px 38px rgba(7,27,48,.34)}
+/* display:flex on the class beats the browser's [hidden]{display:none}, so the
+   panel could never actually close. The explicit rule below restores it. */
+.cs-p-panel[hidden]{display:none}
 .cs-p-panel{
   position:fixed;right:20px;bottom:76px;z-index:9001;width:352px;max-height:min(76vh,640px);
   display:flex;flex-direction:column;overflow:hidden;

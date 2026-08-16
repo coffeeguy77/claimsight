@@ -109,10 +109,10 @@ h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.011em}
   font-family:inherit;cursor:pointer;white-space:nowrap;
   transition:background .16s ease,border-color .16s ease,color .16s ease;
 }
-.btn:hover{background:#1F55C0;text-decoration:none;color:#fff}
+.btn:hover{background:var(--blue-500);text-decoration:none;color:var(--on-primary,#fff)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .btn.secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text-primary)}
-.btn.secondary:hover{background:#F7F9FC;border-color:#B6C2D2}
+.btn.secondary:hover{background:var(--btn-soft-hover,#F7F9FC);border-color:#B6C2D2}
 .btn.tertiary{background:transparent;border-color:transparent;color:var(--blue-600);padding:0 8px}
 .btn.tertiary:hover{background:var(--blue-100)}
 .btn.danger{background:transparent;border-color:var(--border-strong);color:var(--red-600)}
@@ -235,7 +235,7 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue-600);cursor:
 .dt tbody td{padding:15px 18px;border-bottom:1px solid #EDF1F5;vertical-align:middle;font-size:13.5px}
 .dt tbody tr:last-child td{border-bottom:0}
 .dt tbody tr.clickable{cursor:pointer}
-.dt tbody tr.clickable:hover{background:#F7FAFD}
+.dt tbody tr.clickable:hover{background:var(--row-hover,#F7FAFD)}
 .dt tbody tr.clickable:focus-visible{outline:2px solid var(--blue-600);outline-offset:-2px}
 .dt .primary{font-size:14.5px;font-weight:600;letter-spacing:-.01em}
 .dt .sub{font-size:12.5px;color:var(--text-secondary);margin-top:2px}
@@ -285,7 +285,7 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue-600);cursor:
 .rowlink{display:flex;align-items:center;gap:13px;padding:14px 18px;border-bottom:1px solid #EDF1F5;
   text-decoration:none;color:inherit}
 .rowlink:last-child{border-bottom:0}
-.rowlink:hover{background:#F7FAFD;text-decoration:none}
+.rowlink:hover{background:var(--row-hover,#F7FAFD);text-decoration:none}
 .settings-nav{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:22px;
   overflow-x:auto}
 .settings-nav a{padding:10px 14px;font-size:13.5px;font-weight:500;color:var(--text-secondary);
@@ -293,6 +293,10 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue-600);cursor:
 .settings-nav a:hover{color:var(--text-primary);text-decoration:none}
 .settings-nav a.on{color:var(--blue-600);border-bottom-color:var(--blue-600);font-weight:600}
 .narrow{max-width:960px}
+
+/* Hover surfaces. These were literal light greys, which painted a white bar
+   across a row in dark mode. */
+html[data-scheme="dark"]{--row-hover:#16283A;--btn-soft-hover:#16283A}
 </style>
 <link rel="stylesheet" href="/static/personalise.css?v={{ asset_v }}">
 <script src="/static/personalise.js?v={{ asset_v }}" defer></script>

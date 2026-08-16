@@ -394,7 +394,8 @@ th{font-size:calc(11.5px * var(--fs));letter-spacing:.08em;text-transform:upperc
   text-align:left;padding:15px 20px;background:var(--surface-soft);border-bottom:1px solid var(--border);
   font-weight:600;white-space:nowrap}
 td{padding:17px 20px;border-bottom:1px solid var(--border);font-size:calc(14.5px * var(--fs))}
-tbody tr:hover{background:#F7FAFD}
+/* A literal light grey here painted a white bar across dark rows. */
+tbody tr:hover{background:var(--row-hover,#F7FAFD)}
 tr:last-child td{border-bottom:0}
 td.num{font-variant-numeric:tabular-nums;font-weight:600}
 .tag{display:inline-block;padding:4px 11px;border-radius:6px;font-size:calc(12.5px * var(--fs));font-weight:600}
@@ -541,6 +542,7 @@ html[data-scheme="dark"] .shot.t4{background:linear-gradient(160deg,#16283A,#101
 html[data-scheme="dark"] .sheet,html[data-scheme="dark"] .sheetstack::before,
 html[data-scheme="dark"] .sheetstack::after{background:var(--surface)}
 html[data-scheme="dark"] .app{box-shadow:0 24px 70px rgba(0,0,0,.5)}
+html[data-scheme="dark"]{--row-hover:#16283A}
 
 /* --------------------------------------------------------- increased contrast */
 html[data-contrast="more"] .btn{border-width:2px}
