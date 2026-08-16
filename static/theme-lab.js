@@ -28,23 +28,23 @@
   };
 
   var PRESETS = [
-    { id: 'leadpages', name: 'LeadPages', blurb: 'Charcoal, cream and signal orange.',
+    { id: 'leadpages', flat: true, name: 'LeadPages', blurb: 'Charcoal, cream and signal orange.',
       primary: '#C85A2C', ink: '#0B1B2A', bg: '#F4EBDE', surface: '#EBDDCD', muted: '#6B7680', glow: '#C85A2C' },
-    { id: 'culture', name: 'Culture Lime', blurb: 'The signature forest and lime look.',
+    { id: 'culture', flat: true, name: 'Culture Lime', blurb: 'The signature forest and lime look.',
       primary: '#C5E13F', ink: '#0B2114', bg: '#FDFCF0', surface: '#F5F2E6', muted: '#5C6B60', glow: '#C5E13F' },
-    { id: 'basalt', name: 'Basalt', blurb: 'Charcoal ground with a copper spark.',
+    { id: 'basalt', flat: true, name: 'Basalt', blurb: 'Charcoal ground with a copper spark.',
       primary: '#D97706', ink: '#141414', bg: '#F7F4EF', surface: '#EDE8E1', muted: '#6B6560', glow: '#F59E0B' },
     { id: 'rivet', name: 'Rivet', blurb: 'Deep navy with a sharp signal accent.',
       primary: '#F97316', ink: '#0B1C33', bg: '#F4F7FB', surface: '#E8EEF5', muted: '#5A6B7D', glow: '#FB923C' },
-    { id: 'tarmac', name: 'Tarmac', blurb: 'Near-black with an electric teal edge.',
+    { id: 'tarmac', flat: true, name: 'Tarmac', blurb: 'Near-black with an electric teal edge.',
       primary: '#14B8A6', ink: '#0A0F14', bg: '#F3F6F7', surface: '#E6ECEE', muted: '#5C6A70', glow: '#2DD4BF' },
-    { id: 'petal', name: 'Petal', blurb: 'Soft rose warmth on cream.',
+    { id: 'petal', flat: true, name: 'Petal', blurb: 'Soft rose warmth on cream.',
       primary: '#E8A0A8', ink: '#3D2A32', bg: '#FFF8F7', surface: '#F8ECEC', muted: '#7A646A', glow: '#F0B7BD' },
     { id: 'willow', name: 'Willow', blurb: 'Calm sage and soft daylight green.',
       primary: '#8FAE6B', ink: '#243028', bg: '#F7F9F3', surface: '#EBEEE4', muted: '#66705F', glow: '#A8C285' },
-    { id: 'orchid', name: 'Orchid', blurb: 'Quiet mauve with a polished finish.',
+    { id: 'orchid', flat: true, name: 'Orchid', blurb: 'Quiet mauve with a polished finish.',
       primary: '#B28BB8', ink: '#2C2130', bg: '#FBF7FC', surface: '#F1EAF3', muted: '#6F6274', glow: '#C9A5CE' },
-    { id: 'dune', name: 'Dune', blurb: 'Warm sand and terracotta.',
+    { id: 'dune', flat: true, name: 'Dune', blurb: 'Warm sand and terracotta.',
       primary: '#C47A4A', ink: '#2B2118', bg: '#FBF6EF', surface: '#F1E7DA', muted: '#736557', glow: '#D49264' },
     { id: 'neon-pink', name: 'Neon Pink', blurb: 'Dark pink neon on deep plum.',
       primary: '#FF4DA6', ink: '#140F14', bg: '#FFF0F7', surface: '#F8E0ED', muted: '#8F7084', glow: '#FF6BB8' },
@@ -112,14 +112,34 @@
     r.setProperty('--ai-600', glow);
     r.setProperty('--ai-100', mix(glow, '#ffffff', 0.88));
 
-    // depth cues on the dark bands, derived so they never clash with the ink
-    r.setProperty('--band-glow-a', rgba(p, 0.30));
-    r.setProperty('--band-glow-b', rgba(glow, 0.20));
-    r.setProperty('--band-accent', mix(glow, '#ffffff', 0.34));
+    /* Dark bands. Two treatments:
+       - default: the ink ground with radial washes of primary and glow. Works
+         when the primary is a deep, saturated colour.
+       - flat: one solid block of the theme's primary. Chosen per-theme because
+         a soft wash of a pale primary (rose, lime, sand) just muddies the navy.
+       Where a flat primary is too light to carry white text, it is stepped
+       toward the ink until it clears WCAG AA — the band stays recognisably the
+       theme colour without the text becoming unreadable. */
+    if (theme.flat) {
+      var band = p;
+      var guard = 0;
+      while (contrast(band, '#ffffff') < 4.5 && guard++ < 24) band = mix(band, ink, 0.10);
+      r.setProperty('--band-bg', band);
+      r.setProperty('--footer-bg', band);
+      r.setProperty('--band-accent', '#ffffff');
+    } else {
+      r.setProperty('--band-bg',
+        'radial-gradient(900px 500px at 74% 42%, ' + rgba(p, 0.30) + ' 0%, transparent 62%),' +
+        'radial-gradient(700px 420px at 12% 8%, ' + rgba(glow, 0.20) + ' 0%, transparent 58%),' + ink);
+      r.setProperty('--footer-bg', ink);
+      r.setProperty('--band-accent', mix(glow, '#ffffff', 0.34));
+    }
 
     document.documentElement.setAttribute('data-theme', theme.id);
     try { localStorage.setItem(STORAGE_THEME, JSON.stringify(theme)); } catch (e) {}
   }
+
+  var BAND_VARS = ['--band-bg', '--footer-bg', '--band-accent'];
 
   function restore() {
     try {

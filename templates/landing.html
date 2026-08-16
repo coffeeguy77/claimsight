@@ -267,8 +267,12 @@ footer .brand img{height:42px}
   .metric{border-right:0;border-bottom:1px solid var(--border)} }
 
 /* ==================================================================== sections */
-section{padding:112px 0}
-section.compact{padding:84px 0}
+/* One vertical rhythm for every section and band. Sections previously killed
+   their own top padding to sit against the band above, which is why the two
+   sections after the dark band and the report band read as jammed up. */
+:root{ --sec-y:112px }
+section{padding:var(--sec-y) 0}
+section.compact{padding:calc(var(--sec-y) * .75) 0}
 .sechead{max-width:720px;margin-bottom:52px}
 .sechead h2{font-size:clamp(34px,3vw,46px);line-height:1.08;letter-spacing:-.028em;margin:14px 0 16px}
 .sechead p{font-size:17.5px;color:var(--text-secondary);max-width:660px}
@@ -302,11 +306,11 @@ section.compact{padding:84px 0}
 /* evidence (dark) */
 /* Signature section. Stronger blue, brighter accent, and the four stages sized
    so they read as product surfaces rather than captions. */
-.dark{color:#fff;padding:140px 0;overflow:hidden;position:relative;
-  background:
-    radial-gradient(900px 500px at 74% 42%, var(--band-glow-a, rgba(37,99,235,.30)) 0%, transparent 62%),
-    radial-gradient(700px 420px at 12% 8%, var(--band-glow-b, rgba(13,148,136,.20)) 0%, transparent 58%),
-    var(--navy-950)}
+.dark{color:#fff;padding:var(--sec-y) 0;overflow:hidden;position:relative;
+  background:var(--band-bg,
+    radial-gradient(900px 500px at 74% 42%, rgba(37,99,235,.30) 0%, transparent 62%),
+    radial-gradient(700px 420px at 12% 8%, rgba(13,148,136,.20) 0%, transparent 58%),
+    #071B30)}
 .dark h2{font-size:clamp(36px,3.1vw,48px);line-height:1.06;letter-spacing:-.03em;color:#fff}
 .dark p{color:rgba(255,255,255,.68);font-size:17px;max-width:430px}
 .dark .eyebrow{color:var(--band-accent,#7FB4FF)}
@@ -455,9 +459,10 @@ details[open] summary::after{content:"−"}
 details p{margin:-4px 0 22px;font-size:16px;color:var(--text-secondary);max-width:78ch;line-height:1.62}
 
 /* closer + footer */
-.closer{color:#fff;padding:124px 0 116px;
-  background:radial-gradient(800px 420px at 80% 50%, var(--band-glow-a, rgba(37,99,235,.26)) 0%, transparent 62%),
-             var(--navy-950)}
+.closer{color:#fff;padding:var(--sec-y) 0;
+  background:var(--band-bg,
+    radial-gradient(800px 420px at 80% 50%, rgba(37,99,235,.26) 0%, transparent 62%),
+    #071B30)}
 .closer-in{display:grid;grid-template-columns:minmax(0,62fr) minmax(0,38fr);gap:56px;align-items:center}
 .closer h2{font-size:clamp(36px,3.7vw,54px);line-height:1.04;letter-spacing:-.034em;color:#fff;max-width:720px}
 .closer p{color:rgba(255,255,255,.68);margin-top:20px;max-width:620px;font-size:18px}
@@ -467,7 +472,7 @@ details p{margin:-4px 0 22px;font-size:16px;color:var(--text-secondary);max-widt
   box-shadow:0 14px 34px rgba(0,0,0,.30)}
 .closer .btn.onnavy{height:60px;padding:0 28px;font-size:16px;border-radius:9px}
 @media (max-width:900px){ .closer-in{grid-template-columns:1fr} .closer .acts{justify-content:flex-start} }
-footer{background:var(--navy-950);color:#8FA1B6;padding:0 0 30px;font-size:14px}
+footer{background:var(--footer-bg,var(--navy-950));color:#8FA1B6;padding:0 0 30px;font-size:14px}
 .fgrid{display:grid;grid-template-columns:minmax(0,2.4fr) repeat(3,minmax(0,1fr));gap:44px;
   padding:44px 0 32px}
 footer h4{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:#C6D3E3;margin-bottom:11px}
@@ -486,15 +491,13 @@ footer a:hover{color:#fff;text-decoration:none}
 
 /* ------------------------------------------------------------------ tablet */
 @media (max-width:1100px){
-  section{padding:88px 0}
-  .dark{padding:96px 0}
+  :root{ --sec-y:88px }
   .hero{padding:64px 0 56px}
 }
 /* ------------------------------------------------------------------ mobile */
 @media (max-width:640px){
   body{font-size:15px}
-  section{padding:64px 0}
-  .dark{padding:72px 0}
+  :root{ --sec-y:64px }
   .hero{padding:44px 0 40px}
   .hero h1{font-size:clamp(36px,9vw,44px)}
   .lede,.hero .lede{font-size:16.5px}
@@ -507,7 +510,6 @@ footer a:hover{color:#fff;text-decoration:none}
   .pcard,.secitem{padding:24px;min-height:0}
   .sheet{padding:20px;min-height:0;font-size:11.5px}
   .sheetstack{padding:0 18px 18px 0}
-  .closer{padding:72px 0}
   .closer .acts .btn{width:100%}
   .trustrow{gap:14px;flex-direction:column;align-items:flex-start}
 }
@@ -728,7 +730,7 @@ footer a:hover{color:#fff;text-decoration:none}
 </section>
 
 <!-- ============================================================ evidence flow -->
-<section id="platform" class="band dark" style="padding-top:136px">
+<section id="platform" class="band dark">
   <div class="wrap">
     <div class="reveal">
       <div class="flowgrid">
@@ -796,7 +798,7 @@ footer a:hover{color:#fff;text-decoration:none}
 </section>
 
 <!-- ========================================================== ai + human -->
-<section id="assessors" style="padding-top:0">
+<section id="assessors">
   <div class="wrap">
     <div class="duo reveal">
       <div class="duocard ai">
@@ -857,7 +859,7 @@ footer a:hover{color:#fff;text-decoration:none}
 </section>
 
 <!-- =============================================================== audit -->
-<section style="padding-top:0">
+<section>
   <div class="wrap">
     <div class="sechead reveal" style="margin-bottom:22px">
       <div class="eyebrow">Auditability</div>
@@ -905,7 +907,7 @@ footer a:hover{color:#fff;text-decoration:none}
 
 <!-- ============================================================== report -->
 <section class="band" style="background:#F7F9FC;border-top:1px solid var(--border);
-         border-bottom:1px solid var(--border);padding:112px 0">
+         border-bottom:1px solid var(--border)">
   <div class="wrap reportgrid reveal">
     <div>
       <div class="eyebrow">Settlement schedule output</div>
@@ -979,7 +981,7 @@ footer a:hover{color:#fff;text-decoration:none}
 </section>
 
 <!-- ============================================================= personas -->
-<section style="padding-top:0">
+<section>
   <div class="wrap">
     <div class="sechead reveal">
       <div class="eyebrow">Built for</div>
@@ -1050,7 +1052,7 @@ footer a:hover{color:#fff;text-decoration:none}
 </section>
 
 <!-- ============================================================== pricing -->
-<section id="pricing" class="band" style="background:var(--app-bg);padding:124px 0;
+<section id="pricing" class="band" style="background:var(--app-bg);
          border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
   <div class="wrap">
     <div class="sechead reveal" style="max-width:760px;margin-inline:auto;text-align:center">
