@@ -181,9 +181,7 @@ footer .brand .cs-logo{height:42px}
 
 /* ======================================================================= hero */
 .hero{padding:84px 0 76px;position:relative;
-  background:radial-gradient(1100px 520px at 10% -14%, #E8F0FE 0%, transparent 58%),
-             radial-gradient(900px 460px at 78% 28%, rgba(37,99,235,.075) 0%, transparent 40%),
-             var(--surface)}
+  background:var(--hero-bg,var(--surface))}
 .hero-grid{display:grid;grid-template-columns:minmax(0,43fr) minmax(0,57fr);gap:56px;
   align-items:center;min-height:640px}
 .hero h1{font-size:clamp(46px,4.2vw,68px);line-height:1.02;letter-spacing:-.037em;
@@ -322,10 +320,7 @@ section.compact{padding:calc(var(--sec-y) * .75) 0}
 /* Signature section. Stronger blue, brighter accent, and the four stages sized
    so they read as product surfaces rather than captions. */
 .dark{color:var(--band-fg,#fff);padding:var(--sec-y) 0;overflow:hidden;position:relative;
-  background:var(--band-bg,
-    radial-gradient(900px 500px at 74% 42%, rgba(37,99,235,.30) 0%, transparent 62%),
-    radial-gradient(700px 420px at 12% 8%, rgba(13,148,136,.20) 0%, transparent 58%),
-    #071B30)}
+  background:var(--band-bg,#071B30)}
 .dark h2{font-size:clamp(36px,3.1vw,48px);line-height:1.06;letter-spacing:-.03em;color:var(--band-fg,#fff)}
 .dark p{color:var(--band-fg-2,rgba(255,255,255,.68));font-size:17px;max-width:430px}
 .dark .eyebrow{color:var(--band-accent,#7FB4FF)}
@@ -367,8 +362,8 @@ section.compact{padding:calc(var(--sec-y) * .75) 0}
 /* Both panels are themed. The human panel previously used --green-100,
    which is a status colour held fixed for badges — so it stayed green
    while its twin followed the theme. */
-.duocard.ai{background:linear-gradient(180deg,var(--panel-a,#E9F8F5) 0%, #fff 42%)}
-.duocard.human{background:linear-gradient(180deg,var(--panel-b,#EDF4FF) 0%, #fff 42%)}
+.duocard.ai{background:linear-gradient(180deg,var(--panel-a,#E9F8F5) 0%, var(--surface) 42%)}
+.duocard.human{background:linear-gradient(180deg,var(--panel-b,#EDF4FF) 0%, var(--surface) 42%)}
 .duocard h3{font-size:25px;margin-bottom:12px;letter-spacing:-.025em}
 .duocard>div>p{font-size:15.5px;color:var(--text-secondary)}
 .ticks{list-style:none;margin:14px 0 0;padding:0}
@@ -379,7 +374,7 @@ section.compact{padding:calc(var(--sec-y) * .75) 0}
   font-size:14px;font-weight:500}
 .statement{margin-top:36px;min-height:72px;display:flex;align-items:center;justify-content:center;
   gap:22px;padding:0 32px;border-radius:10px;
-  background:var(--band-bg,linear-gradient(90deg,#10233F,#16345C 55%,#10233F));
+  background:var(--band-bg,#10233F);
   color:var(--band-fg,#fff);text-align:center;font-size:19px;font-weight:600;letter-spacing:-.018em}
 .statement .ico{color:var(--band-accent,#5FD8C0);flex:none}
 .statement .sep{width:1px;height:26px;background:var(--band-line,rgba(255,255,255,.24));flex:none}
@@ -481,9 +476,7 @@ details p{margin:-4px 0 22px;font-size:16px;color:var(--text-secondary);max-widt
 
 /* closer + footer */
 .closer{color:var(--band-fg,#fff);padding:var(--sec-y) 0;
-  background:var(--band-bg,
-    radial-gradient(800px 420px at 80% 50%, rgba(37,99,235,.26) 0%, transparent 62%),
-    #071B30)}
+  background:var(--band-bg,#071B30)}
 .closer-in{display:grid;grid-template-columns:minmax(0,58fr) minmax(0,42fr);gap:56px;align-items:center}
 .closer h2{font-size:clamp(36px,3.7vw,54px);line-height:1.04;letter-spacing:-.034em;color:var(--band-fg,#fff);max-width:720px}
 .closer p{color:var(--band-fg-2,rgba(255,255,255,.68));margin-top:20px;max-width:620px;font-size:18px}
@@ -539,10 +532,7 @@ html[data-scheme="dark"]{
 }
 html[data-scheme="dark"] body{background:var(--app-bg)}
 html[data-scheme="dark"] header{background:rgba(10,20,32,.94)}
-html[data-scheme="dark"] .hero{
-  background:radial-gradient(1100px 520px at 10% -14%, rgba(37,99,235,.16) 0%, transparent 58%),
-             radial-gradient(900px 460px at 78% 28%, rgba(37,99,235,.10) 0%, transparent 40%),
-             var(--app-bg)}
+html[data-scheme="dark"] .hero{background:var(--hero-bg,var(--app-bg))}
 html[data-scheme="dark"] .shot{background:linear-gradient(160deg,#16283A,#101D2B);color:#7C90A6}
 html[data-scheme="dark"] .shot.t2,html[data-scheme="dark"] .shot.t3,
 html[data-scheme="dark"] .shot.t4{background:linear-gradient(160deg,#16283A,#101D2B)}

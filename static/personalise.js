@@ -111,6 +111,14 @@
     var dark = scheme === 'dark';
     var a = accentById(p.accent);
     var primary = a.primary, glow = a.glow;
+    /* An accent has to carry a foreground wherever it is used as a filled
+       surface — buttons, badges, bands. Rust sits at 4.24 against both white
+       and ink, so it is deepened just enough to clear AA. Every other accent
+       passes untouched. */
+    var pg2 = 0;
+    while (Math.max(contrast(primary, '#ffffff'), contrast(primary, INK_LIGHT)) < 4.6 && pg2++ < 20) {
+      primary = mix(primary, INK_LIGHT, 0.05);
+    }
     var ink = dark ? INK_DARK : INK_LIGHT;
     var page = dark ? '#101D2B' : '#ffffff';
     var soft = dark ? '#0D1826' : '#F8FAFC';   // worst-case ground for text
@@ -156,30 +164,38 @@
     r.setProperty('--logo-b', glow);
     r.setProperty('--logo-ink', ink);
 
-    /* The dark bands keep the deep ground in both schemes — they are the
-       product's signature and inverting them would flatten the page. The accent
-       only tints them. */
-    var band = INK_LIGHT;
-    r.setProperty('--band-bg',
-      'radial-gradient(900px 500px at 74% 42%, ' + rgba(primary, 0.30) + ' 0%, transparent 62%),' +
-      'radial-gradient(700px 420px at 12% 8%, ' + rgba(glow, 0.20) + ' 0%, transparent 58%),' + band);
+    /* Bands are one solid surface in the accent colour — no radial hotspots.
+       A wash of a pale accent muddies rather than adds depth, and a flat block
+       is what makes the section read as deliberate. Text flips to the ink where
+       the accent is too light to carry white. */
+    var band = primary;
+    var bandFg = readableOn(band, INK_LIGHT);
+    var onLight = bandFg !== '#ffffff';
+    var tight = contrast(band, bandFg) < 4.5;
+
+    r.setProperty('--band-bg', band);
     r.setProperty('--footer-bg', band);
-    r.setProperty('--band-fg', '#ffffff');
-    r.setProperty('--band-fg-2', 'rgba(255,255,255,.74)');
-    r.setProperty('--band-fg-3', 'rgba(255,255,255,.56)');
-    r.setProperty('--band-line', 'rgba(255,255,255,.22)');
-    r.setProperty('--band-accent', until(mix(glow, '#ffffff', 0.40), band, 4.5, '#ffffff'));
-    r.setProperty('--band-emph', until(mix(glow, '#ffffff', 0.55), band, 4.5, '#ffffff'));
-    r.setProperty('--band-arrow', mix(primary, '#ffffff', 0.36));
-    r.setProperty('--band-btn-bg', '#ffffff');
-    r.setProperty('--band-btn-fg', INK_LIGHT);
-    r.setProperty('--band-btn-hover', '#E9EFF7');
-    r.setProperty('--logo-band-a', mix(primary, '#ffffff', 0.42));
-    r.setProperty('--logo-band-b', mix(glow, '#ffffff', 0.26));
-    r.setProperty('--panel-tint', 'linear-gradient(165deg,' + mix(primary, band, 0.62) + ',' + band + ')');
-    r.setProperty('--panel-tint-line', mix(primary, band, 0.42));
+    r.setProperty('--hero-bg', mix(band, dark ? '#0A1420' : '#ffffff', dark ? 0.94 : 0.96));
+    r.setProperty('--band-fg', bandFg);
+    r.setProperty('--band-fg-2', onLight ? rgba(INK_LIGHT, tight ? 0.88 : 0.76)
+                                         : 'rgba(255,255,255,' + (tight ? 0.88 : 0.76) + ')');
+    r.setProperty('--band-fg-3', onLight ? rgba(INK_LIGHT, tight ? 0.74 : 0.58)
+                                         : 'rgba(255,255,255,' + (tight ? 0.74 : 0.58) + ')');
+    r.setProperty('--band-line', onLight ? rgba(INK_LIGHT, 0.20) : 'rgba(255,255,255,.24)');
+    r.setProperty('--band-accent', until(onLight ? mix(INK_LIGHT, band, 0.22)
+                                                 : mix(glow, '#ffffff', 0.40), band, 4.5, bandFg));
+    r.setProperty('--band-emph', until(onLight ? mix(INK_LIGHT, band, 0.12)
+                                               : mix(glow, '#ffffff', 0.55), band, 4.5, bandFg));
+    r.setProperty('--band-arrow', onLight ? rgba(INK_LIGHT, 0.50) : 'rgba(255,255,255,.60)');
+    r.setProperty('--band-btn-bg', onLight ? INK_LIGHT : '#ffffff');
+    r.setProperty('--band-btn-fg', onLight ? '#ffffff' : INK_LIGHT);
+    r.setProperty('--band-btn-hover', onLight ? mix(INK_LIGHT, '#ffffff', 0.18) : '#E9EFF7');
+    r.setProperty('--logo-band-a', onLight ? INK_LIGHT : mix(primary, '#ffffff', 0.50));
+    r.setProperty('--logo-band-b', onLight ? mix(INK_LIGHT, band, 0.34) : mix(glow, '#ffffff', 0.30));
+    r.setProperty('--panel-tint', mix(INK_LIGHT, band, 0.18));
+    r.setProperty('--panel-tint-line', mix(INK_LIGHT, band, 0.44));
     r.setProperty('--panel-tint-fg', '#ffffff');
-    r.setProperty('--panel-tint-2', 'rgba(255,255,255,.66)');
+    r.setProperty('--panel-tint-2', 'rgba(255,255,255,.68)');
     r.setProperty('--panel-tint-accent', mix(glow, '#ffffff', 0.45));
   }
 
