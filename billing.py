@@ -33,6 +33,19 @@ STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "").rstrip("/")
 
+# GST can be handled two ways and they are mutually exclusive.
+#
+#   STRIPE_TAX_RATE_ID=txr_...  a fixed rate applied to the line item. Right
+#                               for a flat 10% on Australian customers, and it
+#                               carries no per-transaction fee.
+#   unset                       Stripe Tax calculates automatically. Needs Tax
+#                               switched on in the dashboard with an AU GST
+#                               registration, and costs a fee per transaction.
+#
+# Setting the rate ID wins, because a fixed rate is the simpler, cheaper answer
+# when every customer is in one jurisdiction at one rate.
+STRIPE_TAX_RATE_ID = os.environ.get("STRIPE_TAX_RATE_ID", "")
+
 if stripe and STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
 
@@ -192,17 +205,24 @@ def checkout_url(org, plan: str, email: str, base_url: str) -> str:
             f"Set {PLANS[plan]['price_id_env']}."
         )
     root = PUBLIC_BASE_URL or base_url.rstrip("/")
+    line_item: dict = {"price": pid, "quantity": 1}
+    tax: dict = {}
+    if STRIPE_TAX_RATE_ID:
+        line_item["tax_rates"] = [STRIPE_TAX_RATE_ID]
+    else:
+        tax["automatic_tax"] = {"enabled": True}
+
     session = stripe.checkout.Session.create(
         mode="subscription",
         customer=org.stripe_customer_id or None,
         customer_email=None if org.stripe_customer_id else email,
-        line_items=[{"price": pid, "quantity": 1}],
+        line_items=[line_item],
         client_reference_id=org.id,
         subscription_data={"metadata": {"organisation_id": org.id, "plan": plan}},
         metadata={"organisation_id": org.id, "plan": plan},
-        automatic_tax={"enabled": True},  # GST
         success_url=f"{root}/settings/billing?checkout=success",
         cancel_url=f"{root}/settings/billing?checkout=cancelled",
+        **tax,
     )
     return session.url
 
