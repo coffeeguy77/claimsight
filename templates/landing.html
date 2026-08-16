@@ -180,8 +180,9 @@ footer .brand .cs-logo{height:42px}
 }
 
 /* ======================================================================= hero */
-.hero{padding:84px 0 76px;position:relative;
+.hero{padding:84px 0 0;position:relative;
   background:var(--hero-bg,var(--surface))}
+.metrics-wrap{padding:52px 0 64px}
 .hero-grid{display:grid;grid-template-columns:minmax(0,43fr) minmax(0,57fr);gap:56px;
   align-items:center;min-height:640px}
 .hero h1{font-size:clamp(46px,4.2vw,68px);line-height:1.02;letter-spacing:-.037em;
@@ -734,10 +735,10 @@ html[data-motion="reduce"] .reveal{opacity:1 !important;transform:none !importan
       </div>
     </div>
   </div>
-</div>
 
-<!-- ============================================================ metric strip -->
-<div class="wrap" style="margin-top:-18px">
+  <!-- Metric strip. Inside the hero, not straddling its edge — it previously
+       sat on a negative margin and the background change cut across the card. -->
+  <div class="wrap metrics-wrap">
   <div class="metrics reveal">
     <div class="metric">
       <span class="micon">{{ icon("box", 26) }}</span>
@@ -759,6 +760,7 @@ html[data-motion="reduce"] .reveal{opacity:1 !important;transform:none !importan
       <div><div class="n">Auditable</div><div class="l">every adjustment</div>
         <div class="s">Recorded against the assessor</div></div>
     </div>
+  </div>
   </div>
 </div>
 
