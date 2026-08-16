@@ -6,8 +6,13 @@
   wordmark inherit currentColor and the dot arc read from a two-stop gradient, so
   the mark follows the active theme while keeping its blue-to-teal progression.
 
-    tone  'ink'  navy/ink wordmark, for light backgrounds
-          'onDark'  white wordmark, for bands and the sidebar
+    tone  'ink'     ink wordmark and theme-coloured dots, for light backgrounds
+          'onDark'  band foreground wordmark and dots derived from the band, so
+                    the mark stays visible when the band is itself the primary
+
+  The gradient id is scoped to the tone. Inline SVGs share a document, so a
+  single id meant every instance resolved to whichever gradient appeared first
+  — the footer logo was quietly rendering with the header's colours.
 #}
 {% macro logo(height=46, tone='ink', title='ClaimSight') -%}
 <svg class="cs-logo cs-logo--{{ tone }}" viewBox="0 0 1173.93 293.04"
@@ -15,9 +20,14 @@
      role="img" aria-label="{{ title }}" shape-rendering="geometricPrecision"
      xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="csDots" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="csDots-{{ tone }}" x1="0" y1="0" x2="1" y2="1">
+      {% if tone == 'onDark' %}
+      <stop offset="0%"   stop-color="var(--logo-band-a, #4C8DFF)"/>
+      <stop offset="100%" stop-color="var(--logo-band-b, #3FD9B4)"/>
+      {% else %}
       <stop offset="0%"   stop-color="var(--logo-a, #045EFD)"/>
       <stop offset="100%" stop-color="var(--logo-b, #05CB9F)"/>
+      {% endif %}
     </linearGradient>
   </defs>
 <path fill="currentColor" d="M696.77,212.64l-.45-53.81c-.05-5.86-3.54-11.21-7.36-14.07-4.89-3.67-11.35-4.33-17.27-2.17-8.39,3.06-13.13,11.47-13.15,20.37l-.15,49.64-18.95.02.1-87.47,18.71-.18.52,9.59c6.96-8.32,16.03-11.96,26.58-11.5,9.76.42,19.06,5.35,25.32,14.47,5.31-8.71,14.12-12.97,24.16-14.19,18.96-2.3,35.47,10.48,37.14,30.29l.71,58.96-18.93.02-.15-51.88c-.03-10.85-7.3-18.8-17.44-19.3-9.9-.49-20.11,6.34-20.24,17.52l-.62,53.62-18.52.08Z"/>
@@ -28,36 +38,36 @@
     <path fill="currentColor" d="M488,195.13c1.56,6.57.65,11.42.63,17.7-5.57,1.35-11.01,1.49-16.75.56-9.16-1.48-15.19-9.28-15.2-19.08l-.16-106.74h18.87s.45,104.98.45,104.98c.02,4.09,8.61,4.51,12.16,2.58Z"/>
     <rect fill="currentColor" x="601.73" y="124.83" width="19.15" height="87.9"/>
     <rect fill="currentColor" x="892.44" y="124.88" width="17.59" height="87.95"/>
-    <circle fill="url(#csDots)" cx="61.58" cy="67.32" r="17.94"/>
-    <circle fill="url(#csDots)" cx="102.44" cy="37.37" r="17.76"/>
-    <circle fill="url(#csDots)" cx="36.92" cy="111.08" r="17.33"/>
-    <circle fill="url(#csDots)" cx="150.58" cy="26.3" r="16.51"/>
-    <circle fill="url(#csDots)" cx="31.48" cy="158.78" r="16.32"/>
-    <circle fill="url(#csDots)" cx="43.87" cy="203.08" r="15.53"/>
-    <circle fill="url(#csDots)" cx="71.05" cy="239.21" r="14.97"/>
-    <circle fill="url(#csDots)" cx="109.57" cy="262.19" r="14.59"/>
-    <circle fill="url(#csDots)" cx="195.68" cy="33.09" r="13.95"/>
-    <circle fill="url(#csDots)" cx="152.76" cy="270.22" r="13.84"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="61.58" cy="67.32" r="17.94"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="102.44" cy="37.37" r="17.76"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="36.92" cy="111.08" r="17.33"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="150.58" cy="26.3" r="16.51"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="31.48" cy="158.78" r="16.32"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="43.87" cy="203.08" r="15.53"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="71.05" cy="239.21" r="14.97"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="109.57" cy="262.19" r="14.59"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="195.68" cy="33.09" r="13.95"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="152.76" cy="270.22" r="13.84"/>
     <circle fill="currentColor" cx="611.55" cy="97.05" r="12.35"/>
-    <circle fill="url(#csDots)" cx="194.71" cy="263.15" r="12.15"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="194.71" cy="263.15" r="12.15"/>
     <circle fill="currentColor" cx="901.45" cy="97.07" r="12.12"/>
-    <circle fill="url(#csDots)" cx="125.73" cy="70.34" r="11.42"/>
-    <circle fill="url(#csDots)" cx="231.08" cy="54.85" r="11.43"/>
-    <circle fill="url(#csDots)" cx="94.75" cy="92.07" r="11.26"/>
-    <circle fill="url(#csDots)" cx="76.02" cy="123.34" r="11.27"/>
-    <circle fill="url(#csDots)" cx="72.48" cy="156.96" r="10.74"/>
-    <circle fill="url(#csDots)" cx="80.55" cy="187.79" r="10.59"/>
-    <circle fill="url(#csDots)" cx="161.65" cy="63.95" r="10.55"/>
-    <circle fill="url(#csDots)" cx="130.62" cy="230.27" r="10.26"/>
-    <circle fill="url(#csDots)" cx="101.71" cy="213.35" r="10.05"/>
-    <circle fill="url(#csDots)" cx="229.64" cy="243.15" r="9.95"/>
-    <circle fill="url(#csDots)" cx="164.1" cy="233.81" r="9.73"/>
-    <circle fill="url(#csDots)" cx="195.27" cy="73.84" r="9.62"/>
-    <circle fill="url(#csDots)" cx="196.71" cy="223.05" r="8.53"/>
-    <circle fill="url(#csDots)" cx="221.85" cy="97.01" r="7.75"/>
-    <circle fill="url(#csDots)" cx="254.95" cy="87.46" r="7.69"/>
-    <circle fill="url(#csDots)" cx="253.28" cy="212.03" r="7.24"/>
-    <circle fill="url(#csDots)" cx="222.39" cy="199.53" r="7.07"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="125.73" cy="70.34" r="11.42"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="231.08" cy="54.85" r="11.43"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="94.75" cy="92.07" r="11.26"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="76.02" cy="123.34" r="11.27"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="72.48" cy="156.96" r="10.74"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="80.55" cy="187.79" r="10.59"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="161.65" cy="63.95" r="10.55"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="130.62" cy="230.27" r="10.26"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="101.71" cy="213.35" r="10.05"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="229.64" cy="243.15" r="9.95"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="164.1" cy="233.81" r="9.73"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="195.27" cy="73.84" r="9.62"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="196.71" cy="223.05" r="8.53"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="221.85" cy="97.01" r="7.75"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="254.95" cy="87.46" r="7.69"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="253.28" cy="212.03" r="7.24"/>
+    <circle fill="url(#csDots-{{ tone }})" cx="222.39" cy="199.53" r="7.07"/>
     <path fill="currentColor" d="M992.14,124.91l-.97,10.35c-16.3-17.46-43.26-15.76-58.95,2.68-14.64,17.21-14.76,43.71.04,60.91,15.68,18.22,42.58,19.79,59.11,2.56.85,6.3,1.12,12.49-.33,18.21-2.89,11.41-13.71,17.35-24.91,17.49-11.44.15-20.48-4.24-27.37-13.21l-11.42,12.25c10.28,13.66,25.65,17.81,41.83,17.18,21.66-.84,39.56-15.79,39.63-38.47l.26-89.57-16.91-.39ZM965.51,196.39c-15.54,0-28.14-12.6-28.14-28.14s12.6-28.14,28.14-28.14,28.14,12.6,28.14,28.14-12.6,28.14-28.14,28.14Z"/>
     <path fill="currentColor" d="M583.74,124.95l-18.86.17-.48,10.38c-16.59-17.72-43.93-16.22-60.09,2.39-15.18,17.49-15.34,44.76.14,62.14,16.2,18.18,42.92,19.24,59.95,2.46l.47,10.2,19.02-.04-.16-87.69ZM538.71,195.99c-15.01,0-27.18-12.17-27.18-27.18s12.17-27.18,27.18-27.18,27.18,12.17,27.18,27.18-12.17,27.18-27.18,27.18Z"/>
 </svg>

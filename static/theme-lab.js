@@ -93,13 +93,22 @@
     r.setProperty('--blue-500', mix(p, '#ffffff', 0.16));
     r.setProperty('--blue-100', mix(p, '#ffffff', 0.90));
     r.setProperty('--on-primary', readableOn(p, ink));
+    // The primary used as text on a white card. Light primaries (lime, rose)
+    // are unreadable there, so step toward the ink until it clears AA.
+    var ptext = p, g2 = 0;
+    while (contrast(ptext, '#ffffff') < 4.5 && g2++ < 30) ptext = mix(ptext, ink, 0.08);
+    r.setProperty('--primary-text', ptext);
 
     r.setProperty('--navy-950', ink);
     r.setProperty('--navy-900', mix(ink, '#ffffff', 0.07));
     r.setProperty('--navy-800', mix(ink, '#ffffff', 0.15));
 
     r.setProperty('--text-primary', mix(ink, '#ffffff', 0.06));
-    r.setProperty('--text-secondary', muted);
+    // Body text on white cards. Some palettes ship a muted that is too light
+    // to read, so it is darkened until it clears AA.
+    var sec = muted, sg = 0;
+    while (contrast(sec, '#ffffff') < 4.5 && sg++ < 30) sec = mix(sec, ink, 0.08);
+    r.setProperty('--text-secondary', sec);
     r.setProperty('--text-muted', mix(muted, '#ffffff', 0.26));
 
     r.setProperty('--app-bg', bg);
@@ -137,7 +146,14 @@
       r.setProperty('--band-fg-2', onLight ? rgba(ink, o2) : 'rgba(255,255,255,' + o2 + ')');
       r.setProperty('--band-fg-3', onLight ? rgba(ink, o3) : 'rgba(255,255,255,' + o3 + ')');
       r.setProperty('--band-line', onLight ? rgba(ink, 0.20) : 'rgba(255,255,255,.24)');
-      r.setProperty('--band-accent', onLight ? mix(ink, p, 0.30) : '#ffffff');
+      /* Eyebrow and links inside the band. A tint of the band colour looks
+         elegant and reads at about 3:1, so it is pushed toward the foreground
+         until it clears AA against the band itself. */
+      var acc = onLight ? mix(ink, p, 0.22) : mix(glow, '#ffffff', 0.40);
+      var ag = 0;
+      while (contrast(acc, p) < 4.5 && ag++ < 40) acc = mix(acc, fg, 0.12);
+      if (contrast(acc, p) < 4.5) acc = fg;
+      r.setProperty('--band-accent', acc);
       r.setProperty('--band-arrow', onLight ? rgba(ink, 0.45) : 'rgba(255,255,255,.55)');
       // the recommended-value card sits on the band, so it steps off the ink
       r.setProperty('--panel-tint', mix(ink, p, 0.18));
@@ -147,6 +163,21 @@
       // the tint card stays dark whatever the band does, so its accent
       // is lightened rather than following --band-accent
       r.setProperty('--panel-tint-accent', mix(glow, '#ffffff', 0.45));
+      /* On a light band the emphasised ribbon text and the white CTA both need
+         to step off the band rather than assume a dark ground. */
+      var emph = onLight ? mix(ink, p, 0.12) : mix(glow, '#ffffff', 0.55);
+      var eg = 0;
+      while (contrast(emph, p) < 4.5 && eg++ < 40) emph = mix(emph, fg, 0.14);
+      if (contrast(emph, p) < 4.5) emph = fg;
+      r.setProperty('--band-emph', emph);
+      r.setProperty('--band-btn-bg', onLight ? ink : '#ffffff');
+      r.setProperty('--band-btn-fg', onLight ? '#ffffff' : ink);
+      r.setProperty('--band-btn-hover', onLight ? mix(ink, '#ffffff', 0.18) : '#E9EFF7');
+      /* Logo dots inside the band. On a flat band the ground IS the primary, so
+         theme-coloured dots would vanish into it — they step off the band
+         foreground instead, keeping a progression without disappearing. */
+      r.setProperty('--logo-band-a', onLight ? ink : mix(p, '#ffffff', 0.50));
+      r.setProperty('--logo-band-b', onLight ? mix(ink, p, 0.34) : mix(glow, '#ffffff', 0.30));
     } else {
       r.setProperty('--band-bg',
         'radial-gradient(900px 500px at 74% 42%, ' + rgba(p, 0.30) + ' 0%, transparent 62%),' +
@@ -156,13 +187,24 @@
       r.setProperty('--band-fg-2', 'rgba(255,255,255,.72)');
       r.setProperty('--band-fg-3', 'rgba(255,255,255,.55)');
       r.setProperty('--band-line', 'rgba(255,255,255,.20)');
-      r.setProperty('--band-accent', mix(glow, '#ffffff', 0.34));
+      var accW = mix(glow, '#ffffff', 0.34);
+      var aw = 0;
+      while (contrast(accW, ink) < 4.5 && aw++ < 24) accW = mix(accW, '#ffffff', 0.12);
+      r.setProperty('--band-accent', accW);
       r.setProperty('--band-arrow', mix(p, '#ffffff', 0.36));
       r.setProperty('--panel-tint', 'linear-gradient(165deg,' + mix(p, ink, 0.62) + ',' + ink + ')');
       r.setProperty('--panel-tint-line', mix(p, ink, 0.42));
       r.setProperty('--panel-tint-fg', '#ffffff');
       r.setProperty('--panel-tint-2', 'rgba(255,255,255,.66)');
       r.setProperty('--panel-tint-accent', mix(glow, '#ffffff', 0.45));
+      var emphW = mix(glow, '#ffffff', 0.55);
+      if (contrast(emphW, ink) < 3) emphW = '#ffffff';
+      r.setProperty('--band-emph', emphW);
+      r.setProperty('--band-btn-bg', '#ffffff');
+      r.setProperty('--band-btn-fg', ink);
+      r.setProperty('--band-btn-hover', '#E9EFF7');
+      r.setProperty('--logo-band-a', mix(p, '#ffffff', 0.42));
+      r.setProperty('--logo-band-b', mix(glow, '#ffffff', 0.26));
     }
 
     // The two feature panels and the logo gradient follow the theme as well.
