@@ -1,11 +1,44 @@
+{#
+  One stroke icon set for the whole page. Previously every icon was a hand-rolled
+  solid path at 17-26px, which is why they read as small and mismatched. These are
+  24px-grid line icons at a single stroke weight, sized by the caller.
+#}
+{% macro icon(name, size=28, sw=1.6) -%}
+<svg class="ico" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="{{ sw }}" stroke-linecap="round"
+     stroke-linejoin="round" aria-hidden="true" focusable="false">
+{%- if name == 'upload' %}<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v13"/>
+{%- elif name == 'images' %}<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+{%- elif name == 'search' %}<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>
+{%- elif name == 'userCheck' %}<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11l2 2 4-4"/>
+{%- elif name == 'checkCircle' %}<circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>
+{%- elif name == 'shield' %}<path d="M12 3l7 3v5.5c0 4.4-3 8.2-7 9.5-4-1.3-7-5.1-7-9.5V6l7-3Z"/><path d="M9 12l2 2 4-4"/>
+{%- elif name == 'file' %}<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/>
+{%- elif name == 'box' %}<path d="M21 8l-9-5-9 5 9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>
+{%- elif name == 'globe' %}<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18Z"/>
+{%- elif name == 'history' %}<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 8v4.5l3 1.8"/>
+{%- elif name == 'lock' %}<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+{%- elif name == 'eye' %}<path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.6"/>
+{%- elif name == 'layers' %}<path d="M12 3l9 5-9 5-9-5 9-5Z"/><path d="M3 13l9 5 9-5"/>
+{%- elif name == 'users' %}<path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/>
+{%- elif name == 'building' %}<path d="M4 21V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v15"/><path d="M15 10h3a2 2 0 0 1 2 2v9"/><path d="M8 8h3"/><path d="M8 12h3"/><path d="M8 16h3"/>
+{%- elif name == 'ruler' %}<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/><path d="M9 11h4"/><path d="M11 9v4"/>
+{%- elif name == 'db' %}<ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>
+{%- elif name == 'clock' %}<circle cx="12" cy="12" r="9"/><path d="M12 7v5.3l3.4 2"/>
+{%- elif name == 'send' %}<path d="M21 3L10.5 13.5"/><path d="M21 3l-6.8 18-3.7-7.5L3 9.8 21 3Z"/>
+{%- elif name == 'arrow' %}<path d="M5 12h13"/><path d="M13 6l6 6-6 6"/>
+{%- endif %}
+</svg>
+{%- endmacro %}
+
 <!DOCTYPE html>
 <html lang="en-AU">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>Contents Loss Assessment Software for Australian Assessors | ClaimSight</title>
-<meta name="description" content="ClaimSight pairs every inventory line with photographic evidence, researches current Australian replacement costs, and produces settlement schedules insurers can audit line by line — with the assessor in control at every step.">
+<title>Contents Claim Assessment Software Australia | ClaimSight</title>
+<meta name="description" content="Contents claim assessment software for Australian loss assessors. ClaimSight pairs evidence to every inventory line, researches current Australian replacement costs with sources, applies defensible depreciation, and produces insurer-ready settlement schedules.">
 <link rel="canonical" href="https://claimsight.com.au/">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
@@ -22,6 +55,19 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Organization","name":"ClaimSight",
+ "url":"https://claimsight.com.au/","logo":"https://claimsight.com.au/static/logo-light.svg",
+ "description":"Contents claim assessment and valuation software for Australian loss assessors and insurers.",
+ "parentOrganization":{"@type":"Organization","name":"Bean Culture Pty Ltd","alternateName":"Web Culture"},
+ "address":{"@type":"PostalAddress","streetAddress":"U5, 47-49 Vicars Street","addressLocality":"Mitchell",
+   "addressRegion":"ACT","postalCode":"2911","addressCountry":"AU"},
+ "areaServed":{"@type":"Country","name":"Australia"}}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"ClaimSight",
+ "url":"https://claimsight.com.au/","inLanguage":"en-AU"}
+</script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"ClaimSight",
  "applicationCategory":"BusinessApplication","operatingSystem":"Web","areaServed":"AU",
@@ -77,9 +123,11 @@ img,svg{display:block}
 @media (max-width:1100px){ .wrap{width:min(100% - 40px, var(--site-max-width))} }
 @media (max-width:640px){ .wrap{width:calc(100% - 32px)} }
 
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;
-  padding:0 26px;border-radius:9px;background:var(--blue-600);color:#fff;border:1px solid var(--blue-600);
-  font-weight:600;font-size:15.5px;cursor:pointer;white-space:nowrap;transition:background .18s ease}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:48px;
+  padding:0 24px;border-radius:8px;background:var(--blue-600);color:#fff;border:1px solid var(--blue-600);
+  font-weight:600;font-size:15.5px;cursor:pointer;white-space:nowrap;
+  transition:background .16s ease, box-shadow .16s ease, transform .16s ease}
+.btn:active{transform:translateY(1px)}
 .btn:hover{background:#1D53C9;color:#fff;text-decoration:none}
 .btn.ghost{background:transparent;color:var(--text-primary);border-color:var(--border-strong)}
 .btn.ghost:hover{background:var(--surface-soft);color:var(--text-primary)}
@@ -87,7 +135,7 @@ img,svg{display:block}
 .btn.light:hover{background:#E9EFF7;color:var(--navy-900)}
 .btn.onnavy{background:transparent;color:#fff;border-color:rgba(255,255,255,.3)}
 .btn.onnavy:hover{background:rgba(255,255,255,.09);color:#fff}
-.btn.sm{height:41px;padding:0 18px;font-size:14.5px}
+.btn.sm{height:42px;padding:0 18px;font-size:14.5px;border-radius:7px}
 .eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--blue-600)}
 .lede{font-size:18.5px;color:var(--text-secondary);line-height:1.55;max-width:600px}
 
@@ -124,8 +172,8 @@ footer .brand img{height:42px}
   margin:20px 0 22px;max-width:640px}
 .hero-cta{display:flex;gap:14px;flex-wrap:wrap;margin:34px 0 28px}
 .trustrow{display:flex;gap:30px;flex-wrap:wrap;align-items:center}
-.trust{display:flex;gap:9px;align-items:center;font-size:14px;color:var(--text-secondary)}
-.trust svg{width:19px;height:19px;color:var(--blue-600);flex:none}
+.trust{display:flex;gap:10px;align-items:center;font-size:14.5px;color:var(--text-secondary)}
+.trust .ico{color:var(--blue-600);flex:none}
 .trust b{color:var(--text-primary);font-weight:600}
 @media (max-width:1050px){ .hero-grid{grid-template-columns:1fr;gap:44px;min-height:0} }
 
@@ -155,12 +203,19 @@ footer .brand img{height:42px}
 .collabel{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
   color:var(--text-muted);margin-bottom:8px}
 .shots{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.shot{aspect-ratio:4/3;border-radius:6px;border:1px solid var(--border);
-  background:linear-gradient(145deg,#C6CBC8,#8E9691 60%,#6E7671);position:relative;overflow:hidden}
-.shot:nth-child(2){background:linear-gradient(140deg,#D6D2C8,#A79E8E 55%,#7C7466)}
-.shot:nth-child(3){background:linear-gradient(150deg,#B9C2C7,#87949C 60%,#5F6C74)}
-.shot:nth-child(4){background:linear-gradient(135deg,#CCC6BC,#9A8F7F 55%,#6F675B)}
-.shot::after{content:"";position:absolute;inset:22% 18%;border-radius:4px;background:rgba(255,255,255,.16)}
+/* Evidence tiles. Deliberately drawn as item line-art on a tinted ground rather
+   than grey rectangles pretending to be photographs — a fake photo reads as a
+   broken image, an illustration reads as designed. Swap in real, consented
+   claim photography when it is available. */
+.shot{aspect-ratio:4/3;border-radius:7px;border:1px solid var(--border);overflow:hidden;
+  background:linear-gradient(160deg,#EEF3F9,#DCE6F1);display:grid;place-items:center;
+  color:#7C93AC;position:relative}
+.shot svg{width:52%;height:52%;stroke-width:1.3}
+.shot::after{content:"";position:absolute;inset:auto 7px 7px auto;width:6px;height:6px;
+  border-radius:50%;background:var(--blue-600);opacity:.5}
+.shot.t2{background:linear-gradient(160deg,#EDF6F4,#D8EBE7);color:#5E8F88}
+.shot.t3{background:linear-gradient(160deg,#F1F1F6,#E0E2EC);color:#7E839B}
+.shot.t4{background:linear-gradient(160deg,#F4F1EC,#E6E0D6);color:#948B7A}
 .kv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;
   border-bottom:1px dotted var(--border);font-size:13px}
 .kv:last-child{border-bottom:0}
@@ -191,17 +246,18 @@ footer .brand img{height:42px}
 }
 
 /* =============================================================== metric strip */
-.metrics{border:1px solid var(--border);border-radius:var(--r-lg);background:#fff;
-  display:grid;grid-template-columns:repeat(4,1fr);box-shadow:var(--shadow-sm);overflow:hidden;
-  min-height:122px}
-.metric{display:flex;gap:17px;align-items:center;padding:26px 30px;border-right:1px solid var(--border)}
-.metric:last-child{border-right:0}
-.micon{width:44px;height:44px;border-radius:11px;display:grid;place-items:center;flex:none;
+.metrics{border:1px solid var(--border);border-radius:12px;background:#fff;
+  display:grid;grid-template-columns:repeat(4,1fr);box-shadow:var(--shadow-md);overflow:hidden;
+  min-height:132px}
+.metric{display:flex;gap:20px;align-items:center;padding:28px 32px;position:relative}
+.metric+.metric::before{content:"";position:absolute;left:0;top:26px;bottom:26px;width:1px;
+  background:var(--border)}
+.micon{width:52px;height:52px;border-radius:12px;display:grid;place-items:center;flex:none;
   background:var(--blue-100);color:var(--blue-600)}
-.micon svg{width:22px;height:22px}
-.metric .n{font-size:30px;font-weight:700;letter-spacing:-.032em;line-height:1.05}
-.metric .l{font-size:14.5px;font-weight:600;margin-top:4px}
-.metric .s{font-size:13px;color:var(--text-muted);margin-top:1px}
+.metric .n{font-size:32px;font-weight:700;letter-spacing:-.034em;line-height:1;
+  font-variant-numeric:tabular-nums}
+.metric .l{font-size:16.5px;font-weight:600;margin-top:7px;letter-spacing:-.012em}
+.metric .s{font-size:13px;color:var(--text-muted);margin-top:3px}
 @media (max-width:900px){ .metrics{grid-template-columns:1fr 1fr}
   .metric:nth-child(2){border-right:0} .metric:nth-child(-n+2){border-bottom:1px solid var(--border)} }
 @media (max-width:520px){ .metrics{grid-template-columns:1fr}
@@ -215,45 +271,65 @@ section.compact{padding:84px 0}
 .sechead p{font-size:17.5px;color:var(--text-secondary);max-width:660px}
 
 /* how it works */
-.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:20px;align-items:stretch;position:relative}
-.step{border:1px solid var(--border);border-radius:var(--r);padding:26px 24px;background:#fff;
-  box-shadow:var(--shadow-sm);position:relative;min-height:196px;
-  transition:transform .18s ease, box-shadow .18s ease}
-.step:hover{transform:translateY(-2px);box-shadow:var(--hover)}
-/* connector between steps, drawn in the gap */
-.step:not(:last-child)::after{content:"";position:absolute;top:44px;right:-20px;width:20px;height:1px;
-  background:var(--border-strong)}
-.step:not(:last-child)::before{content:"";position:absolute;top:41px;right:-9px;width:6px;height:6px;
-  border-top:1.5px solid var(--border-strong);border-right:1.5px solid var(--border-strong);
-  transform:rotate(45deg)}
-.step-n{display:flex;align-items:center;gap:11px;margin-bottom:18px}
-.step-n .ico{width:40px;height:40px;border-radius:11px;background:var(--blue-100);color:var(--blue-600);
-  display:grid;place-items:center}
-.step-n .ico svg{width:21px;height:21px}
-.step-n .num{margin-left:auto;font-size:15px;font-weight:700;color:var(--border-strong);
-  letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.step h3{font-size:18px;margin-bottom:8px;letter-spacing:-.02em}
-.step p{font-size:14.5px;color:var(--text-secondary);line-height:1.5}
-@media (max-width:1000px){ .step::after,.step::before{display:none} }
+/* One rail runs behind all five steps so the row reads as a single process. */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:0;align-items:stretch;position:relative;
+  padding-top:58px}
+.steps::before{content:"";position:absolute;top:26px;left:9%;right:9%;height:2px;
+  background:linear-gradient(90deg,var(--blue-600) 0%,var(--blue-500) 55%,var(--ai-600) 100%);
+  opacity:.28;border-radius:2px}
+.step{padding:0 22px;position:relative}
+.step+.step{border-left:1px solid var(--border)}
+.stepdot{position:absolute;top:-58px;left:50%;transform:translateX(-50%);
+  width:54px;height:54px;border-radius:50%;background:#fff;border:2px solid var(--blue-600);
+  display:grid;place-items:center;color:var(--blue-600);z-index:1}
+.stepnum{display:block;font-size:12px;font-weight:800;letter-spacing:.14em;color:var(--blue-600);
+  margin-bottom:9px;font-variant-numeric:tabular-nums}
+.step h3{font-size:19px;margin-bottom:9px;letter-spacing:-.022em}
+.step p{font-size:14.5px;color:var(--text-secondary);line-height:1.55}
+@media (max-width:1000px){
+  .steps{grid-template-columns:1fr 1fr;gap:36px 0;padding-top:58px}
+  .steps::before{display:none}
+  .step{padding:58px 20px 0} .step+.step{border-left:0}
+  .stepdot{top:0;left:20px;transform:none}
+}
+@media (max-width:600px){ .steps{grid-template-columns:1fr} }
 @media (max-width:1000px){ .steps{grid-template-columns:repeat(2,1fr)} }
 @media (max-width:560px){ .steps{grid-template-columns:1fr} }
 
 /* evidence (dark) */
-.dark{background:var(--navy-950);color:#fff;padding:136px 0;overflow:hidden}
-.dark h2{font-size:clamp(34px,3vw,46px);line-height:1.08;letter-spacing:-.028em;color:#fff}
-.dark p{color:#9BB0C6;font-size:17px;max-width:420px}
-.dark .eyebrow{color:#6FA6FF}
-.flowgrid{display:grid;grid-template-columns:minmax(0,32fr) minmax(0,68fr);gap:64px;align-items:center}
-.flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:16px;align-items:stretch}
-.flowlabel{font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
-  color:#7C93AC;margin-bottom:13px}
-.arrow{color:#41608A;font-size:24px;align-self:center;padding-top:22px}
-.panel{background:#fff;border-radius:11px;padding:14px;color:var(--text-primary);
-  box-shadow:0 18px 40px rgba(0,0,0,.22)}
-.panel.tint{background:#0F2A47;border:1px solid #23456B;color:#fff}
-.panel.tint .amt{color:#fff}
-.evgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
-.evgrid .shot{aspect-ratio:1;border-radius:5px}
+/* Signature section. Stronger blue, brighter accent, and the four stages sized
+   so they read as product surfaces rather than captions. */
+.dark{color:#fff;padding:140px 0;overflow:hidden;position:relative;
+  background:
+    radial-gradient(900px 500px at 74% 42%, rgba(37,99,235,.30) 0%, transparent 62%),
+    radial-gradient(700px 420px at 12% 8%, rgba(13,148,136,.20) 0%, transparent 58%),
+    #061527}
+.dark h2{font-size:clamp(36px,3.1vw,48px);line-height:1.06;letter-spacing:-.03em;color:#fff}
+.dark p{color:rgba(255,255,255,.68);font-size:17px;max-width:430px}
+.dark .eyebrow{color:#7FB4FF}
+.dark a{color:#8CC0FF}
+.flowgrid{display:grid;grid-template-columns:minmax(0,30fr) minmax(0,70fr);gap:56px;align-items:center}
+.flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:14px;align-items:stretch}
+.flowcol{display:flex;flex-direction:column}
+.flowlabel{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(255,255,255,.54);margin-bottom:14px;min-height:16px}
+.arrow{align-self:center;color:#3E7BD1;display:grid;place-items:center;padding-top:30px}
+.panel{background:#fff;border-radius:12px;padding:18px;color:var(--text-primary);flex:1;
+  box-shadow:0 26px 60px rgba(0,0,0,.34);display:flex;flex-direction:column;min-height:238px}
+.panel.tint{background:linear-gradient(165deg,#123C6B,#0C2745);border:1px solid #2C5D97;color:#fff;
+  justify-content:center}
+.evgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1}
+.idname{font-size:17px;font-weight:700;line-height:1.25;letter-spacing:-.02em}
+.srcrow{display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:9px 0;
+  border-bottom:1px solid var(--border)}
+.srcrow:last-of-type{border-bottom:0}
+.srcrow b{font-variant-numeric:tabular-nums;font-weight:700}
+@media (max-width:1050px){
+  .flowgrid{grid-template-columns:1fr;gap:36px}
+  .flow{grid-template-columns:1fr;gap:10px}
+  .arrow{transform:rotate(90deg);padding:0;justify-self:center}
+  .panel{min-height:0}
+}
 @media (max-width:1050px){
   .flowgrid{grid-template-columns:1fr;gap:26px}
   .flow{grid-template-columns:1fr;gap:8px}
@@ -271,15 +347,16 @@ section.compact{padding:84px 0}
 .duocard>div>p{font-size:15.5px;color:var(--text-secondary)}
 .ticks{list-style:none;margin:14px 0 0;padding:0}
 .ticks li{display:flex;gap:10px;font-size:15px;padding:7px 0;color:var(--text-secondary)}
-.ticks svg{width:18px;height:18px;flex:none;margin-top:3px;color:var(--green-600)}
+.ticks .ico{flex:none;margin-top:2px;color:var(--green-600)}
 .claimline{display:flex;justify-content:space-between;align-items:center;gap:10px;
   padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;margin-bottom:8px;
   font-size:14px;font-weight:500}
-.statement{margin-top:34px;min-height:78px;display:flex;align-items:center;justify-content:center;
-  gap:14px;padding:0 28px;border-radius:var(--r-lg);
-  background:var(--navy-900);color:#fff;text-align:center;font-size:20px;font-weight:600;
-  letter-spacing:-.018em}
-.statement svg{width:22px;height:22px;color:#8FD8CE;flex:none}
+.statement{margin-top:36px;min-height:72px;display:flex;align-items:center;justify-content:center;
+  gap:22px;padding:0 32px;border-radius:10px;
+  background:linear-gradient(90deg,var(--navy-900),#16345C 55%,var(--navy-900));
+  color:#fff;text-align:center;font-size:19px;font-weight:600;letter-spacing:-.018em}
+.statement .ico{color:#5FD8C0;flex:none}
+.statement .sep{width:1px;height:26px;background:rgba(255,255,255,.24);flex:none}
 .statement b{color:#8FD8CE}
 @media (max-width:1000px){ .duo{grid-template-columns:1fr} }
 @media (max-width:620px){ .duocard{grid-template-columns:1fr} }
@@ -307,15 +384,15 @@ td.num{font-variant-numeric:tabular-nums;font-weight:600}
 .tbl-scroll table{min-width:1020px}
 
 /* report */
-.reportgrid{display:grid;grid-template-columns:minmax(0,40fr) minmax(0,60fr);gap:60px;align-items:center}
+.reportgrid{display:grid;grid-template-columns:minmax(0,38fr) minmax(0,62fr);gap:64px;align-items:center}
 /* three stacked pages, the front one carrying the detail */
-.sheetstack{position:relative;padding:0 34px 34px 0}
+.sheetstack{position:relative;padding:0 38px 38px 0}
 .sheetstack::before,.sheetstack::after{content:"";position:absolute;background:#fff;
   border:1px solid var(--border);border-radius:10px;box-shadow:0 14px 40px rgba(7,27,48,.08)}
 .sheetstack::before{inset:30px -0px -30px 30px;z-index:0}
 .sheetstack::after{inset:16px 16px -16px 16px;z-index:1}
 .sheet{position:relative;z-index:2;background:#fff;border:1px solid var(--border);border-radius:10px;
-  box-shadow:var(--shadow-lg);padding:32px;font-size:13px;min-height:520px}
+  box-shadow:var(--shadow-lg);padding:38px;font-size:13.5px;min-height:600px}
 .sheet .hd{display:flex;justify-content:space-between;align-items:flex-start;
   border-bottom:2px solid var(--navy-900);padding-bottom:15px;margin-bottom:20px}
 .sheet h4{font-size:21px;letter-spacing:-.025em}
@@ -328,16 +405,16 @@ td.num{font-variant-numeric:tabular-nums;font-weight:600}
 .pcard:hover{transform:translateY(-2px);box-shadow:var(--hover)}
 .pcard h3{font-size:21px;margin-bottom:11px;letter-spacing:-.024em}
 .pcard p{font-size:15.5px;color:var(--text-secondary)}
-.picon{width:52px;height:52px;border-radius:13px;background:var(--blue-100);color:var(--blue-600);
-  display:grid;place-items:center;margin-bottom:20px}
-.picon svg{width:26px;height:26px}
+.picon{width:60px;height:60px;border-radius:14px;background:var(--blue-100);color:var(--blue-600);
+  display:grid;place-items:center;margin-bottom:24px}
 @media (max-width:900px){ .trio{grid-template-columns:1fr} }
 
 .secgrid{display:grid;grid-template-columns:minmax(0,35fr) minmax(0,65fr);gap:60px;align-items:start}
 .seclist{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .secitem{display:block;padding:26px;border:1px solid var(--border);border-radius:var(--r);
   background:#fff;min-height:212px}
-.secitem svg{width:26px;height:26px;color:var(--blue-600);margin-bottom:16px}
+.secitem .ico{color:var(--blue-600);margin-bottom:18px}
+.secitem{transition:background .18s ease}
 .secitem b{display:block;font-size:16.5px;margin-bottom:7px;letter-spacing:-.02em}
 .secitem span{font-size:14.5px;color:var(--text-secondary);line-height:1.55}
 @media (max-width:1050px){ .secgrid{grid-template-columns:1fr;gap:36px} }
@@ -348,7 +425,7 @@ td.num{font-variant-numeric:tabular-nums;font-weight:600}
   max-width:1240px;margin-inline:auto}
 .plan{border:1px solid var(--border);border-radius:var(--r-lg);padding:36px;background:#fff;
   display:flex;flex-direction:column;box-shadow:var(--shadow-sm);position:relative;min-height:440px}
-.plan.hot{border-color:var(--blue-600);box-shadow:0 0 0 1px var(--blue-600),var(--shadow)}
+.plan.hot{border-color:#B9CFF6;box-shadow:0 16px 38px rgba(37,99,235,.10)}
 .plan .tagpop{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--blue-600);
   color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
   padding:3px 11px;border-radius:20px;white-space:nowrap}
@@ -357,12 +434,12 @@ td.num{font-variant-numeric:tabular-nums;font-weight:600}
 .plan .pr small{font-size:16px;font-weight:500;color:var(--text-secondary);letter-spacing:0}
 .plan ul{list-style:none;margin:22px 0 30px;padding:0}
 .plan li{display:flex;gap:10px;font-size:15px;padding:7px 0;color:var(--text-secondary)}
-.plan li svg{width:17px;height:17px;flex:none;margin-top:3px;color:var(--green-600)}
+.plan li .ico{flex:none;margin-top:2px;color:var(--green-600)}
 .plan .btn{margin-top:auto}
 .assure{display:flex;gap:36px;justify-content:center;flex-wrap:wrap;margin-top:36px;
   font-size:14.5px;color:var(--text-secondary)}
 .assure span{display:flex;gap:7px;align-items:center}
-.assure svg{width:17px;height:17px;color:var(--text-muted)}
+.assure .ico{color:var(--text-muted);flex:none}
 @media (max-width:900px){ .plans{grid-template-columns:1fr} }
 
 /* faq */
@@ -375,20 +452,27 @@ details[open] summary::after{content:"−"}
 details p{margin:-4px 0 22px;font-size:16px;color:var(--text-secondary);max-width:78ch;line-height:1.62}
 
 /* closer + footer */
-.closer{background:var(--navy-950);color:#fff;padding:120px 0 112px}
-.closer-in{display:grid;grid-template-columns:minmax(0,65fr) minmax(0,35fr);gap:48px;align-items:center}
-.closer h2{font-size:clamp(34px,3.6vw,52px);line-height:1.06;letter-spacing:-.032em;color:#fff;max-width:720px}
-.closer p{color:#9BB0C6;margin-top:18px;max-width:620px;font-size:17.5px}
-.closer .acts{display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.closer{color:#fff;padding:124px 0 116px;
+  background:radial-gradient(800px 420px at 80% 50%, rgba(37,99,235,.26) 0%, transparent 62%),
+             var(--navy-950)}
+.closer-in{display:grid;grid-template-columns:minmax(0,62fr) minmax(0,38fr);gap:56px;align-items:center}
+.closer h2{font-size:clamp(36px,3.7vw,54px);line-height:1.04;letter-spacing:-.034em;color:#fff;max-width:720px}
+.closer p{color:rgba(255,255,255,.68);margin-top:20px;max-width:620px;font-size:18px}
+.closer .acts{display:flex;gap:18px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+/* Final conversion point — the primary button has to carry weight. */
+.closer .btn.light{height:60px;padding:0 34px;font-size:17px;border-radius:9px;
+  box-shadow:0 14px 34px rgba(0,0,0,.30)}
+.closer .btn.onnavy{height:60px;padding:0 28px;font-size:16px;border-radius:9px}
 @media (max-width:900px){ .closer-in{grid-template-columns:1fr} .closer .acts{justify-content:flex-start} }
-footer{background:var(--navy-950);color:#8FA1B6;padding:0 0 52px;font-size:14px}
-.fgrid{display:grid;grid-template-columns:minmax(0,2.2fr) repeat(3,minmax(0,1fr));gap:48px;
-  padding:56px 0 44px;border-top:1px solid rgba(255,255,255,.09)}
-footer h4{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:#C6D3E3;margin-bottom:13px}
-footer a{color:#8FA1B6;display:block;padding:6px 0}
+footer{background:var(--navy-950);color:#8FA1B6;padding:0 0 30px;font-size:14px}
+.fgrid{display:grid;grid-template-columns:minmax(0,2.4fr) repeat(3,minmax(0,1fr));gap:44px;
+  padding:44px 0 32px}
+footer h4{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:#C6D3E3;margin-bottom:11px}
+footer a{color:#8FA1B6;display:block;padding:5px 0;transition:color .16s ease}
 footer a:hover{color:#fff;text-decoration:none}
 .fbot{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;
-  padding-top:22px;border-top:1px solid rgba(255,255,255,.09);font-size:12.5px}
+  padding-top:20px;border-top:1px solid rgba(255,255,255,.09);font-size:12.5px;
+  color:rgba(255,255,255,.45)}
 @media (max-width:800px){ .fgrid{grid-template-columns:1fr 1fr} }
 
 @media (prefers-reduced-motion:no-preference){
@@ -468,16 +552,16 @@ footer a:hover{color:#fff;text-decoration:none}
       </div>
       <div class="trustrow">
         <div class="trust">
-          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 1.7 3 4.8v5.4c0 4 2.9 7.2 7 8.1 4.1-.9 7-4.1 7-8.1V4.8l-7-3.1Zm0 3.6 4.4 2v3.9c0 2.7-1.8 5-4.4 5.7-2.6-.7-4.4-3-4.4-5.7V7.3l4.4-2Z"/></svg>
-          <span><b>Australian pricing</b>researched with sources</span>
+          {{ icon("globe", 22, 1.7) }}
+          <span><b>Australian pricing</b> researched with sources</span>
         </div>
         <div class="trust">
-          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 9.5c3.6 0 6.5 2 6.5 4.5v1.5h-13V16c0-2.5 2.9-4.5 6.5-4.5Z"/></svg>
-          <span><b>AI research</b>with human review</span>
+          {{ icon("userCheck", 22, 1.7) }}
+          <span><b>AI research</b> with human review</span>
         </div>
         <div class="trust">
-          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M4 2h8l4 4v12H4V2Zm7 1.5V7h3.5L11 3.5ZM6.5 10h7v1.5h-7V10Zm0 3h7v1.5h-7V13Z"/></svg>
-          <span><b>Defensible by design</b>full audit trail</span>
+          {{ icon("history", 22, 1.7) }}
+          <span><b>Defensible by design</b> — full audit trail</span>
         </div>
       </div>
     </div>
@@ -507,8 +591,12 @@ footer a:hover{color:#fff;text-decoration:none}
       <div class="app-body">
         <div class="app-col">
           <div class="collabel">Evidence</div>
-          <div class="shots"><div class="shot"></div><div class="shot"></div>
-            <div class="shot"></div><div class="shot"></div></div>
+          <div class="shots">
+            <div class="shot">{{ icon("db", 40, 1.3) }}</div>
+            <div class="shot t2">{{ icon("box", 40, 1.3) }}</div>
+            <div class="shot t3">{{ icon("layers", 40, 1.3) }}</div>
+            <div class="shot t4">{{ icon("images", 40, 1.3) }}</div>
+          </div>
           <div style="margin-top:9px">
             <div class="kv"><span class="k">Category</span><span class="v">Whitegoods</span></div>
             <div class="kv"><span class="k">Location</span><span class="v">Storage shed</span></div>
@@ -570,22 +658,22 @@ footer a:hover{color:#fff;text-decoration:none}
 <div class="wrap" style="margin-top:-18px">
   <div class="metrics reveal">
     <div class="metric">
-      <span class="micon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 3h14v3H3V3Zm0 5h14v9H3V8Zm2 2v5h4v-5H5Z"/></svg></span>
+      <span class="micon">{{ icon("box", 26) }}</span>
       <div><div class="n">99</div><div class="l">Items assessed</div>
         <div class="s">In this sample claim</div></div>
     </div>
     <div class="metric">
-      <span class="micon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.7 3 4.8v5.4c0 4 2.9 7.2 7 8.1 4.1-.9 7-4.1 7-8.1V4.8l-7-3.1Zm-1 11.6L5.6 10l1.3-1.3L9 10.8l4.1-4.1 1.3 1.3L9 13.3Z"/></svg></span>
+      <span class="micon">{{ icon("images", 26) }}</span>
       <div><div class="n">100%</div><div class="l">Evidence linked</div>
         <div class="s">Every line paired to a photograph</div></div>
     </div>
     <div class="metric">
-      <span class="micon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm.9 3.6v4.9l3.5 2.1-.9 1.5-4.4-2.7V5.6h1.8Z"/></svg></span>
+      <span class="micon">{{ icon("globe", 26) }}</span>
       <div><div class="n">Australian</div><div class="l">replacement research</div>
         <div class="s">Local retailers, GST inclusive</div></div>
     </div>
     <div class="metric">
-      <span class="micon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 2h8l4 4v12H4V2Zm7 1.5V7h3.5L11 3.5ZM6.5 10h7v1.5h-7V10Zm0 3h7v1.5h-7V13Z"/></svg></span>
+      <span class="micon">{{ icon("history", 26) }}</span>
       <div><div class="n">Auditable</div><div class="l">every adjustment</div>
         <div class="s">Recorded against the assessor</div></div>
     </div>
@@ -596,34 +684,39 @@ footer a:hover{color:#fff;text-decoration:none}
 <section id="how">
   <div class="wrap">
     <div class="sechead reveal">
-      <div class="eyebrow">How it works</div>
-      <h2>From photo report to settlement schedule.</h2>
+      <div class="eyebrow">How contents claim assessment works</div>
+      <h2>From photo report to settlement schedule</h2>
       <p>The capture work you already do stays exactly as it is. ClaimSight starts where the
          evening of searching retail websites used to begin.</p>
     </div>
     <div class="steps reveal">
       <div class="step">
-        <div class="step-n"><span class="ico"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2 5.5 6.5 7 8l2-2v7h2V6l2 2 1.5-1.5L10 2ZM4 15v2h12v-2H4Z"/></svg></span><span class="num">01</span></div>
+        <span class="stepdot">{{ icon("upload", 26) }}</span>
+        <span class="stepnum">STEP 01</span>
         <h3>Import</h3>
         <p>Inventory spreadsheet and the assessor's photo report, in minutes.</p>
       </div>
       <div class="step">
-        <div class="step-n"><span class="ico"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4h14v12H3V4Zm2 2v6.5l3-3 2.5 2.5L14 8l1 1V6H5Z"/></svg></span><span class="num">02</span></div>
+        <span class="stepdot">{{ icon("images", 26) }}</span>
+        <span class="stepnum">STEP 02</span>
         <h3>Match</h3>
         <p>Photographs pair to inventory lines automatically by reference number.</p>
       </div>
       <div class="step">
-        <div class="step-n"><span class="ico"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a7 7 0 1 0 4.2 12.6l3.1 3.1 1.4-1.4-3.1-3.1A7 7 0 0 0 9 2Zm0 2a5 5 0 1 1 0 10A5 5 0 0 1 9 4Z"/></svg></span><span class="num">03</span></div>
+        <span class="stepdot">{{ icon("search", 26) }}</span>
+        <span class="stepnum">STEP 03</span>
         <h3>Research</h3>
         <p>The item is identified and priced against current Australian retailers.</p>
       </div>
       <div class="step">
-        <div class="step-n"><span class="ico"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 9.5c3.6 0 6.5 2 6.5 4.5v1.5h-13V16c0-2.5 2.9-4.5 6.5-4.5Z"/></svg></span><span class="num">04</span></div>
+        <span class="stepdot">{{ icon("userCheck", 26) }}</span>
+        <span class="stepnum">STEP 04</span>
         <h3>Review</h3>
         <p>The assessor accepts, adjusts, depreciates or flags every value.</p>
       </div>
       <div class="step">
-        <div class="step-n"><span class="ico"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.7 3 4.8v5.4c0 4 2.9 7.2 7 8.1 4.1-.9 7-4.1 7-8.1V4.8l-7-3.1Zm-1 11.6L5.6 10l1.3-1.3L9 10.8l4.1-4.1 1.3 1.3L9 13.3Z"/></svg></span><span class="num">05</span></div>
+        <span class="stepdot">{{ icon("send", 26) }}</span>
+        <span class="stepnum">STEP 05</span>
         <h3>Publish</h3>
         <p>Insurer-ready A4 PDF, or a passcode-protected link you can send.</p>
       </div>
@@ -647,42 +740,50 @@ footer a:hover{color:#fff;text-decoration:none}
           <p style="margin-top:16px"><a href="#how" style="color:#7FB4FF">See the full workflow →</a></p>
         </div>
         <div class="flow">
-          <div>
+          <div class="flowcol">
             <div class="flowlabel">Evidence</div>
             <div class="panel"><div class="evgrid">
-              <div class="shot"></div><div class="shot"></div><div class="shot"></div>
-              <div class="shot"></div><div class="shot"></div><div class="shot"></div>
+              <div class="shot">{{ icon("db", 46, 1.3) }}</div>
+              <div class="shot t2">{{ icon("box", 46, 1.3) }}</div>
+              <div class="shot t3">{{ icon("layers", 46, 1.3) }}</div>
+              <div class="shot t4">{{ icon("images", 46, 1.3) }}</div>
             </div></div>
           </div>
-          <div class="arrow" aria-hidden="true">→</div>
-          <div>
+          <div class="arrow" aria-hidden="true">{{ icon("arrow", 26, 1.9) }}</div>
+          <div class="flowcol">
             <div class="flowlabel">AI identification</div>
             <div class="panel">
-              <div style="font-size:15px;font-weight:700;line-height:1.3">Rheem 135L Electric Storage Tank</div>
-              <div style="margin-top:6px"><span class="pill amber">Medium confidence</span></div>
-              <div style="margin-top:11px;font-size:12.5px;color:var(--text-secondary)">
+              <div class="idname">Rheem 135L<br>Electric Storage Tank</div>
+              <div style="margin-top:12px"><span class="pill amber">Medium confidence</span></div>
+              <div style="margin-top:auto;padding-top:14px;font-size:13.5px;color:var(--text-secondary);
+                          line-height:1.5">
                 Model unconfirmed — nearest current equivalent priced.</div>
             </div>
           </div>
-          <div class="arrow" aria-hidden="true">→</div>
-          <div>
+          <div class="arrow" aria-hidden="true">{{ icon("arrow", 26, 1.9) }}</div>
+          <div class="flowcol">
             <div class="flowlabel">Australian pricing</div>
             <div class="panel">
-              <div class="src"><span>mitre10.com.au</span><b>A$520</b></div>
-              <div class="src"><span>rheem.com.au</span><b>A$505</b></div>
-              <div class="src"><span>bunnings.com.au</span><b>A$538</b></div>
-              <div class="src" style="color:var(--blue-600)"><span>+2 sources</span><b></b></div>
+              <div class="srcrow"><span>mitre10.com.au</span><b>A$520.00</b></div>
+              <div class="srcrow"><span>rheem.com.au</span><b>A$505.00</b></div>
+              <div class="srcrow"><span>bunnings.com.au</span><b>A$538.00</b></div>
+              <div style="margin-top:auto;padding-top:14px;font-size:13.5px;
+                          font-weight:600;color:var(--blue-600)">+2 more sources</div>
             </div>
           </div>
-          <div class="arrow" aria-hidden="true">→</div>
-          <div>
+          <div class="arrow" aria-hidden="true">{{ icon("arrow", 26, 1.9) }}</div>
+          <div class="flowcol">
             <div class="flowlabel">Recommended value</div>
             <div class="panel tint">
-              <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8FA9C4">Replacement</div>
-              <div class="amt" style="font-size:31px;font-weight:700;letter-spacing:-.033em">A$520.00</div>
-              <div style="margin-top:14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8FA9C4">
-                After depreciation</div>
-              <div style="font-size:23px;font-weight:700;color:#7FD8C4">A$260.00</div>
+              <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+                          color:rgba(255,255,255,.62)">Replacement, incl. GST</div>
+              <div style="font-size:40px;font-weight:800;letter-spacing:-.038em;line-height:1.05;
+                          margin-top:6px;font-variant-numeric:tabular-nums">A$520.00</div>
+              <div style="height:1px;background:rgba(255,255,255,.18);margin:18px 0"></div>
+              <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+                          color:rgba(255,255,255,.62)">After depreciation</div>
+              <div style="font-size:29px;font-weight:700;color:#4FE3C1;letter-spacing:-.03em;
+                          margin-top:5px;font-variant-numeric:tabular-nums">A$260.00</div>
             </div>
           </div>
         </div>
@@ -701,10 +802,10 @@ footer a:hover{color:#fff;text-decoration:none}
           <p>Identification from description and photographs, then a search of current Australian
              retailers for the same product or its nearest equivalent.</p>
           <ul class="ticks">
-            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Current Australian retail pricing</li>
-            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Discontinued model substitution</li>
-            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Confidence rating on every line</li>
-            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Sources printed for verification</li>
+            <li>{{ icon("checkCircle", 20, 1.8) }}Current Australian retail pricing</li>
+            <li>{{ icon("checkCircle", 20, 1.8) }}Discontinued model substitution</li>
+            <li>{{ icon("checkCircle", 20, 1.8) }}Confidence rating on every line</li>
+            <li>{{ icon("checkCircle", 20, 1.8) }}Sources printed for verification</li>
           </ul>
         </div>
         <div>
@@ -722,10 +823,10 @@ footer a:hover{color:#fff;text-decoration:none}
           <p>Nothing settles on an AI figure alone. The assessor reviews each line and the schedule
              records who decided what.</p>
           <ul class="ticks">
-            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Accept, override or adjust quantity</li>
-            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Set condition and effective life</li>
-            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Apply or waive depreciation</li>
-            <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Flag uncertain lines for review</li>
+            <li>{{ icon("checkCircle", 20, 1.8) }}Accept, override or adjust quantity</li>
+            <li>{{ icon("checkCircle", 20, 1.8) }}Set condition and effective life</li>
+            <li>{{ icon("checkCircle", 20, 1.8) }}Apply or waive depreciation</li>
+            <li>{{ icon("checkCircle", 20, 1.8) }}Flag uncertain lines for review</li>
           </ul>
         </div>
         <div>
@@ -745,9 +846,9 @@ footer a:hover{color:#fff;text-decoration:none}
     </div>
 
     <div class="statement reveal">
-      <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 1.6 2.5 5v10L10 18.4 17.5 15V5L10 1.6Zm0 2.2 5.2 2.3L10 8.4 4.8 6.1 10 3.8Z"/></svg>
-      <span>AI does the searching. <b>The assessor makes the decision.</b></span>
-      <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>
+      {{ icon("search", 22, 1.8) }}<span>AI does the searching.</span>
+      <span class="sep" aria-hidden="true"></span>
+      {{ icon("userCheck", 22, 1.8) }}<span><b>The assessor makes the decision.</b></span>
     </div>
   </div>
 </section>
@@ -800,22 +901,26 @@ footer a:hover{color:#fff;text-decoration:none}
 </section>
 
 <!-- ============================================================== report -->
-<section style="padding-top:0">
+<section class="band" style="background:#F7F9FC;border-top:1px solid var(--border);
+         border-bottom:1px solid var(--border);padding:112px 0">
   <div class="wrap reportgrid reveal">
     <div>
-      <div class="eyebrow">Output</div>
+      <div class="eyebrow">Settlement schedule output</div>
       <h2 style="font-size:clamp(24px,2.9vw,32px);margin:11px 0 14px">Insurer-ready reports in one click.</h2>
       <p class="lede" style="font-size:15.5px">
         A settlement schedule designed for a claim file, not a printed web page — evidence, item
         identification, replacement reasoning, confidence, sources and the settlement calculation,
         all on the page.
       </p>
-      <ul class="ticks" style="margin-top:18px">
-        <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>A4 PDF with photographs and values</li>
-        <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Confidence and review status per line</li>
-        <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Pricing sources against every figure</li>
-        <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Passcode-protected share links with access log</li>
-        <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>CSV schedule export</li>
+      <p style="margin-top:26px">
+        <a href="/signup" class="btn ghost">View a sample report</a>
+      </p>
+      <ul class="ticks" style="margin-top:26px">
+        <li>{{ icon("checkCircle", 20, 1.8) }}A4 PDF with photographs and values</li>
+        <li>{{ icon("checkCircle", 20, 1.8) }}Confidence and review status per line</li>
+        <li>{{ icon("checkCircle", 20, 1.8) }}Pricing sources against every figure</li>
+        <li>{{ icon("checkCircle", 20, 1.8) }}Passcode-protected share links with access log</li>
+        <li>{{ icon("checkCircle", 20, 1.8) }}CSV schedule export</li>
       </ul>
     </div>
     <div class="sheetstack" aria-hidden="true">
@@ -879,19 +984,19 @@ footer a:hover{color:#fff;text-decoration:none}
     </div>
     <div class="trio reveal">
       <div class="pcard">
-        <span class="picon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a7 7 0 1 0 4.2 12.6l3.1 3.1 1.4-1.4-3.1-3.1A7 7 0 0 0 9 2Zm0 2a5 5 0 1 1 0 10A5 5 0 0 1 9 4Z"/></svg></span>
+        <span class="picon">{{ icon("ruler", 30, 1.6) }}</span>
         <h3>Loss assessors</h3>
         <p>Cut the repetitive product research without giving up professional judgement. Every
            figure still passes through you before it reaches an insurer.</p>
       </div>
       <div class="pcard">
-        <span class="picon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4h14v12H3V4Zm2 2v6.5l3-3 2.5 2.5L14 8l1 1V6H5Z"/></svg></span>
+        <span class="picon">{{ icon("images", 30, 1.6) }}</span>
         <h3>Contents &amp; restoration specialists</h3>
         <p>Turn the field evidence you already capture into a structured valuation schedule,
            without re-keying an inventory into a spreadsheet.</p>
       </div>
       <div class="pcard">
-        <span class="picon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 2h8l4 4v12H4V2Zm7 1.5V7h3.5L11 3.5ZM6.5 10h7v1.5h-7V10Zm0 3h7v1.5h-7V13Z"/></svg></span>
+        <span class="picon">{{ icon("building", 30, 1.6) }}</span>
         <h3>Insurers &amp; claims teams</h3>
         <p>Receive assessments where the reasoning is visible: what the item was, what replaced it,
            where the price came from and who signed it off.</p>
@@ -905,7 +1010,7 @@ footer a:hover{color:#fff;text-decoration:none}
          border-bottom:1px solid var(--border)">
   <div class="wrap secgrid reveal">
     <div>
-      <div class="eyebrow">Security</div>
+      <div class="eyebrow">Security &amp; claim data controls</div>
       <h2 style="font-size:clamp(34px,3vw,46px);line-height:1.08;letter-spacing:-.028em;margin:14px 0 16px">
         Claim data deserves serious controls.</h2>
       <p style="font-size:17.5px;color:var(--text-secondary)">Contents claims hold a claimant's name,
@@ -914,27 +1019,27 @@ footer a:hover{color:#fff;text-decoration:none}
     </div>
     <div class="seclist">
       <div class="secitem">
-        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 1.7 3 4.8v5.4c0 4 2.9 7.2 7 8.1 4.1-.9 7-4.1 7-8.1V4.8l-7-3.1Z"/></svg>
+        {{ icon("layers", 30, 1.6) }}
         <div><b>Organisation-separated data</b><span>Every claim, item and photograph belongs to one firm and is unreachable from another.</span></div>
       </div>
       <div class="secitem">
-        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 9.5c3.6 0 6.5 2 6.5 4.5v1.5h-13V16c0-2.5 2.9-4.5 6.5-4.5Z"/></svg>
+        {{ icon("users", 30, 1.6) }}
         <div><b>Role-based access</b><span>Account holder, assessor and read-only viewer, enforced on every request, not just hidden in the interface.</span></div>
       </div>
       <div class="secitem">
-        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 2h8l4 4v12H4V2Zm7 1.5V7h3.5L11 3.5Z"/></svg>
+        {{ icon("history", 30, 1.6) }}
         <div><b>Full change history</b><span>Every valuation, override, condition change and review recorded against the person who made it.</span></div>
       </div>
       <div class="secitem">
-        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 8V6a4 4 0 1 1 8 0v2h1.5v9h-11V8H6Zm2 0h4V6a2 2 0 1 0-4 0v2Z"/></svg>
+        {{ icon("lock", 30, 1.6) }}
         <div><b>Controlled report sharing</b><span>Published links can carry a passcode and an expiry, and can be revoked at any time.</span></div>
       </div>
       <div class="secitem">
-        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm1 12H9v-2h2v2Zm0-3H9V5h2v6Z"/></svg>
+        {{ icon("eye", 30, 1.6) }}
         <div><b>Access logging on shared reports</b><span>See when a published schedule was opened, and when a passcode attempt failed.</span></div>
       </div>
       <div class="secitem">
-        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4h14v12H3V4Zm2 2v8h10V6H5Z"/></svg>
+        {{ icon("file", 30, 1.6) }}
         <div><b>Frozen published documents</b><span>A shared schedule is a snapshot. Later edits create a new version rather than altering what was sent.</span></div>
       </div>
     </div>
@@ -946,7 +1051,7 @@ footer a:hover{color:#fff;text-decoration:none}
          border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
   <div class="wrap">
     <div class="sechead reveal" style="max-width:760px;margin-inline:auto;text-align:center">
-      <div class="eyebrow">Pricing</div>
+      <div class="eyebrow">Contents assessment software pricing</div>
       <h2>Simple pricing. Unlimited users on every plan.</h2>
       <p>Plans are based on claim volume rather than seats, because adding your team costs us
          nothing to serve. All prices are AUD and exclude GST.</p>
@@ -959,20 +1064,20 @@ footer a:hover{color:#fff;text-decoration:none}
         <div class="nm">{{ p.name }}</div>
         <div class="pr">${{ p.price }}<small> /month + GST</small></div>
         <ul>
-          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>
+          <li>{{ icon("checkCircle", 20, 1.8) }}
             <span><strong style="color:var(--text-primary)">{{ p.claims }} claims</strong> a month</span></li>
-          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Unlimited users</li>
-          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>Every feature, no gates</li>
-          <li><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>${{ overage }} per claim beyond the allowance</li>
+          <li>{{ icon("checkCircle", 20, 1.8) }}Unlimited users</li>
+          <li>{{ icon("checkCircle", 20, 1.8) }}Every feature, no gates</li>
+          <li>{{ icon("checkCircle", 20, 1.8) }}${{ overage }} per claim beyond the allowance</li>
         </ul>
         <a class="btn {% if key != 'medium' %}ghost{% endif %}" href="/signup">Start free trial</a>
       </div>
       {% endfor %}
     </div>
     <div class="assure">
-      <span><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 14.2 4 10.3l1.4-1.4L8 11.4l6.6-6.6L16 6.2 8 14.2Z"/></svg>14-day trial, three full claims, no card</span>
-      <span><svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 8V6a4 4 0 1 1 8 0v2h1.5v9h-11V8H6Zm2 0h4V6a2 2 0 1 0-4 0v2Z"/></svg>Payments processed by Stripe</span>
-      <span><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm.9 3.6v4.9l3.5 2.1-.9 1.5-4.4-2.7V5.6h1.8Z"/></svg>Cancel any time</span>
+      <span>{{ icon("checkCircle", 20, 1.8) }}14-day trial, three full claims, no card</span>
+      <span>{{ icon("lock", 20, 1.8) }}Payments processed by Stripe</span>
+      <span>{{ icon("clock", 20, 1.8) }}Cancel any time</span>
     </div>
   </div>
 </section>
@@ -982,7 +1087,7 @@ footer a:hover{color:#fff;text-decoration:none}
   <div class="wrap" style="max-width:1060px">
     <div class="sechead reveal">
       <div class="eyebrow">Questions</div>
-      <h2>Contents assessment, answered.</h2>
+      <h2>Contents claim assessment, answered</h2>
     </div>
     <div class="reveal">
       <details open>
@@ -1049,7 +1154,7 @@ footer a:hover{color:#fff;text-decoration:none}
     <div class="fgrid">
       <div>
         <a class="brand" href="/"><img src="/static/logo-dark.svg" alt="ClaimSight" width="156" height="42"></a>
-        <p style="margin-top:12px;max-width:34ch;color:#8FA1B6">
+        <p style="margin-top:12px;max-width:36ch;color:rgba(255,255,255,.62);font-size:13.5px">
           Contents loss assessment software for Australian loss assessors and insurers.</p>
       </div>
       <div>
