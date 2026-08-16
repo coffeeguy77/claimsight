@@ -31,6 +31,7 @@ from sqlalchemy.orm import Session
 import attachments
 import billing
 import ingest
+import legal
 import report_view
 import sharing
 import valuation
@@ -1256,6 +1257,20 @@ def set_item_state(
     return RedirectResponse(_back(job.id, return_to, item.id), status_code=303)
 
 
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy(request: Request):
+    page = legal.PAGES["/privacy"]
+    return templates.TemplateResponse(request, "legal.html",
+                                      {"title": page["title"], "body": page["body"], "path": "/privacy"})
+
+
+@app.get("/terms", response_class=HTMLResponse)
+def terms(request: Request):
+    page = legal.PAGES["/terms"]
+    return templates.TemplateResponse(request, "legal.html",
+                                      {"title": page["title"], "body": page["body"], "path": "/terms"})
+
+
 @app.get("/robots.txt", response_class=PlainTextResponse)
 def robots(request: Request):
     """Index the marketing page. Never index a published claim document."""
@@ -1266,6 +1281,8 @@ def robots(request: Request):
         "Disallow: /r/\n"
         "Disallow: /jobs\n"
         "Disallow: /settings\n"
+        "Allow: /privacy\n"
+        "Allow: /terms\n"
         "Disallow: /invite/\n"
         "Disallow: /reset/\n"
         f"Sitemap: {root}/sitemap.xml\n"
@@ -1279,6 +1296,8 @@ def sitemap(request: Request):
         '<?xml version="1.0" encoding="UTF-8"?>'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
         f"<url><loc>{root}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>"
+        f"<url><loc>{root}/privacy</loc><priority>0.3</priority></url>"
+        f"<url><loc>{root}/terms</loc><priority>0.3</priority></url>"
         "</urlset>"
     )
     return Response(body, media_type="application/xml")
@@ -1894,9 +1913,13 @@ def reports(
     db: Session = Depends(db_dependency),
 ):
     jobs = _org_jobs(db, user)
+    shared = db.scalar(
+        select(func.count(ReportShare.id))
+        .where(ReportShare.organisation_id == user.organisation_id)
+    ) or 0
     return templates.TemplateResponse(
         request, "reports.html",
-        {"user": user, "jobs": jobs, "active_section": "reports"},
+        {"user": user, "jobs": jobs, "shared": shared, "active_section": "reports"},
     )
 
 

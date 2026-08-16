@@ -2,70 +2,158 @@
 {% block title %}Audit log — ClaimSight{% endblock %}
 {% block head %}
 <style>
-  .pagehead{margin-bottom:20px}
-  .pagehead h1{font-size:26px}
-  .pagehead p{margin:3px 0 0;font-size:13.5px;color:var(--text-secondary)}
-  .tbl{width:100%;border-collapse:collapse}
-  .tbl thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;
-    color:var(--text-muted);font-weight:700;padding:11px 16px;border-bottom:1px solid var(--border)}
-  .tbl td{padding:12px 16px;border-bottom:1px solid #EDF1F5;vertical-align:top;font-size:13px}
-  .tbl tr:last-child td{border-bottom:0}
-  .when{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--text-secondary)}
-  .delta{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
-  .pager{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--border);
-    font-size:12.5px;color:var(--text-secondary)}
-  .pager a{min-width:30px;height:30px;padding:0 9px;border-radius:6px;display:inline-grid;place-items:center;
-    border:1px solid var(--border);background:var(--surface);font-weight:600;text-decoration:none}
+  .ev{display:grid;grid-template-columns:132px minmax(0,1fr) 190px;gap:20px;
+    padding:16px 20px;border-bottom:1px solid #EDF1F5;align-items:start}
+  .ev:last-child{border-bottom:0}
+  .ev:hover{background:#F7FAFD}
+  .ev .when{font-size:12.5px;color:var(--text-secondary);font-variant-numeric:tabular-nums;
+    white-space:nowrap;padding-top:2px}
+  .ev .when b{display:block;color:var(--text-primary);font-weight:600}
+  .ev .act{font-size:14.5px;font-weight:600;letter-spacing:-.01em;margin-bottom:3px}
+  .ev .item{font-size:13.5px;color:var(--text-secondary)}
+  .ev .who{font-size:12.5px;color:var(--text-muted);margin-top:4px}
+  .ev .detail{font-size:12.5px;color:var(--text-secondary);margin-top:5px}
+  .ev .chg{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-top:2px}
+  .ev .chg .from{color:var(--text-muted);font-size:13px}
+  .ev .chg .arw{color:var(--text-muted);padding:0 5px}
+  .ev .chg .to{font-size:15px;font-weight:700;letter-spacing:-.02em}
+  .k-valuation{color:var(--ai-600)} .k-override{color:var(--amber-600)}
+  .k-review{color:var(--green-600)} .k-flag{color:var(--amber-600)}
+  .k-settlement{color:var(--blue-600)} .k-evidence{color:var(--blue-600)}
+  .pager{display:flex;align-items:center;gap:8px;padding:14px 20px;border-top:1px solid var(--border);
+    font-size:13px;color:var(--text-secondary)}
+  .pager a{min-width:34px;height:34px;padding:0 13px;border-radius:7px;display:inline-grid;
+    place-items:center;border:1px solid var(--border);background:var(--surface);font-weight:600;
+    text-decoration:none;color:var(--text-primary)}
+  .pager a:hover{border-color:var(--border-strong);text-decoration:none}
+  @media(max-width:900px){ .ev{grid-template-columns:1fr;gap:6px}
+    .ev .chg{text-align:left} }
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="pagehead">
-  <h1>Audit log</h1>
-  <p>Every valuation, adjustment, approval and exclusion recorded against this organisation's claims.
-     {{ "{:,}".format(total) }} entries.</p>
+<div class="ph">
+  <div>
+    <h1>Audit log</h1>
+    <p>Every valuation, adjustment, approval and exclusion recorded against this organisation's
+       claims — who changed what, when, and from what value.</p>
+  </div>
+  <div class="ph-actions">
+    <span class="badge">{{ "{:,}".format(total) }} entries</span>
+  </div>
+</div>
+
+{% if events %}
+<div class="filters">
+  <div class="chips" role="group" aria-label="Filter activity">
+    <button class="chip on" data-filter="all">All</button>
+    <button class="chip" data-filter="valuation">AI valuation</button>
+    <button class="chip" data-filter="override">Overrides</button>
+    <button class="chip" data-filter="settlement">Settlement</button>
+    <button class="chip" data-filter="condition">Condition</button>
+    <button class="chip" data-filter="review">Review</button>
+    <button class="chip" data-filter="flag">Flagged</button>
+  </div>
+  <span style="flex:1"></span>
+  <div class="searchbox">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a7 7 0 1 0 4.2 12.6l3.1 3.1 1.4-1.4-3.1-3.1A7 7 0 0 0 9 2Zm0 2a5 5 0 1 1 0 10A5 5 0 0 1 9 4Z"/></svg>
+    <input id="q" type="search" placeholder="Search audit activity — item, claim, user or reason…"
+           aria-label="Search audit activity" autocomplete="off">
+  </div>
 </div>
 
 <div class="card" style="overflow:hidden">
-{% if events %}
-<table class="tbl">
-  <thead><tr><th style="width:150px">When</th><th style="width:150px">User</th>
-    <th style="width:110px">Action</th><th>Item</th><th>Detail</th><th style="text-align:right">Change</th></tr></thead>
-  <tbody>
+  <div id="rows">
   {% for e in events %}
     {% set it = items.get(e.item_id) %}
     {% set jb = jobs.get(e.job_id) %}
-    <tr>
-      <td class="when">{{ e.created_at.strftime('%d %b %Y') }}<br>
-        <span class="dim" style="font-size:11.5px">{{ e.created_at.strftime('%H:%M') }}</span></td>
-      <td>{{ e.user_name }}</td>
-      <td><span class="badge">{{ e.kind | title }}</span></td>
-      <td>
-        {% if it %}
-          <a href="/jobs/{{ e.job_id }}?item={{ e.item_id }}">{{ it.description | truncate(44, true) }}</a>
-          {% if jb %}<div class="dim" style="font-size:11.5px">{{ jb.claim_reference or jb.reference }}</div>{% endif %}
-        {% else %}<span class="dim">Deleted item</span>{% endif %}
-      </td>
-      <td class="muted">{{ e.summary | truncate(90, true) }}</td>
-      <td class="delta" style="text-align:right">
-        {% if e.old_value and e.new_value %}<span class="dim">{{ e.old_value }}</span> → {{ e.new_value }}
-        {% elif e.new_value %}{{ e.new_value }}{% else %}—{% endif %}</td>
-    </tr>
+    <div class="ev" data-kind="{{ e.kind }}"
+         data-search="{{ ((it.description if it else '') ~ ' ' ~ e.user_name ~ ' ' ~ e.summary ~ ' ' ~ ((jb.claim_reference or jb.reference) if jb else '')) | lower }}">
+      <div class="when">
+        <b>{{ e.created_at.strftime('%d %b %Y') }}</b>
+        {{ e.created_at.strftime('%H:%M') }}
+      </div>
+      <div style="min-width:0">
+        <div class="act k-{{ e.kind }}">
+          {% if e.kind == 'valuation' %}AI valuation recorded
+          {% elif e.kind == 'override' %}Replacement value overridden
+          {% elif e.kind == 'settlement' %}Settlement recalculated
+          {% elif e.kind == 'condition' %}Condition adjusted
+          {% elif e.kind == 'review' %}Reviewed and approved
+          {% elif e.kind == 'flag' %}Flagged for review
+          {% elif e.kind == 'evidence' %}Evidence updated
+          {% else %}{{ e.kind | title }}{% endif %}
+        </div>
+        <div class="item">
+          {% if it %}
+            <a href="/jobs/{{ e.job_id }}?item={{ e.item_id }}">{{ it.description | truncate(60, true) }}</a>
+            {% if jb %} · {{ jb.claim_reference or jb.reference }}{% endif %}
+          {% else %}<span class="dim">Deleted item</span>{% endif %}
+        </div>
+        <div class="who">{{ e.user_name }}</div>
+        {% if e.summary %}<div class="detail">{{ e.summary | truncate(120, true) }}</div>{% endif %}
+      </div>
+      <div class="chg">
+        {% if e.old_value and e.new_value %}
+          <span class="from">{{ e.old_value }}</span><span class="arw">→</span><span class="to">{{ e.new_value }}</span>
+        {% elif e.new_value %}
+          <span class="to">{{ e.new_value }}</span>
+        {% else %}<span class="from">—</span>{% endif %}
+      </div>
+    </div>
   {% endfor %}
-  </tbody>
-</table>
-<div class="pager">
-  <span>Page {{ page }} of {{ pages }}</span>
-  <span style="flex:1"></span>
-  {% if page > 1 %}<a href="/audit?page={{ page - 1 }}">← Previous</a>{% endif %}
-  {% if page < pages %}<a href="/audit?page={{ page + 1 }}">Next →</a>{% endif %}
+  </div>
+  <div id="noresult" style="display:none;padding:44px;text-align:center;color:var(--text-secondary)">
+    No activity matches that search.</div>
+  <div class="pager">
+    <span>Page {{ page }} of {{ pages }} · {{ "{:,}".format(total) }} entries</span>
+    <span style="flex:1"></span>
+    {% if page > 1 %}<a href="/audit?page={{ page - 1 }}">← Previous</a>{% endif %}
+    {% if page < pages %}<a href="/audit?page={{ page + 1 }}">Next →</a>{% endif %}
+  </div>
 </div>
+
 {% else %}
-<div style="padding:64px 24px;text-align:center">
-  <h3 style="font-size:16px;margin-bottom:6px">No recorded activity yet</h3>
-  <p style="font-size:13.5px;color:var(--text-secondary);margin:0">
-    Valuations, overrides and approvals will be logged here as assessors work through claims.</p>
+<div class="card" style="overflow:hidden">
+  <div class="empty-state">
+    <div class="empty-ico"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm.9 3.6v4.9l3.5 2.1-.9 1.5-4.4-2.7V5.6h1.8Z"/></svg></div>
+    <h3>No recorded activity yet</h3>
+    <p>Valuations, overrides, condition changes and approvals are logged here as assessors work
+       through claims. The record cannot be edited — it exists so an assessment can be defended
+       months later.</p>
+    <a class="btn" href="/jobs/new">Create a claim</a>
+  </div>
 </div>
 {% endif %}
-</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  var rows = document.querySelectorAll('#rows .ev');
+  if (!rows.length) return;
+  var chips = document.querySelectorAll('.chip[data-filter]');
+  var q = document.getElementById('q');
+  var none = document.getElementById('noresult');
+  var filter = 'all';
+  function apply(){
+    var term = (q.value || '').trim().toLowerCase();
+    var shown = 0;
+    rows.forEach(function(r){
+      var ok = (filter === 'all' || r.dataset.kind === filter)
+            && (!term || r.dataset.search.indexOf(term) !== -1);
+      r.style.display = ok ? '' : 'none';
+      if (ok) shown++;
+    });
+    none.style.display = shown ? 'none' : 'block';
+  }
+  chips.forEach(function(c){
+    c.addEventListener('click', function(){
+      chips.forEach(function(x){ x.classList.remove('on'); });
+      c.classList.add('on'); filter = c.dataset.filter; apply();
+    });
+  });
+  q.addEventListener('input', apply);
+})();
+</script>
 {% endblock %}
