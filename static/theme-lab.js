@@ -34,13 +34,13 @@
       primary: '#C5E13F', ink: '#0B2114', bg: '#FDFCF0', surface: '#F5F2E6', muted: '#5C6B60', glow: '#C5E13F' },
     { id: 'basalt', flat: true, name: 'Basalt', blurb: 'Charcoal ground with a copper spark.',
       primary: '#D97706', ink: '#141414', bg: '#F7F4EF', surface: '#EDE8E1', muted: '#6B6560', glow: '#F59E0B' },
-    { id: 'rivet', name: 'Rivet', blurb: 'Deep navy with a sharp signal accent.',
+    { id: 'rivet', flat: true, name: 'Rivet', blurb: 'Deep navy with a sharp signal accent.',
       primary: '#F97316', ink: '#0B1C33', bg: '#F4F7FB', surface: '#E8EEF5', muted: '#5A6B7D', glow: '#FB923C' },
     { id: 'tarmac', flat: true, name: 'Tarmac', blurb: 'Near-black with an electric teal edge.',
       primary: '#14B8A6', ink: '#0A0F14', bg: '#F3F6F7', surface: '#E6ECEE', muted: '#5C6A70', glow: '#2DD4BF' },
     { id: 'petal', flat: true, name: 'Petal', blurb: 'Soft rose warmth on cream.',
       primary: '#E8A0A8', ink: '#3D2A32', bg: '#FFF8F7', surface: '#F8ECEC', muted: '#7A646A', glow: '#F0B7BD' },
-    { id: 'willow', name: 'Willow', blurb: 'Calm sage and soft daylight green.',
+    { id: 'willow', flat: true, name: 'Willow', blurb: 'Calm sage and soft daylight green.',
       primary: '#8FAE6B', ink: '#243028', bg: '#F7F9F3', surface: '#EBEEE4', muted: '#66705F', glow: '#A8C285' },
     { id: 'orchid', flat: true, name: 'Orchid', blurb: 'Quiet mauve with a polished finish.',
       primary: '#B28BB8', ink: '#2C2130', bg: '#FBF7FC', surface: '#F1EAF3', muted: '#6F6274', glow: '#C9A5CE' },
@@ -144,6 +144,9 @@
       r.setProperty('--panel-tint-line', mix(ink, p, 0.42));
       r.setProperty('--panel-tint-fg', '#ffffff');
       r.setProperty('--panel-tint-2', 'rgba(255,255,255,.66)');
+      // the tint card stays dark whatever the band does, so its accent
+      // is lightened rather than following --band-accent
+      r.setProperty('--panel-tint-accent', mix(glow, '#ffffff', 0.45));
     } else {
       r.setProperty('--band-bg',
         'radial-gradient(900px 500px at 74% 42%, ' + rgba(p, 0.30) + ' 0%, transparent 62%),' +
@@ -159,7 +162,17 @@
       r.setProperty('--panel-tint-line', mix(p, ink, 0.42));
       r.setProperty('--panel-tint-fg', '#ffffff');
       r.setProperty('--panel-tint-2', 'rgba(255,255,255,.66)');
+      r.setProperty('--panel-tint-accent', mix(glow, '#ffffff', 0.45));
     }
+
+    // The two feature panels and the logo gradient follow the theme as well.
+    r.setProperty('--logo-a', p);
+    r.setProperty('--logo-b', glow);
+    r.setProperty('--logo-ink', ink);
+    r.setProperty('--panel-a', mix(glow, '#ffffff', 0.88));
+    r.setProperty('--panel-b', mix(p, '#ffffff', 0.90));
+    r.setProperty('--panel-b-line', mix(p, '#ffffff', 0.66));
+    r.setProperty('--panel-b-fg', contrast(p, '#ffffff') >= 3 ? p : mix(p, ink, 0.42));
 
     document.documentElement.setAttribute('data-theme', theme.id);
     /* Store the id, never the object. An earlier version saved the whole theme,

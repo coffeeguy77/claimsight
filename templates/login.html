@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% from "_logo.html" import logo %}
 {% block title %}Sign in — ClaimSight{% endblock %}
 {% block anon %}
 <div style="min-height:100vh;display:grid;grid-template-columns:1fr 1fr">
   <div style="display:grid;place-items:center;padding:32px">
     <div style="width:100%;max-width:380px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:26px">
-        <img src="/static/logo-light.svg?v={{ asset_v }}" alt="ClaimSight" width="200" height="50" style="height:50px;width:auto;display:block">
+        {{ logo(50, "ink") }}
       </div>
       <h1 style="font-size:23px;margin-bottom:5px">Sign in</h1>
       <p style="font-size:13.5px;color:var(--text-secondary);margin:0 0 22px">

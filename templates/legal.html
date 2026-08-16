@@ -1,3 +1,4 @@
+{% from "_logo.html" import logo %}
 <!DOCTYPE html>
 <html lang="en-AU">
 <head>
@@ -28,9 +29,15 @@
   .nav{display:flex;align-items:center;height:80px;gap:16px}
   .brand{display:flex;align-items:center}
   .brand:hover{text-decoration:none}
-  .brand img{height:46px;width:auto;display:block}
-  footer .brand img{height:40px}
-  @media(max-width:640px){ .brand img{height:38px} }
+  .brand .cs-logo{height:46px}
+  footer .brand .cs-logo{height:40px}
+/* Themeable lockup. Wordmark takes currentColor; the dot arc reads the
+   --logo-a / --logo-b gradient stops set by the theme. */
+.cs-logo{display:block;height:auto}
+.cs-logo--ink{color:var(--logo-ink,#0A1839)}
+.cs-logo--onDark{color:var(--band-fg,#fff)}
+
+  @media(max-width:640px){ .brand .cs-logo{height:38px} }
   .btn{margin-left:auto;display:inline-flex;align-items:center;height:41px;padding:0 18px;
     border-radius:9px;background:var(--blue-600);color:#fff;font-weight:600;font-size:14.5px}
   .btn:hover{background:#1D53C9;color:#fff;text-decoration:none}
@@ -68,7 +75,7 @@
 </head>
 <body>
 <header><div class="wrap nav">
-  <a class="brand" href="/"><img src="/static/logo-light.svg?v={{ asset_v }}" alt="ClaimSight" width="184" height="46"></a>
+  <a class="brand" href="/">{{ logo(46, "ink") }}</a>
   <a class="btn" href="/signup">Start free trial</a>
 </div></header>
 
@@ -88,7 +95,7 @@
 </div></div></main>
 
 <footer><div class="wrap frow">
-  <a class="brand" href="/"><img src="/static/logo-dark.svg?v={{ asset_v }}" alt="ClaimSight" width="149" height="40"></a>
+  <a class="brand" href="/">{{ logo(40, "onDark") }}</a>
   <span>Bean Culture Pty Ltd t/a Web Culture · ABN 33 600 754 676</span>
   <span style="margin-left:auto">
     <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/login">Sign in</a>
