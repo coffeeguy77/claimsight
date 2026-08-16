@@ -99,8 +99,11 @@
   --blue-600:#2563EB; --blue-500:#3478F6; --blue-100:#EDF4FF;
   --ai-600:#0D9488; --ai-100:#E9F8F5;
   --green-600:#17875D; --green-100:#E8F6EF;
-  --amber-600:#C9780E; --amber-100:#FFF4DF;
-  --red-600:#C64646; --red-100:#FDEAEA;
+  /* Confirmation ticks follow the theme. Green stays reserved for genuine
+     status ("Assessment complete"), where the colour carries meaning. */
+  --tick:var(--primary-text, var(--blue-600));
+  --amber-600:#9A5B08; --amber-100:#FFF4DF;
+  --red-600:#B03636; --red-100:#FDEAEA;
   --text-primary:#142236; --text-secondary:#66788D; --text-muted:#8A98A9;
   --border:#D9E2EA; --border-strong:#C8D3DE;
   --r:10px; --r-lg:14px;
@@ -116,7 +119,7 @@ body{
   font-family:Inter,Geist,"IBM Plex Sans",system-ui,-apple-system,sans-serif;
   font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;
 }
-a{color:var(--blue-600);text-decoration:none}
+a{color:var(--primary-text,var(--blue-600));text-decoration:none}
 a:hover{text-decoration:underline}
 h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-.028em;line-height:1.14}
 p{margin:0}
@@ -136,12 +139,14 @@ img,svg{display:block}
 .btn:hover{background:var(--blue-500);color:var(--on-primary,#fff);text-decoration:none}
 .btn.ghost{background:transparent;color:var(--text-primary);border-color:var(--border-strong)}
 .btn.ghost:hover{background:var(--surface-soft);color:var(--text-primary)}
-.btn.light{background:#fff;color:var(--navy-900);border-color:#fff}
-.btn.light:hover{background:#E9EFF7;color:var(--navy-900)}
+.btn.light{background:var(--band-btn-bg,#fff);color:var(--band-btn-fg,var(--navy-900));
+  border-color:var(--band-btn-bg,#fff)}
+.btn.light:hover{background:var(--band-btn-hover,#E9EFF7);color:var(--band-btn-fg,var(--navy-900))}
 .btn.onnavy{background:transparent;color:var(--band-fg,#fff);border-color:var(--band-line,rgba(255,255,255,.3))}
 .btn.onnavy:hover{background:var(--band-line,rgba(255,255,255,.09));color:var(--band-fg,#fff)}
 .btn.sm{height:42px;padding:0 18px;font-size:14.5px;border-radius:7px}
-.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--blue-600)}
+.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--primary-text,var(--blue-600))}
 .lede{font-size:18.5px;color:var(--text-secondary);line-height:1.55;max-width:600px}
 
 /* ============================================================= public header */
@@ -297,7 +302,7 @@ section.compact{padding:calc(var(--sec-y) * .75) 0}
 .stepdot{position:absolute;top:-58px;left:50%;transform:translateX(-50%);
   width:54px;height:54px;border-radius:50%;background:#fff;border:2px solid var(--blue-600);
   display:grid;place-items:center;color:var(--blue-600);z-index:1}
-.stepnum{display:block;font-size:12px;font-weight:800;letter-spacing:.14em;color:var(--blue-600);
+.stepnum{display:block;font-size:12px;font-weight:800;letter-spacing:.14em;color:var(--primary-text,var(--blue-600));
   margin-bottom:9px;font-variant-numeric:tabular-nums}
 .step h3{font-size:19px;margin-bottom:9px;letter-spacing:-.022em}
 .step p{font-size:14.5px;color:var(--text-secondary);line-height:1.55}
@@ -366,7 +371,7 @@ section.compact{padding:calc(var(--sec-y) * .75) 0}
 .duocard>div>p{font-size:15.5px;color:var(--text-secondary)}
 .ticks{list-style:none;margin:14px 0 0;padding:0}
 .ticks li{display:flex;gap:10px;font-size:15px;padding:7px 0;color:var(--text-secondary)}
-.ticks .ico{flex:none;margin-top:2px;color:var(--green-600)}
+.ticks .ico{flex:none;margin-top:2px;color:var(--tick)}
 .claimline{display:flex;justify-content:space-between;align-items:center;gap:10px;
   padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;margin-bottom:8px;
   font-size:14px;font-weight:500}
@@ -376,7 +381,9 @@ section.compact{padding:calc(var(--sec-y) * .75) 0}
   color:var(--band-fg,#fff);text-align:center;font-size:19px;font-weight:600;letter-spacing:-.018em}
 .statement .ico{color:var(--band-accent,#5FD8C0);flex:none}
 .statement .sep{width:1px;height:26px;background:var(--band-line,rgba(255,255,255,.24));flex:none}
-.statement b{color:#8FD8CE}
+/* The emphasised half of the ribbon. Was a fixed mint, which disappeared
+   on any light band — it now tracks the band foreground. */
+.statement b{color:var(--band-emph,#8FD8CE)}
 @media (max-width:1000px){ .duo{grid-template-columns:1fr} }
 @media (max-width:620px){ .duocard{grid-template-columns:1fr} }
 
@@ -394,7 +401,7 @@ td.num{font-variant-numeric:tabular-nums;font-weight:600}
 .tag{display:inline-block;padding:4px 11px;border-radius:6px;font-size:12.5px;font-weight:600}
 .tag.a{background:var(--ai-100);color:var(--ai-600)}
 .delta{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
-.delta .to{color:var(--green-600)}
+.delta .to{color:var(--tick)}
 .delta .arw{color:var(--text-muted);padding:0 5px}
 .tag.o{background:var(--amber-100);color:var(--amber-600)}
 .tag.s{background:var(--blue-100);color:var(--blue-600)}
@@ -453,7 +460,7 @@ td.num{font-variant-numeric:tabular-nums;font-weight:600}
 .plan .pr small{font-size:16px;font-weight:500;color:var(--text-secondary);letter-spacing:0}
 .plan ul{list-style:none;margin:22px 0 30px;padding:0}
 .plan li{display:flex;gap:10px;font-size:15px;padding:7px 0;color:var(--text-secondary)}
-.plan li .ico{flex:none;margin-top:2px;color:var(--green-600)}
+.plan li .ico{flex:none;margin-top:2px;color:var(--tick)}
 .plan .btn{margin-top:auto}
 .assure{display:flex;gap:36px;justify-content:center;flex-wrap:wrap;margin-top:36px;
   font-size:14.5px;color:var(--text-secondary)}
@@ -475,15 +482,33 @@ details p{margin:-4px 0 22px;font-size:16px;color:var(--text-secondary);max-widt
   background:var(--band-bg,
     radial-gradient(800px 420px at 80% 50%, rgba(37,99,235,.26) 0%, transparent 62%),
     #071B30)}
-.closer-in{display:grid;grid-template-columns:minmax(0,62fr) minmax(0,38fr);gap:56px;align-items:center}
+.closer-in{display:grid;grid-template-columns:minmax(0,58fr) minmax(0,42fr);gap:56px;align-items:center}
 .closer h2{font-size:clamp(36px,3.7vw,54px);line-height:1.04;letter-spacing:-.034em;color:var(--band-fg,#fff);max-width:720px}
 .closer p{color:var(--band-fg-2,rgba(255,255,255,.68));margin-top:20px;max-width:620px;font-size:18px}
-.closer .acts{display:flex;gap:18px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
-/* Final conversion point — the primary button has to carry weight. */
-.closer .btn.light{height:60px;padding:0 34px;font-size:17px;border-radius:9px;
-  box-shadow:0 14px 34px rgba(0,0,0,.30)}
-.closer .btn.onnavy{height:60px;padding:0 28px;font-size:16px;border-radius:9px}
-@media (max-width:900px){ .closer-in{grid-template-columns:1fr} .closer .acts{justify-content:flex-start} }
+/* Final conversion point. One action only — Sign in already lives in the header
+   all the way down the page, so repeating it here just splits attention at the
+   moment the visitor is deciding. Outlined rather than filled: on a band that
+   may itself be the theme colour, an outline reads as deliberate where a solid
+   white slab fights the background. */
+.closer .acts{display:flex;justify-content:flex-end}
+.closer .cta-hero{
+  display:inline-flex;align-items:center;justify-content:center;gap:14px;
+  width:100%;min-height:104px;padding:0 40px;
+  border:2px solid var(--band-fg,#fff);border-radius:12px;background:transparent;
+  color:var(--band-fg,#fff);font-weight:700;font-size:26px;letter-spacing:-.022em;
+  text-decoration:none;transition:background .18s ease, transform .18s ease;
+}
+.closer .cta-hero:hover{
+  background:var(--band-line,rgba(255,255,255,.12));
+  color:var(--band-fg,#fff);text-decoration:none;transform:translateY(-2px);
+}
+.closer .cta-hero .ico{flex:none}
+.closer .cta-hero small{display:block;font-size:13.5px;font-weight:500;letter-spacing:0;
+  opacity:.78;margin-top:5px}
+@media (max-width:900px){
+  .closer .cta-hero{min-height:88px;font-size:22px;padding:0 28px}
+}
+@media (max-width:900px){ .closer-in{grid-template-columns:1fr} .closer .acts{justify-content:stretch} }
 footer{background:var(--footer-bg,var(--navy-950));color:var(--band-fg-2,#8FA1B6);padding:0 0 30px;font-size:14px}
 .fgrid{display:grid;grid-template-columns:minmax(0,2.4fr) repeat(3,minmax(0,1fr));gap:44px;
   padding:44px 0 32px}
@@ -633,7 +658,7 @@ footer a:hover{color:var(--band-fg,#fff);text-decoration:none}
             <div class="src"><span>mitre10.com.au</span><b>A$520.00</b></div>
             <div class="src"><span>rheem.com.au</span><b>A$505.00</b></div>
             <div class="src"><span>bunnings.com.au</span><b>A$538.00</b></div>
-            <div class="src" style="color:var(--blue-600)"><span>+ 2 more sources</span><b></b></div>
+            <div class="src" style="color:var(--primary-text,var(--blue-600))"><span>+ 2 more sources</span><b></b></div>
           </div>
           <div class="rec">
             <div class="collabel" style="margin-bottom:3px">Recommended</div>
@@ -785,7 +810,7 @@ footer a:hover{color:var(--band-fg,#fff);text-decoration:none}
               <div class="srcrow"><span>rheem.com.au</span><b>A$505.00</b></div>
               <div class="srcrow"><span>bunnings.com.au</span><b>A$538.00</b></div>
               <div style="margin-top:auto;padding-top:14px;font-size:13.5px;
-                          font-weight:600;color:var(--blue-600)">+2 more sources</div>
+                          font-weight:600;color:var(--primary-text,var(--blue-600))">+2 more sources</div>
             </div>
           </div>
           <div class="arrow" aria-hidden="true">{{ icon("arrow", 26, 1.9) }}</div>
@@ -1160,8 +1185,10 @@ footer a:hover{color:var(--band-fg,#fff);text-decoration:none}
          report-ready replacement values. Three full claims free, your own data, no card.</p>
     </div>
     <div class="acts">
-      <a class="btn light" href="/signup">Start free trial</a>
-      <a class="btn onnavy" href="/login">Sign in</a>
+      <a class="cta-hero" href="/signup">
+        <span>Start free trial<small>Three full claims · no card required</small></span>
+        {{ icon("arrow", 30, 2) }}
+      </a>
     </div>
   </div>
 </div>
