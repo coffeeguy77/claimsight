@@ -112,34 +112,58 @@
     r.setProperty('--ai-600', glow);
     r.setProperty('--ai-100', mix(glow, '#ffffff', 0.88));
 
-    /* Dark bands. Two treatments:
-       - default: the ink ground with radial washes of primary and glow. Works
-         when the primary is a deep, saturated colour.
-       - flat: one solid block of the theme's primary. Chosen per-theme because
-         a soft wash of a pale primary (rose, lime, sand) just muddies the navy.
-       Where a flat primary is too light to carry white text, it is stepped
-       toward the ink until it clears WCAG AA — the band stays recognisably the
-       theme colour without the text becoming unreadable. */
+    /* Dark bands — the evidence section, message ribbon, final CTA and footer.
+
+       Two treatments, chosen per-theme:
+
+       flat   the band IS the theme's primary, exactly as it appears on the
+              buttons. No darkening: a Petal band should be Petal pink. Where
+              the primary is too light for white text the foreground flips to
+              the theme's ink instead, which is what keeps it readable.
+
+       wash   the ink ground with radial washes of primary and glow. Right when
+              the primary is already deep and saturated. */
     if (theme.flat) {
-      var band = p;
-      var guard = 0;
-      while (contrast(band, '#ffffff') < 4.5 && guard++ < 24) band = mix(band, ink, 0.10);
-      r.setProperty('--band-bg', band);
-      r.setProperty('--footer-bg', band);
-      r.setProperty('--band-accent', '#ffffff');
+      var fg = readableOn(p, ink);
+      var onLight = fg !== '#ffffff';
+      // Where the best available foreground is only just readable, hold the
+      // secondary text at a higher opacity so footer links stay legible.
+      var tight = contrast(p, fg) < 4.5;
+      var o2 = tight ? 0.88 : 0.72;
+      var o3 = tight ? 0.74 : 0.55;
+      r.setProperty('--band-bg', p);
+      r.setProperty('--footer-bg', p);
+      r.setProperty('--band-fg', fg);
+      r.setProperty('--band-fg-2', onLight ? rgba(ink, o2) : 'rgba(255,255,255,' + o2 + ')');
+      r.setProperty('--band-fg-3', onLight ? rgba(ink, o3) : 'rgba(255,255,255,' + o3 + ')');
+      r.setProperty('--band-line', onLight ? rgba(ink, 0.20) : 'rgba(255,255,255,.24)');
+      r.setProperty('--band-accent', onLight ? mix(ink, p, 0.30) : '#ffffff');
+      r.setProperty('--band-arrow', onLight ? rgba(ink, 0.45) : 'rgba(255,255,255,.55)');
+      // the recommended-value card sits on the band, so it steps off the ink
+      r.setProperty('--panel-tint', mix(ink, p, 0.18));
+      r.setProperty('--panel-tint-line', mix(ink, p, 0.42));
+      r.setProperty('--panel-tint-fg', '#ffffff');
+      r.setProperty('--panel-tint-2', 'rgba(255,255,255,.66)');
     } else {
       r.setProperty('--band-bg',
         'radial-gradient(900px 500px at 74% 42%, ' + rgba(p, 0.30) + ' 0%, transparent 62%),' +
         'radial-gradient(700px 420px at 12% 8%, ' + rgba(glow, 0.20) + ' 0%, transparent 58%),' + ink);
       r.setProperty('--footer-bg', ink);
+      r.setProperty('--band-fg', '#ffffff');
+      r.setProperty('--band-fg-2', 'rgba(255,255,255,.72)');
+      r.setProperty('--band-fg-3', 'rgba(255,255,255,.55)');
+      r.setProperty('--band-line', 'rgba(255,255,255,.20)');
       r.setProperty('--band-accent', mix(glow, '#ffffff', 0.34));
+      r.setProperty('--band-arrow', mix(p, '#ffffff', 0.36));
+      r.setProperty('--panel-tint', 'linear-gradient(165deg,' + mix(p, ink, 0.62) + ',' + ink + ')');
+      r.setProperty('--panel-tint-line', mix(p, ink, 0.42));
+      r.setProperty('--panel-tint-fg', '#ffffff');
+      r.setProperty('--panel-tint-2', 'rgba(255,255,255,.66)');
     }
 
     document.documentElement.setAttribute('data-theme', theme.id);
     try { localStorage.setItem(STORAGE_THEME, JSON.stringify(theme)); } catch (e) {}
   }
-
-  var BAND_VARS = ['--band-bg', '--footer-bg', '--band-accent'];
 
   function restore() {
     try {
