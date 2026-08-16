@@ -128,7 +128,9 @@
     el.setAttribute('data-motion', p.motion);
     el.setAttribute('data-density', p.density);
     el.setAttribute('data-accent', p.accent);
-    r.setProperty('font-size', p.text === '100' ? '' : (p.text / 100 * 16) + 'px');
+    // Text size is a multiplier every font-size calc() reads. Setting a root
+    // font-size did nothing: the page is sized in px, so nothing inherited it.
+    r.setProperty('--fs', (p.text / 100).toFixed(3));
 
     r.setProperty('--blue-600', primary);
     r.setProperty('--blue-500', mix(primary, '#ffffff', 0.16));
@@ -144,8 +146,21 @@
     r.setProperty('--tag-s-bg', tagBg);
     r.setProperty('--tag-s-fg', until(primary, tagBg, 4.5, ink));
     r.setProperty('--ai-text', until(glow, mix(glow, soft, dark ? 0.80 : 0.88), 4.5, ink));
-    r.setProperty('--text-secondary', until(dark ? '#A3B6C9' : '#5C6D82', soft, 4.5, ink));
-    r.setProperty('--text-muted', until(dark ? '#93A7BC' : '#64748A', soft, 4.5, ink));
+    /* Increased contrast has to be applied here rather than in CSS: these
+       tokens are set as inline styles on <html>, and an inline style wins over
+       any selector, so a [data-contrast] rule was silently losing. */
+    var strong = p.contrast === 'more';
+    r.setProperty('--text-secondary', strong ? (dark ? '#F2F7FC' : '#0E1B2B')
+                  : until(dark ? '#A3B6C9' : '#5C6D82', soft, 4.5, ink));
+    r.setProperty('--text-muted', strong ? (dark ? '#DCE7F2' : '#26374B')
+                  : until(dark ? '#93A7BC' : '#64748A', soft, 4.5, ink));
+    if (strong) {
+      r.setProperty('--border', dark ? '#4B6480' : '#94A6B8');
+      r.setProperty('--border-strong', dark ? '#6B8299' : '#67798C');
+    } else {
+      r.setProperty('--border', '');
+      r.setProperty('--border-strong', '');
+    }
     // status colours are fixed hues, but they still have to read on their own
     // tint in whichever scheme is active
     r.setProperty('--green-600', until('#12704D', mix('#12704D', soft, 0.88), 4.5, ink));
