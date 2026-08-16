@@ -331,7 +331,8 @@ def index(request: Request, db: Session = Depends(db_dependency)):
         request,
         "landing.html",
         {"plans": billing.PLANS, "paid_plans": billing.PAID_PLANS,
-         "overage": billing.OVERAGE_PRICE})
+         "overage": billing.OVERAGE_PRICE,
+         "now_year": dt.datetime.now(dt.timezone.utc).year})
 
 
 @app.get("/login", response_class=HTMLResponse)
@@ -1860,10 +1861,14 @@ def dashboard(
         .limit(12)
     ).all()
 
+    # Events carry only a job_id. The activity feed groups by claim, so give the
+    # template a reference it can label the group with.
+    job_refs = {j.id: (j.claim_reference or j.reference or "Untitled claim") for j in jobs}
+
     return templates.TemplateResponse(
         request, "dashboard.html",
         {"user": user, "jobs": jobs[:8], "portfolio": portfolio,
-         "recent": recent, "active_section": "dashboard"},
+         "recent": recent, "job_refs": job_refs, "active_section": "dashboard"},
     )
 
 
