@@ -60,7 +60,7 @@
         {% elif s.revoked_at %}
           <span class="chip" style="color:var(--red-600);background:var(--red-100)">Revoked</span>
         {% else %}
-          <span class="chip" style="color:var(--text-muted);background:#EEF1F5">Expired</span>
+          <span class="chip" style="color:var(--text-muted);background:var(--border)">Expired</span>
         {% endif %}
         {% if s.requires_passcode %}
           <span class="chip" style="color:var(--navy-900);background:var(--blue-100)">Passcode</span>
@@ -81,7 +81,7 @@
   <div style="padding:12px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <input readonly value="{{ base_url }}/r/{{ s.slug }}" onclick="this.select()"
            style="flex:1;min-width:240px;font-size:12px;font-family:ui-monospace,monospace;
-                  padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:#F7F9FC">
+                  padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:var(--surface-soft)">
     <button class="btn secondary sm" type="button"
             onclick="navigator.clipboard.writeText('{{ base_url }}/r/{{ s.slug }}');this.textContent='Copied'">
       Copy link</button>

@@ -27,6 +27,7 @@
   --sidebar-bg:#0B1B31; --sidebar-bg-secondary:#132843;
   --sidebar-text:#DCE5F0; --sidebar-muted:#8FA1B6;
 
+  --fs:1;
   --r-input:7px; --r-card:10px;
   --shadow:0 1px 2px rgba(16,35,63,.04), 0 3px 10px rgba(16,35,63,.03);
   --sidebar-w:232px;
@@ -36,7 +37,7 @@ html,body{height:100%}
 body{
   margin:0;background:var(--app-bg);color:var(--text-primary);
   font-family:Inter,Geist,"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  font-size:14px;line-height:1.5;
+  font-size:calc(14px * var(--fs));line-height:1.5;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
   font-feature-settings:"cv02","cv03","cv04","tnum" 0;
 }
@@ -56,6 +57,9 @@ h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.011em}
 }
 .sidebar .brand:hover{text-decoration:none}
 .sidebar .brand .full{height:38px}
+/* The rail is always dark, so the mark uses the light stops rather than the
+   band ones, which invert when the accent is light. */
+.sidebar .cs-logo{--logo-band-a:var(--blue-500);--logo-band-b:var(--ai-600)}
 /* Themeable lockup. Wordmark takes currentColor; the dot arc reads the
    --logo-a / --logo-b gradient stops set by the theme. */
 .cs-logo{display:block;height:auto}
@@ -67,12 +71,12 @@ h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.011em}
 .brand-mark{ height:34px;width:auto;display:block }
 .nav{padding:6px 10px;display:flex;flex-direction:column;gap:1px;flex:1;overflow-y:auto}
 .nav-label{
-  font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--sidebar-muted);
+  font-size:calc(10px * var(--fs));text-transform:uppercase;letter-spacing:.08em;color:var(--sidebar-muted);
   font-weight:700;padding:14px 10px 6px;
 }
 .nav a{
   display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;
-  color:var(--sidebar-text);font-size:13.5px;font-weight:500;text-decoration:none;
+  color:var(--sidebar-text);font-size:calc(13.5px * var(--fs));font-weight:500;text-decoration:none;
   transition:background .15s ease,color .15s ease;
 }
 .nav a:hover{background:rgba(255,255,255,.055);text-decoration:none}
@@ -84,12 +88,12 @@ h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.011em}
 .userbox:hover{background:rgba(255,255,255,.05);text-decoration:none}
 .avatar{
   width:32px;height:32px;border-radius:8px;flex:0 0 32px;background:var(--blue-600);
-  display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700;
+  display:grid;place-items:center;color:#fff;font-size:calc(12px * var(--fs));font-weight:700;
 }
 .userbox .who{min-width:0;flex:1}
-.userbox .nm{font-size:13px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.userbox .rl{font-size:11.5px;color:var(--sidebar-muted);text-transform:capitalize}
-.ver{font-size:10.5px;color:var(--sidebar-muted);padding:6px 8px 2px}
+.userbox .nm{font-size:calc(13px * var(--fs));font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.userbox .rl{font-size:calc(11.5px * var(--fs));color:var(--sidebar-muted);text-transform:capitalize}
+.ver{font-size:calc(10.5px * var(--fs));color:var(--sidebar-muted);padding:6px 8px 2px}
 
 .main{flex:1;min-width:0;margin-left:var(--sidebar-w)}
 /* Same 1440px content grid as the public site, plus the sidebar. */
@@ -105,7 +109,7 @@ h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.011em}
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:7px;
   height:38px;padding:0 15px;border-radius:var(--r-input);border:1px solid transparent;
-  background:var(--blue-600);color:var(--on-primary,#fff);font-size:13.5px;font-weight:600;
+  background:var(--blue-600);color:var(--on-primary,#fff);font-size:calc(13.5px * var(--fs));font-weight:600;
   font-family:inherit;cursor:pointer;white-space:nowrap;
   transition:background .16s ease,border-color .16s ease,color .16s ease;
 }
@@ -117,18 +121,18 @@ h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.011em}
 .btn.tertiary:hover{background:var(--blue-100)}
 .btn.danger{background:transparent;border-color:var(--border-strong);color:var(--red-600)}
 .btn.danger:hover{background:var(--red-100);border-color:#EFC4C4}
-.btn.sm{height:32px;padding:0 11px;font-size:12.5px}
-.btn.xs{height:27px;padding:0 9px;font-size:12px;border-radius:6px}
+.btn.sm{height:32px;padding:0 11px;font-size:calc(12.5px * var(--fs))}
+.btn.xs{height:27px;padding:0 9px;font-size:calc(12px * var(--fs));border-radius:6px}
 .btn.block{width:100%}
 
 label,.lbl{
-  display:block;font-size:12px;font-weight:600;color:var(--text-secondary);
+  display:block;font-size:calc(12px * var(--fs));font-weight:600;color:var(--text-secondary);
   margin-bottom:6px;letter-spacing:.005em;
 }
 input[type=text],input[type=email],input[type=password],input[type=number],
 input[type=search],textarea,select{
   width:100%;height:38px;padding:0 11px;border:1px solid var(--border-strong);
-  border-radius:var(--r-input);font-size:13.5px;font-family:inherit;color:var(--text-primary);
+  border-radius:var(--r-input);font-size:calc(13.5px * var(--fs));font-family:inherit;color:var(--text-primary);
   background:var(--surface);appearance:none;transition:border-color .15s ease,box-shadow .15s ease;
 }
 textarea{height:auto;padding:9px 11px;line-height:1.5;resize:vertical}
@@ -145,14 +149,14 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue-600);cursor:
 .money-input{position:relative}
 .money-input span{
   position:absolute;left:11px;top:50%;transform:translateY(-50%);
-  font-size:13px;color:var(--text-muted);pointer-events:none;font-weight:500;
+  font-size:calc(13px * var(--fs));color:var(--text-muted);pointer-events:none;font-weight:500;
 }
 .money-input input{padding-left:34px;text-align:right;font-variant-numeric:tabular-nums}
 
 /* badges */
 .badge{
   display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:5px;
-  font-size:11.5px;font-weight:600;letter-spacing:.01em;background:#EEF2F6;color:var(--text-secondary);
+  font-size:calc(11.5px * var(--fs));font-weight:600;letter-spacing:.01em;background:var(--border);color:var(--text-secondary);
   white-space:nowrap;
 }
 .badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:0 0 6px}
@@ -161,7 +165,7 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue-600);cursor:
 .badge.low{background:var(--red-100);color:var(--red-600)}
 .badge.ai{background:var(--ai-100);color:var(--ai-600)}
 .badge.info{background:var(--blue-100);color:var(--blue-600)}
-.badge.lg{height:26px;font-size:12px;padding:0 10px}
+.badge.lg{height:26px;font-size:calc(12px * var(--fs));padding:0 10px}
 
 .sr-only{
   position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
@@ -173,7 +177,7 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue-600);cursor:
 .tip:hover .tip-body,.tip:focus-within .tip-body{opacity:1;visibility:visible;transform:translateY(0)}
 .tip-body{
   position:absolute;bottom:calc(100% + 7px);left:50%;transform:translate(-50%,4px);
-  background:var(--navy-900);color:#fff;font-size:11.5px;font-weight:500;line-height:1.45;
+  background:var(--navy-900);color:#fff;font-size:calc(11.5px * var(--fs));font-weight:500;line-height:1.45;
   padding:7px 10px;border-radius:6px;width:max-content;max-width:230px;z-index:60;
   opacity:0;visibility:hidden;transition:opacity .15s ease,transform .15s ease;pointer-events:none;
 }
@@ -296,7 +300,108 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue-600);cursor:
 
 /* Hover surfaces. These were literal light greys, which painted a white bar
    across a row in dark mode. */
-html[data-scheme="dark"]{--row-hover:#16283A;--btn-soft-hover:#16283A}
+/* ---------------------------------------------------------------- dark scheme
+   The public site had these; the app shell did not, so the personalise panel's
+   Dark setting changed the attribute and nothing else. */
+html[data-scheme="dark"]{
+  --app-bg:#0A1420; --surface:#101D2B; --surface-soft:#0D1826;
+  --text-primary:#E9EFF6; --text-secondary:#A3B6C9; --text-muted:#7C90A6;
+  --border:#22364C; --border-strong:#31485F;
+  --row-hover:#16283A; --btn-soft-hover:#16283A;
+  color-scheme:dark;
+}
+html[data-scheme="dark"] body{background:var(--app-bg);color:var(--text-primary)}
+html[data-scheme="dark"] .card,html[data-scheme="dark"] dialog.drawer{background:var(--surface)}
+html[data-scheme="dark"] .auth-form{background:var(--surface)}
+html[data-scheme="dark"] input,html[data-scheme="dark"] select,
+html[data-scheme="dark"] textarea{background:var(--surface);color:var(--text-primary);
+  border-color:var(--border)}
+html[data-scheme="dark"] .dt thead th{background:var(--surface-soft)}
+
+/* ------------------------------------------------------------------- density */
+html[data-density="compact"] .page{padding:18px 24px 34px}
+html[data-density="compact"] .card{padding:16px}
+
+/* -------------------------------------------------------------- reduced motion */
+html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after{
+  animation-duration:.001ms !important;transition-duration:.001ms !important;
+  scroll-behavior:auto !important}
+
+
+/* ------------------------------------------------------------------ dialogs
+   Used for the invite and role panels so they are not permanently occupying
+   the page. */
+dialog.drawer{border:0;border-radius:12px;padding:28px;max-width:460px;width:calc(100% - 40px);
+  background:var(--surface);color:var(--text-primary);box-shadow:0 30px 80px rgba(7,27,48,.28)}
+dialog.drawer::backdrop{background:rgba(7,27,48,.42)}
+dialog.drawer h2{font-size:20px;letter-spacing:-.02em;margin-bottom:7px}
+dialog.drawer .drawer-sub{font-size:13.5px;color:var(--text-secondary);margin:0 0 20px;line-height:1.55}
+dialog.drawer .field{margin-bottom:15px}
+dialog.drawer label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+dialog.drawer input,dialog.drawer select{width:100%;height:42px;padding:0 11px;
+  border:1px solid var(--border);border-radius:8px;font:inherit;font-size:14.5px;
+  background:var(--surface);color:var(--text-primary)}
+dialog.drawer .btn.block{width:100%;height:44px;margin-top:6px}
+.drawer-x{position:absolute;top:14px;right:16px}
+.drawer-x button{border:0;background:none;font-size:24px;line-height:1;color:var(--text-muted);
+  cursor:pointer}
+.drawer-x button:hover{color:var(--text-primary)}
+.rolelist{list-style:none;margin:0 0 20px;padding:0}
+.rolelist li{padding:11px 0;border-bottom:1px solid var(--border)}
+.rolelist li:last-child{border-bottom:0}
+.rolelist b{display:block;font-size:14.5px;margin-bottom:3px}
+.rolelist span{font-size:13.5px;color:var(--text-secondary);line-height:1.55}
+
+/* ================================================================ auth pages
+   Sign in, sign up, invitation and password reset share this shell so they
+   cannot drift apart. Form left, product story right. */
+.auth{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:100vh}
+.auth-form{display:grid;place-items:center;padding:40px 32px;background:var(--surface)}
+.auth-inner{width:100%;max-width:440px}
+.auth-inner h1{font-size:29px;letter-spacing:-.028em;line-height:1.15;margin:30px 0 7px}
+.auth-inner .sub{font-size:15px;color:var(--text-secondary);margin:0 0 26px}
+.auth-inner .field{margin-bottom:16px}
+.auth-inner label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.auth-inner input{width:100%;height:46px;padding:0 13px;border:1px solid var(--border);
+  border-radius:8px;font:inherit;font-size:15px;background:var(--surface);color:var(--text-primary)}
+.auth-inner input:focus{outline:2px solid var(--blue-600);outline-offset:-1px;border-color:var(--blue-600)}
+.auth-inner .hint{display:block;font-size:12px;color:var(--text-muted);margin-top:5px}
+.auth-inner .btn.block{width:100%;height:46px;margin-top:8px;font-size:15px}
+.auth-inner .alt{font-size:14px;color:var(--text-secondary);margin-top:20px}
+.auth-inner .legal-note{font-size:12.5px;color:var(--text-muted);margin-top:14px;line-height:1.5}
+.auth-err{background:var(--red-100);border:1px solid var(--red-600);color:var(--red-600);
+  padding:11px 14px;border-radius:8px;font-size:13.5px;margin-bottom:18px}
+
+.auth-story{background:var(--navy-950);color:#fff;display:grid;place-items:center;padding:48px 40px}
+.auth-story-inner{max-width:520px}
+.auth-story h2{font-size:31px;line-height:1.14;letter-spacing:-.03em;color:#fff}
+.auth-story p{font-size:15.5px;color:rgba(255,255,255,.72);margin:16px 0 32px;line-height:1.6}
+.auth-points{list-style:none;margin:32px 0 0;padding:0}
+.auth-points li{position:relative;padding:7px 0 7px 26px;font-size:14.5px;color:rgba(255,255,255,.82)}
+.auth-points li::before{content:"";position:absolute;left:0;top:14px;width:9px;height:9px;
+  border-radius:50%;background:var(--ai-600)}
+.flowmini{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:10px;align-items:center}
+.fm-k{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:rgba(255,255,255,.54);margin-bottom:7px}
+.fm-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.fm-grid i{aspect-ratio:1;border-radius:4px;background:rgba(255,255,255,.14)}
+.fm-arrow{color:rgba(255,255,255,.42);font-size:15px;padding-top:16px}
+.fm-card{background:#fff;border-radius:8px;padding:9px;color:var(--navy-950)}
+.fm-card b{display:block;font-size:11px;line-height:1.3}
+.fm-pill{display:inline-block;margin-top:6px;padding:2px 7px;border-radius:20px;
+  font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  background:var(--amber-100);color:var(--amber-600)}
+.fm-row{display:flex;justify-content:space-between;font-size:10px;padding:3px 0;
+  color:var(--text-secondary)}
+.fm-row b{display:inline;font-size:10px;color:var(--text-primary)}
+.fm-val{margin-top:6px;padding-top:6px;border-top:1px solid var(--border);
+  font-size:15px;font-weight:700;letter-spacing:-.02em}
+@media (max-width:960px){
+  .auth{grid-template-columns:1fr;min-height:0}
+  .auth-story{order:2;padding:40px 28px}
+  .flowmini{display:none}
+}
 </style>
 <link rel="stylesheet" href="/static/personalise.css?v={{ asset_v }}">
 <script src="/static/personalise.js?v={{ asset_v }}" defer></script>

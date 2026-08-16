@@ -54,7 +54,7 @@
       <div style="font-size:19px;font-weight:600;margin-top:2px">
         {{ org.claims_used or 0 }} <span class="dim" style="font-size:14px">of {{ org.claim_allowance }}</span>
       </div>
-      <div style="width:180px;height:6px;border-radius:3px;background:#E6EBF2;margin-top:6px;overflow:hidden">
+      <div style="width:180px;height:6px;border-radius:3px;background:var(--border);margin-top:6px;overflow:hidden">
         {% set pct = ((org.claims_used or 0) / org.claim_allowance * 100) if org.claim_allowance else 0 %}
         <div style="height:100%;width:{{ [pct, 100] | min }}%;
                     background:{{ 'var(--red-600)' if pct >= 100 else ('var(--amber-600)' if pct > 80 else 'var(--blue-600)') }}"></div>

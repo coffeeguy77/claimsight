@@ -70,7 +70,7 @@
     border:1px solid var(--border-strong);border-radius:16px;background:var(--surface);
     font-size:12.5px;font-weight:600;color:var(--text-secondary);cursor:pointer;
     text-decoration:none;transition:all .15s ease;white-space:nowrap}
-  .chip:hover{background:#F7F9FC;text-decoration:none;border-color:#B6C2D2}
+  .chip:hover{background:var(--surface-soft);text-decoration:none;border-color:#B6C2D2}
   .chip .n{font-size:11.5px;padding:1px 6px;border-radius:9px;background:#EDF1F6;color:var(--text-secondary)}
   .chip.on{background:var(--navy-900);border-color:var(--navy-900);color:#fff}
   .chip.on .n{background:rgba(255,255,255,.18);color:#fff}
@@ -85,7 +85,7 @@
   }
   .tbl tbody td{padding:11px 12px;border-bottom:1px solid #EDF1F5;vertical-align:middle}
   .tbl tbody tr{cursor:pointer;transition:background .13s ease}
-  .tbl tbody tr:hover{background:#F8FAFC}
+  .tbl tbody tr:hover{background:var(--surface-soft)}
   .tbl tbody tr.sel{background:#F3F7FF;box-shadow:inset 3px 0 0 var(--blue-500)}
   .tbl tbody tr.sel:hover{background:#EDF3FF}
   .tbl tbody tr.ex td:not(.keep){opacity:.45}
@@ -101,10 +101,10 @@
 
   .thumbs{display:flex;gap:4px;align-items:center}
   .thumbs img{width:46px;height:46px;object-fit:cover;border-radius:6px;border:1px solid var(--border);
-    background:#EEF1F5;display:block;transition:transform .15s ease,border-color .15s ease}
+    background:var(--border);display:block;transition:transform .15s ease,border-color .15s ease}
   .thumbs img:hover{transform:scale(1.08);border-color:var(--blue-500)}
   .thumbs .more{font-size:11.5px;font-weight:700;color:var(--text-secondary);
-    background:#EEF2F6;border-radius:6px;height:46px;min-width:28px;display:grid;place-items:center;padding:0 5px}
+    background:var(--border);border-radius:6px;height:46px;min-width:28px;display:grid;place-items:center;padding:0 5px}
   .no-ev{font-size:11.5px;color:var(--text-muted);font-style:italic}
 
   .pager{display:flex;align-items:center;gap:10px;padding:12px 15px;border-top:1px solid var(--border);
@@ -113,7 +113,7 @@
   .pager a,.pager span.pg{min-width:30px;height:30px;padding:0 8px;border-radius:6px;
     display:inline-grid;place-items:center;border:1px solid var(--border);background:var(--surface);
     font-size:12.5px;font-weight:600;color:var(--text-secondary);text-decoration:none}
-  .pager a:hover{background:#F5F8FB;text-decoration:none}
+  .pager a:hover{background:var(--surface-soft);text-decoration:none}
   .pager span.pg.on{background:var(--navy-900);border-color:var(--navy-900);color:#fff}
   .pager select{width:auto;height:30px;font-size:12.5px;padding:0 26px 0 9px}
 
@@ -128,7 +128,7 @@
   .tabpane{padding:18px}
 
   .detail-grid{display:grid;grid-template-columns:252px minmax(0,1fr);gap:22px}
-  .hero{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:9px;border:1px solid var(--border);background:#EEF1F5}
+  .hero{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:9px;border:1px solid var(--border);background:var(--border)}
   .sum-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;
     border-bottom:1px solid #EFF3F7;font-size:12.5px}
   .sum-row:last-child{border-bottom:0}
@@ -147,7 +147,7 @@
     border-bottom:1px solid #EFF3F7}
   .src-row:last-child{border-bottom:0}
   .src-row .host{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .favi{width:15px;height:15px;border-radius:3px;flex:0 0 15px;background:#EEF2F6}
+  .favi{width:15px;height:15px;border-radius:3px;flex:0 0 15px;background:var(--border)}
 
   .ai-summary{background:var(--ai-100);border:1px solid #CFEBE8;border-radius:9px;padding:13px 15px;margin-top:16px}
   .ai-summary h4{font-size:12.5px;color:var(--ai-600);display:flex;align-items:center;gap:7px;margin-bottom:6px}
@@ -166,7 +166,7 @@
   .settle .v{font-size:27px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;
     line-height:1.2;color:var(--text-primary)}
   .settle .s{font-size:11.5px;color:var(--text-muted)}
-  .calc{font-size:11.5px;color:var(--text-secondary);background:#F7F9FC;border-radius:7px;
+  .calc{font-size:11.5px;color:var(--text-secondary);background:var(--surface-soft);border-radius:7px;
     padding:9px 11px;margin-top:10px;line-height:1.7}
   .calc div{display:flex;justify-content:space-between}
 
@@ -184,7 +184,7 @@
   .tl .delta{font-size:12px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
 
   /* progress + empty states */
-  .prog{padding:12px 15px;border-bottom:1px solid var(--border);background:#FBFDFF}
+  .prog{padding:12px 15px;border-bottom:1px solid var(--border);background:var(--surface-soft)}
   .bar{height:5px;background:#E6ECF3;border-radius:3px;overflow:hidden;margin-top:8px}
   .fill{height:100%;background:var(--blue-600);border-radius:3px;transition:width .6s ease}
   .empty{padding:56px 24px;text-align:center}
@@ -367,7 +367,7 @@
       </form>
 
       <!-- add item -->
-      <div id="additem" hidden style="padding:16px;border-bottom:1px solid var(--border);background:#FBFDFF">
+      <div id="additem" hidden style="padding:16px;border-bottom:1px solid var(--border);background:var(--surface-soft)">
         <form method="post" action="/jobs/{{ job.id }}/items" enctype="multipart/form-data">
           <input type="hidden" name="return_to" value="{{ rt }}">
           <h3 style="font-size:14px;margin-bottom:3px">Add an item to this claim</h3>
@@ -391,7 +391,7 @@
               <input id="ni-f" type="file" name="files" multiple
                      accept="image/*,application/pdf"
                      style="width:100%;padding:7px 9px;border:1px dashed var(--border);border-radius:7px;
-                            background:#fff;font:inherit;font-size:12.5px">
+                            background:var(--surface);font:inherit;font-size:12.5px">
               <span class="dim" style="font-size:11.5px">Photographs, receipts, quotes or spec sheets. JPEG, PNG or PDF, up to 25 MB each. PDF pages are stored as evidence images.</span></div>
           </div>
           <div style="display:flex;align-items:center;gap:14px;margin-top:14px">
@@ -647,14 +647,14 @@
         <form method="post" action="/items/{{ selected.id }}/evidence"
               enctype="multipart/form-data"
               style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px;
-                     padding:12px 14px;border:1px dashed var(--border);border-radius:9px;background:#FBFDFF">
+                     padding:12px 14px;border:1px dashed var(--border);border-radius:9px;background:var(--surface-soft)">
           <input type="hidden" name="return_to" value="{{ rt }}">
           <div style="flex:1;min-width:240px">
             <label for="ev-f" style="margin-bottom:4px">Attach evidence</label>
             <input id="ev-f" type="file" name="files" multiple required
                    accept="image/*,application/pdf"
                    style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:7px;
-                          background:#fff;font:inherit;font-size:12.5px">
+                          background:var(--surface);font:inherit;font-size:12.5px">
           </div>
           <button class="btn sm" type="submit">Upload</button>
           <div class="dim" style="flex-basis:100%;font-size:11.5px">
