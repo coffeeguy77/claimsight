@@ -5,6 +5,7 @@ import csv
 import datetime as dt
 import io
 import os
+import pathlib
 import re
 import secrets
 import tempfile
@@ -61,6 +62,29 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 # Brand assets. Served with a long cache; the filenames are stable.
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+def _asset_version() -> str:
+    """A cache-busting stamp for /static URLs.
+
+    Cloudflare sits in front of the app and caches .js/.css/.svg by extension.
+    At a stable URL that means a deployed fix stays invisible until the edge
+    cache expires — which is exactly how a corrected script kept being ignored.
+    Versioned URLs sidestep it: the filename on disk never changes, but the URL
+    does whenever a static file is touched, so the edge treats it as new.
+    """
+    newest = 0
+    try:
+        for path in pathlib.Path("static").iterdir():
+            if path.is_file():
+                newest = max(newest, int(path.stat().st_mtime))
+    except OSError:
+        pass
+    return str(newest or int(dt.datetime.now(dt.timezone.utc).timestamp()))
+
+
+ASSET_V = _asset_version()
+templates.env.globals["asset_v"] = ASSET_V
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 SESSION_COOKIE = "claimsight_session"
