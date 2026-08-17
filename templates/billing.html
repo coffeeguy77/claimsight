@@ -2,12 +2,17 @@
 {% block title %}Billing · ClaimSight{% endblock %}
 {% block body %}
 
-<div class="claimhead">
+<div class="ph">
   <div>
-    <h1 style="font-size:22px">Billing</h1>
-    <p class="dim" style="margin:4px 0 0">
-      Unlimited seats on every plan. Tiers meter claims, because that is what costs us to run.
-    </p>
+    <h1>Billing</h1>
+    <p>Unlimited seats on every plan. Tiers meter claims, because that is what costs us to run.</p>
+  </div>
+  <div class="ph-actions">
+    {% if org.stripe_customer_id %}
+    <form method="post" action="/billing/portal">
+      <button class="btn secondary" type="submit">Invoices &amp; payment method</button>
+    </form>
+    {% endif %}
   </div>
 </div>
 
@@ -67,13 +72,7 @@
         {{ org.trial_ends_at.strftime('%d %b %Y') }}</div>
     </div>
     {% endif %}
-    <div style="margin-left:auto;align-self:center">
-      {% if org.stripe_customer_id %}
-      <form method="post" action="/billing/portal">
-        <button class="btn secondary" type="submit">Invoices &amp; payment method</button>
-      </form>
-      {% endif %}
-    </div>
+
   </div>
 </div>
 
@@ -106,7 +105,7 @@
 </div>
 
 <div class="card" style="padding:14px 16px">
-  <h2 style="font-size:14px;margin-bottom:6px">How the allowance works</h2>
+  <h2 style="font-size:15px;margin-bottom:6px">How the allowance works</h2>
   <p class="dim" style="margin:0;font-size:12.5px;line-height:1.6">
     A claim counts once, when it is created. Re-valuing items on an existing claim does not
     count again. The counter resets when each invoice is paid. All prices are AUD and exclude

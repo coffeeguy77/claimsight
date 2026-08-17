@@ -13,18 +13,43 @@
   .r:last-child{border-bottom:0}
   .r .k{color:var(--text-secondary)}
   .r .v{font-weight:600;text-align:right}
+  .explain-card{background:var(--surface-soft);border:1px solid var(--border);border-radius:9px;
+    padding:16px 18px}
+  .explain-card h3{font-size:14px;margin-bottom:6px}
+  .explain-card p{font-size:13px;color:var(--text-secondary);line-height:1.6;margin:0}
+  .advanced{margin-top:14px;border-top:1px solid var(--border);padding-top:13px}
+  .advanced summary{font-size:13px;font-weight:600;cursor:pointer;color:var(--text-secondary)}
+  .advanced summary:hover{color:var(--text-primary)}
+  .advanced p{font-size:12.5px;color:var(--text-muted);line-height:1.6;margin:9px 0 0}
+  .advanced code{background:var(--surface-soft);border:1px solid var(--border);border-radius:4px;
+    padding:1px 5px;font-size:11.5px}
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="pagehead">
-  <h1>Settings</h1>
-  <p>Account, organisation and AI valuation configuration.</p>
+<div class="ph">
+  <div>
+    <h1>Settings</h1>
+    <p>Organisation, account and research configuration for {{ user.organisation.name }}.</p>
+  </div>
+  {% if user.is_owner %}
+  <div class="ph-actions">
+    <a class="btn secondary" href="/settings/team">Team</a>
+    <a class="btn secondary" href="/settings/billing">Billing</a>
+  </div>
+  {% endif %}
 </div>
 
-<div class="cols">
+<nav class="settings-nav" aria-label="Settings sections">
+  <a class="on" href="#organisation">Organisation</a>
+  <a href="#account">Your account</a>
+  <a href="#research">AI valuation</a>
+  <a href="#valuation">Valuation basis</a>
+</nav>
+
+<div class="cols narrow">
   <div class="card">
-    <div class="sec"><h2>Organisation</h2><p>Claims are private to this organisation.</p></div>
+    <div class="sec" id="organisation"><h2>Organisation</h2><p>Claims are private to this organisation.</p></div>
     <div class="r"><span class="k">Name</span><span class="v">{{ user.organisation.name }}</span></div>
     <div class="r"><span class="k">Claims on file</span><span class="v">{{ claims }}</span></div>
     <div class="r"><span class="k">Members</span><span class="v">{{ members | length }}</span></div>
@@ -33,7 +58,7 @@
   </div>
 
   <div class="card">
-    <div class="sec"><h2>Your account</h2><p>Signed in as an {{ user.role or 'assessor' }}.</p></div>
+    <div class="sec" id="account"><h2>Your account</h2><p>Signed in as an {{ user.role or 'assessor' }}.</p></div>
     <div class="r"><span class="k">Name</span><span class="v">{{ user.name or '—' }}</span></div>
     <div class="r"><span class="k">Email</span><span class="v">{{ user.email }}</span></div>
     <div class="r"><span class="k">Role</span><span class="v">{{ (user.role or 'assessor') | title }}</span></div>
@@ -41,7 +66,7 @@
   </div>
 
   <div class="card">
-    <div class="sec"><h2>AI valuation</h2>
+    <div class="sec" id="research"><h2>AI valuation</h2>
       <p>Controls how replacement costs are researched. Configured per deployment.</p></div>
     <div class="r"><span class="k">Status</span>
       <span class="v">{% if has_api_key %}<span class="badge high"><span class="dot"></span>Connected</span>
@@ -50,15 +75,25 @@
     <div class="r"><span class="k">Web searches per item</span><span class="v">{{ max_searches }}</span></div>
     <div class="r"><span class="k">Concurrent workers</span><span class="v">{{ workers }}</span></div>
     <div class="r"><span class="k">Total research spend</span><span class="v">US${{ "{:,.2f}".format(spend) }}</span></div>
-    <div style="padding:13px 18px;font-size:12px;color:var(--text-muted);line-height:1.6">
-      Change these with the <code>VALUATION_MODEL</code>, <code>MAX_SEARCHES_PER_ITEM</code> and
-      <code>VALUATION_WORKERS</code> environment variables. More searches improve accuracy on
-      obscure items but increase cost faster than linearly.
+    <div style="padding:14px 18px 16px">
+      <div class="explain-card">
+        <h3>How ClaimSight AI works</h3>
+        <p>ClaimSight uses the inventory description and photographic evidence to identify each
+           lost item, then researches current Australian replacement products and pricing. Every
+           suggested valuation remains subject to assessor review before it reaches a report.</p>
+      </div>
+      <details class="advanced">
+        <summary>Advanced configuration</summary>
+        <p>Set as deployment environment variables and applied on the next deploy:
+           <code>VALUATION_MODEL</code>, <code>MAX_SEARCHES_PER_ITEM</code> and
+           <code>VALUATION_WORKERS</code>. More searches improve accuracy on obscure items but
+           increase cost faster than linearly.</p>
+      </details>
     </div>
   </div>
 
   <div class="card">
-    <div class="sec"><h2>Valuation basis</h2>
+    <div class="sec" id="valuation"><h2>Valuation basis</h2>
       <p>Depreciation is set per claim, not globally, because policies differ.</p></div>
     <div style="padding:14px 18px;font-size:13px;line-height:1.7;color:var(--text-secondary)">
       Indemnity settlement applies straight-line depreciation over each item's assessed
