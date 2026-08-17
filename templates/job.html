@@ -71,7 +71,7 @@
     font-size:12.5px;font-weight:600;color:var(--text-secondary);cursor:pointer;
     text-decoration:none;transition:all .15s ease;white-space:nowrap}
   .chip:hover{background:var(--surface-soft);text-decoration:none;border-color:#B6C2D2}
-  .chip .n{font-size:11.5px;padding:1px 6px;border-radius:9px;background:#EDF1F6;color:var(--text-secondary)}
+  .chip .n{font-size:11.5px;padding:1px 6px;border-radius:9px;background:var(--surface-soft);color:var(--text-secondary)}
   .chip.on{background:var(--navy-900);border-color:var(--navy-900);color:#fff}
   .chip.on .n{background:rgba(255,255,255,.18);color:#fff}
   .chip.on:hover{background:var(--navy-800)}
@@ -79,15 +79,15 @@
   /* ------------------------------------------------------------- table */
   .tbl{width:100%;border-collapse:collapse}
   .tbl thead th{
-    position:sticky;top:0;z-index:3;background:#FAFCFE;text-align:left;
+    position:sticky;top:0;z-index:3;background:var(--surface-soft);text-align:left;
     font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);
     font-weight:700;padding:9px 12px;border-bottom:1px solid var(--border);white-space:nowrap;
   }
   .tbl tbody td{padding:11px 12px;border-bottom:1px solid #EDF1F5;vertical-align:middle}
   .tbl tbody tr{cursor:pointer;transition:background .13s ease}
   .tbl tbody tr:hover{background:var(--surface-soft)}
-  .tbl tbody tr.sel{background:#F3F7FF;box-shadow:inset 3px 0 0 var(--blue-500)}
-  .tbl tbody tr.sel:hover{background:#EDF3FF}
+  .tbl tbody tr.sel{background:var(--sel-bg,#F3F7FF);box-shadow:inset 3px 0 0 var(--blue-500)}
+  .tbl tbody tr.sel:hover{background:var(--sel-bg,#EDF3FF)}
   .tbl tbody tr.ex td:not(.keep){opacity:.45}
   .row-n{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;width:38px}
   .it-name{font-size:14.5px;font-weight:600;line-height:1.35;color:var(--text-primary)}
@@ -137,7 +137,7 @@
 
   /* AI match flow */
   .flow{display:grid;grid-template-columns:1fr 26px 1fr 26px 1fr;gap:0;align-items:stretch}
-  .flow-card{border:1px solid var(--border);border-radius:9px;padding:13px;background:#FCFDFE;min-width:0}
+  .flow-card{border:1px solid var(--border);border-radius:9px;padding:13px;background:var(--surface-soft);min-width:0}
   .flow-card h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
     color:var(--text-muted);margin-bottom:9px;font-weight:700}
   .flow-arrow{display:grid;place-items:center;color:var(--border-strong)}
@@ -151,7 +151,7 @@
 
   .ai-summary{background:var(--ai-100);border:1px solid #CFEBE8;border-radius:9px;padding:13px 15px;margin-top:16px}
   .ai-summary h4{font-size:12.5px;color:var(--ai-600);display:flex;align-items:center;gap:7px;margin-bottom:6px}
-  .ai-summary p{margin:0;font-size:13px;line-height:1.6;color:#14413F}
+  .ai-summary p{margin:0;font-size:13px;line-height:1.6;color:var(--green-600)}
 
   /* ------------------------------------------------ valuation inspector */
   .inspector{position:sticky;top:18px}
@@ -185,7 +185,7 @@
 
   /* progress + empty states */
   .prog{padding:12px 15px;border-bottom:1px solid var(--border);background:var(--surface-soft)}
-  .bar{height:5px;background:#E6ECF3;border-radius:3px;overflow:hidden;margin-top:8px}
+  .bar{height:5px;background:var(--surface-soft);border-radius:3px;overflow:hidden;margin-top:8px}
   .fill{height:100%;background:var(--blue-600);border-radius:3px;transition:width .6s ease}
   .empty{padding:56px 24px;text-align:center}
   .empty h3{font-size:15px;margin-bottom:5px}
@@ -231,7 +231,7 @@
 {% if notice %}
 <div role="status" style="display:flex;align-items:flex-start;gap:10px;margin:0 0 14px;
      padding:11px 14px;border-radius:9px;font-size:13px;
-     border:1px solid #C7D3E2;background:#EFF3F9;color:var(--text-primary)">
+     border:1px solid #C7D3E2;background:var(--surface-soft);color:var(--text-primary)">
   <span aria-hidden="true">📎</span><span>{{ notice }}</span>
 </div>
 {% endif %}
@@ -295,7 +295,7 @@
       <div class="s">{% if job.apply_depreciation %}{{ totals.depreciation_pct }}% of replacement{% else %}Settling new for old{% endif %}</div></div>
   </div>
   <div class="kpi">
-    <div class="kpi-icon" style="background:#E7EDF8;color:var(--navy-800)">
+    <div class="kpi-icon" style="background:var(--surface-soft);color:var(--navy-800)">
       <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2.5H2V3Zm0 4h12v6H2V7Zm2 2v2h4V9H4Z"/></svg></div>
     <div><div class="k">Settlement estimate</div>
       <div class="v">A${{ "{:,.0f}".format(totals.settlement) }}</div>
@@ -635,7 +635,7 @@
             <div style="margin-top:14px;background:var(--amber-100);border:1px solid #F0DDB6;
                         border-radius:9px;padding:11px 14px">
               <strong style="font-size:13px;color:var(--amber-600)">Human review recommended</strong>
-              <p style="margin:3px 0 0;font-size:12.5px;color:#7A4E0C">
+              <p style="margin:3px 0 0;font-size:12.5px;color:var(--amber-600)">
                 Identification or pre-loss condition is uncertain on this line. An insurer is
                 likely to contest it without further evidence.</p>
             </div>
@@ -718,7 +718,7 @@
           {% if selected.error %}
             <div style="margin-top:14px;background:var(--red-100);border:1px solid #F2CFCF;border-radius:8px;padding:11px 14px">
               <strong style="font-size:13px;color:var(--red-600)">Research failed</strong>
-              <p style="margin:3px 0 0;font-size:12.5px;color:#8A3030">{{ selected.error }}</p></div>
+              <p style="margin:3px 0 0;font-size:12.5px;color:var(--red-600)">{{ selected.error }}</p></div>
           {% endif %}
         </div>
 
